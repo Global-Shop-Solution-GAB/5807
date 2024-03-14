@@ -1,0 +1,152 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Change Logger")
+V.Global.bUnattended.Declare(Boolean, True)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_ChangeLogging.g2u
+'Trey S
+'February 27th, 2020
+'Part of what is intended to be the standard SOAP uploader / integration project
+'This script will log changes of objects in GS to a custom table GCG_5807_CHANGE_LOG
+'At the moment this is just for part prices, but making it in a way so that more objects can be added.
+
+F.Intrinsic.Control.Try
+
+V.Local.bEnabled.Declare(Boolean, False)
+V.Local.sIdentifier.Declare(String)
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CHANGE_LOG", "NAME", "LOG_PART_PRICE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bEnabled.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.bEnabled)
+	F.Intrinsic.Control.CallSub(CheckPartPrices)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.CheckPartPrices.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+V.Local.bExists.Declare(Boolean, False)
+V.Local.iCounter.Declare(Long)
+
+'load all parts and prices from XML if there is one
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Cache\Part Price Change Logging\PartPrices.xml", V.Caller.GlobalDir, V.Global.sProject, V.Caller.CompanyCode, V.Local.sFile)
+F.Intrinsic.File.Exists(V.Local.sFile, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	F.Data.DataTable.CreateFromXML("dtParts", V.Local.sFile, True)
+	
+	'load current prices
+	F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+	F.Data.Dictionary.CreateFromSQL("dictPrices", "Con", "select RTRIM(PART) + RTRIM(LOCATION), AMT_PRICE from V_INVENTORY_MSTR where UPPER(PART) = PART")
+	F.Data.Dictionary.SetDefaultReturn("dictPrices", 0)
+	F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+	
+	F.Data.DataTable.AddColumn("dtParts", "CURRENT_PRICE", "Float", 0)
+	F.Data.DataTable.FillFromDictionary("dtParts", "dictPrices", "PART_KEY", "CURRENT_PRICE")
+	F.Data.Dictionary.Close("dictPrices")
+	
+	'compare
+	F.Data.DataView.Create("dtParts", "dvCheck", 22, "AMT_PRICE <> CURRENT_PRICE", "")
+	F.Intrinsic.Control.If(V.DataView.dtParts!dvCheck.RowCount, >, 0)
+		F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtParts!dvCheck.RowCount--, 1)
+			'log changes
+			F.Intrinsic.Control.CallSub(LogChange, "TYPE", "PART", "PROPERTY", "PRICE", "IDENTIFIER_1", V.DataView.dtParts!dvCheck(V.Local.iCounter).PART!FieldValTrim, "IDENTIFIER_2", V.DataView.dtParts!dvCheck(V.Local.iCounter).LOCATION!FieldValTrim, "ORIGINAL_VALUE", V.DataView.dtParts!dvCheck(V.Local.iCounter).AMT_PRICE!FieldValFloat, "NEW_VALUE", V.DataView.dtParts!dvCheck(V.Local.iCounter).CURRENT_PRICE!FieldValFloat, "INITIAL_VALUE", False, "USER", V.DataView.dtParts!dvCheck(V.Local.iCounter).WHO_CHG_LAST!FieldValTrim)
+		F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtParts", "dvCheck")
+	F.Data.DataTable.Close("dtParts")
+F.Intrinsic.Control.EndIf
+
+'save new cache XML
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Data.DataTable.CreateFromSQL("dtParts", "Con", "select RTRIM(PART) PART, RTRIM(LOCATION) LOCATION, RTRIM(PART) + RTRIM(LOCATION) PART_KEY, RTRIM(WHO_CHG_LAST) WHO_CHG_LAST, AMT_PRICE from V_INVENTORY_MSTR where UPPER(PART) = PART", True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+F.Intrinsic.Control.CallSub(CacheDataTable, "DataTable", "dtParts", "DataView", "", "Type", "Part Price Change Logging", "Name", "PartPrices", "Project", V.Global.sProject)
+F.Data.DataTable.Close("dtParts")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckPartPrices.End
+
+Program.Sub.CacheDataTable.Start
+'pass DATATABLE
+'pass TYPE
+'pass NAME
+'pass DATAVIEW
+'pass PROJECT
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.sName.Declare(String)
+V.Local.sDataTable.Declare(String)
+
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Cache\{3}", V.Caller.GlobalDir, V.Args.Project, V.Caller.CompanyCode, V.Args.Type, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+
+F.Intrinsic.String.Build("{0}.xml", V.Args.Name, V.Local.sName)
+F.Intrinsic.String.Build("{0}\{1}", V.Local.sPath, V.Local.sName, V.Local.sPath)
+
+F.Intrinsic.Control.If(V.Args.DataView.Trim, =, "")
+	V.Local.sDataTable.Set(V.Args.DataTable)
+F.Intrinsic.Control.Else
+	V.Local.sDataTable.Set("dtTempBackUpDataTableFromDataView")
+	F.Data.DataView.ToDataTable(V.Args.DataTable, V.Args.DataView, V.Local.sDataTable)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.SaveToXML(V.Local.sDataTable, 0, True, V.Local.sPath)
+
+F.Intrinsic.Control.If(V.Args.DataView.Trim, !=, "")
+	F.Data.DataTable.Close(V.Local.sDataTable)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CacheDataTable.End
+
+Program.Sub.LogChange.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'get blank datatable
+F.Data.DataTable.CreateFromSQL("dtLog", "Con", "select RTRIM(TYPE) TYPE, RTRIM(IDENTIFIER_1) IDENTIFIER_1, RTRIM(IDENTIFIER_2) IDENTIFIER_2, RTRIM(PROPERTY) PROPERTY, RTRIM(ORIGINAL_VALUE) ORIGINAL_VALUE, RTRIM(NEW_VALUE) NEW_VALUE, RTRIM(GS_USER) GS_USER, CHANGED_TIMESTAMP, INITIAL_VALUE from GCG_5807_CHANGE_LOG where IDENTIFIER_1 = ''")
+F.Data.DataTable.DeleteRow("dtLog")
+F.Data.DataTable.AcceptChanges("dtLog")
+
+'add the record to the database
+F.Data.DataTable.AddRow("dtLog", "TYPE", V.Args.Type, "PROPERTY", V.Args.Property, "IDENTIFIER_1", V.Args.Identifier_1, "IDENTIFIER_2", V.Args.Identifier_2, "ORIGINAL_VALUE", V.Args.Original_Value, "NEW_VALUE", V.Args.New_Value, "GS_USER", V.Args.User, "CHANGED_TIMESTAMP", V.Ambient.Now, "INITIAL_VALUE", V.Args.Initial_Value)
+F.Data.DataTable.SaveToDB("dtLog", "Con", "GCG_5807_CHANGE_LOG", "", 128)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataTable.Close("dtLog")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LogChange.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214152044276$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347T2scAYDBhkq/3ghER3a2K5wAwC2ZPCUWs=
+Program.Sub.Comments.End
