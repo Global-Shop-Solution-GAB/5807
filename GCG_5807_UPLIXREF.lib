@@ -1,0 +1,92 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLIXREFError.Declare(String, "")
+V.Global.sUPLIXREFFile.Declare(String, "")
+
+F.Data.DataTable.Create("dtUPLIXREF", True)
+F.Data.DataTable.AddColumn("dtUPLIXREF", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "CUSTOMER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "CUSTOMER_PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "VENDOR", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "MANUFACTURER_PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "MANUFACTURER_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "USER_DEFINED_PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "WEB_FLAG", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "STATUS", "String", "")
+F.Data.DataTable.AddColumn("dtUPLIXREF", "COMMENTS", "String", "")
+Program.Sub.Preflight.End
+
+'Program.Sub.Main.Start
+''for testing
+'F.Data.DataTable.AddRow("dtUPLIXREF", "PART", "0025", "CUSTOMER", "001000", "COMMENTS", "This is a new test")
+'F.Intrinsic.Control.CallSub(UPLIXREF)
+'Program.Sub.Main.End
+
+Program.Sub.UPLIXREF.Start
+'this is a library for help with using the UPLIXREF oneshot to upload part cross reference data
+'add data to the dtUPLIXREF datatable and then call the UPLIXREF subroutine to run the upload
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFields.Declare(String, "PART*!*LOCATION*!*CUSTOMER*!*CUSTOMER_PART*!*VENDOR*!*MANUFACTURER_PART*!*MANUFACTURER_NAME*!*DESCRIPTION*!*USER_DEFINED_PART*!*WEB_FLAG*!*STATUS*!*COMMENTS")
+V.Local.sLengths.Declare(String, "20*!*2*!*6*!*20*!*6*!*23*!*23*!*30*!*30*!*1*!*1*!*30")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLIXREF", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLIXREF", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLIXREF", "dvUPLIXREFFile", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("strbCrossReference")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLIXREF.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLIXREF", "dvUPLIXREFFile", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLIXREF", "dvUPLIXREFFile", V.Local.sFields, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("strbCrossReference", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("strbCrossReference", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("strbCrossReference")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLIXREF", "dvUPLIXREFFile")
+
+'clean up main DT
+F.Data.DataTable.RemoveColumn("dtUPLIXREF", "ID")
+F.Data.DataTable.DeleteRow("dtUPLIXREF")
+F.Data.DataTable.AcceptChanges("dtUPLIXREF")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\XREF.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLIXREFFile.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLIXREF/U/A")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLIXREFError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLIXREF.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$rseddon$}$20220503105223746$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRboEqFlNuFJosYrs6WVyKs/z9g6+0U9EMeSBE867+NUes=
+Program.Sub.Comments.End
