@@ -1,0 +1,97 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLINVT2Error.Declare(String, "")
+V.Global.sUPLINVT2File.Declare(String)
+
+F.Data.DataTable.Create("dtUPLINVT2", True)
+F.Data.DataTable.AddColumn("dtUPLINVT2", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLINVT2", "EXTRA_DESCRIPTION", "String", "")
+Program.Sub.Preflight.End
+
+Program.Sub.UPLINVT2.Start
+V.Local.iCounter.Declare(Long)
+V.Local.iJ.Declare(Long)
+V.Local.sDescription.Declare(String)
+V.Local.iSequence.Declare(String)
+V.Local.sSequence.Declare(String)
+V.Local.sLengths.Declare(String, "20*!*6*!*30")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+'new datatable for file structure
+F.Data.DataTable.Create("dtUPLINVT2File")
+F.Data.DataTable.AddColumn("dtUPLINVT2File", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLINVT2File", "SEQUENCE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLINVT2File", "EXTRA_DESCRIPTION", "String", "")
+
+'loop through parts
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLINVT2.RowCount--, 1)
+	'split description into sequences of length 30
+	F.Intrinsic.String.LimitSplit(V.DataTable.dtUPLINVT2(V.Local.iCounter).EXTRA_DESCRIPTION!FieldValTrim, 30, V.Local.sDescription)
+	
+	V.Local.iSequence.Set(0)
+	F.Intrinsic.Control.For(V.Local.iJ, 0, V.Local.sDescription.UBound, 1)
+		'add line to final datatable
+		F.Intrinsic.Math.Add(V.Local.iSequence, 1, V.Local.iSequence)
+		F.Intrinsic.String.Format(V.Local.iSequence, "000000", V.Local.sSequence)
+		F.Data.DataTable.AddRow("dtUPLINVT2File", "PART", V.DataTable.dtUPLINVT2(V.Local.iCounter).PART!FieldValTrim, "SEQUENCE", V.Local.sSequence, "EXTRA_DESCRIPTION", V.Local.sDescription(V.Local.iJ))
+	F.Intrinsic.Control.Next(V.Local.iJ)
+	V.Local.sDescription.Redim(0, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'clean up main DT
+F.Data.DataTable.DeleteRow("dtUPLINVT2")
+F.Data.DataTable.AcceptChanges("dtUPLINVT2")
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLINVT2File", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLINVT2File", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLINVT2File", "dvPLINVT2File", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("ExtraTextString")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLINVT2File.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLINVT2File", "dvPLINVT2File", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLINVT2File", "dvPLINVT2File", "PART*!*SEQUENCE*!*EXTRA_DESCRIPTION", "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("ExtraTextString", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("ExtraTextString", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("ExtraTextString")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLINVT2File", "dvPLINVT2File")
+F.Data.DataTable.Close("dtUPLINVT2File")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\INVDESC.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLINVT2File.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLINVT2/U")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLINVT2Error)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLINVT2.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214161854256$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4hi/MYsdMKH1jBdFWv2L0wc=
+Program.Sub.Comments.End
