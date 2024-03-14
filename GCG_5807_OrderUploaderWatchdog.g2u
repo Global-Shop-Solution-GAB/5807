@@ -1,0 +1,611 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormOrderUploaderWatchdog..Create
+Gui.FormOrderUploaderWatchdog..Caption("Standardized E-Commerce/CRM/Quoting Integration Watchdog [5807]")
+Gui.FormOrderUploaderWatchdog..Size(6450,3585)
+Gui.FormOrderUploaderWatchdog..MinX(0)
+Gui.FormOrderUploaderWatchdog..MinY(0)
+Gui.FormOrderUploaderWatchdog..Position(0,0)
+Gui.FormOrderUploaderWatchdog..BackColor(-2147483633)
+Gui.FormOrderUploaderWatchdog..MaxButton(False)
+Gui.FormOrderUploaderWatchdog..MousePointer(0)
+Gui.FormOrderUploaderWatchdog..Sizeable(False)
+Gui.FormOrderUploaderWatchdog..Event(UnLoad,UserUnload)
+Gui.FormOrderUploaderWatchdog.lblLaunch.Create(Label,"Launched at :",True,1455,255,0,45,165,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblProcess.Create(Label,"Last Process :",True,1455,255,0,45,420,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblLastTransaction.Create(Label,"Last Transaction :",True,1455,255,0,45,675,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblInterval.Create(Label,"Process Interval :",True,1440,255,0,3855,165,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblStatus.Create(Label,"Status :",True,1440,255,0,3855,420,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblLaunchedAtValue.Create(Label,"***LAUNCHEDAT***",True,1935,255,0,1500,165,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblLastProcessValue.Create(Label,"***LASTPROCESS***",True,1935,255,0,1500,420,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblLastTransactionValue.Create(Label,"***LASTTRANSACTION***",True,1935,255,0,1500,675,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblProcessIntervalValue.Create(Label,"***PROCESSINTERVAL***",True,1935,255,0,5220,165,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblStatusValue.Create(Label,"***STATUS***",True,1935,255,0,5220,420,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.cmdProcessNow.Create(Button)
+Gui.FormOrderUploaderWatchdog.cmdProcessNow.Size(1215,375)
+Gui.FormOrderUploaderWatchdog.cmdProcessNow.Position(5055,2865)
+Gui.FormOrderUploaderWatchdog.cmdProcessNow.Caption("Process Now")
+Gui.FormOrderUploaderWatchdog.cmdProcessNow.Event(Click,cmdProcessNow_Click)
+Gui.FormOrderUploaderWatchdog.timerProcess.Create(Timer)
+Gui.FormOrderUploaderWatchdog.timerProcess.Size(495,495)
+Gui.FormOrderUploaderWatchdog.timerProcess.Position(480,1500)
+Gui.FormOrderUploaderWatchdog.timerProcess.Event(Timer,timerProcess_Timer)
+Gui.FormOrderUploaderWatchdog.frameTransactions.Create(Frame)
+Gui.FormOrderUploaderWatchdog.frameTransactions.Size(6210,1965)
+Gui.FormOrderUploaderWatchdog.frameTransactions.Position(60,870)
+Gui.FormOrderUploaderWatchdog.frameTransactions.Caption("Transactions")
+Gui.FormOrderUploaderWatchdog.lblAttempted.Create(Label,"Attempted :",True,960,255,0,135,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblAttempted.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblAttemptedValue.Create(Label,"0",True,405,255,0,1170,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblAttemptedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblSuccessful.Create(Label,"Successful :",True,1065,255,0,135,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblSuccessful.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblSuccessfulValue.Create(Label,"0",True,405,255,0,1170,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblSuccessfulValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblOrdersUploaded.Create(Label,"Orders Uploaded :",True,1485,255,0,1725,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblOrdersUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblCustomersUploaded.Create(Label,"Customers Uploaded :",True,1725,255,0,1725,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCustomersUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblContactsUploaded.Create(Label,"Contacts Uploaded :",True,1725,255,0,1725,870,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblContactsUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblOrdersUploadedValue.Create(Label,"0",True,480,255,0,3495,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblOrdersUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblCustomersUploadedValue.Create(Label,"0",True,480,255,0,3495,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCustomersUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblContactsUploadedValue.Create(Label,"0",True,480,255,0,3495,870,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblContactsUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblOrdersUpdated.Create(Label,"Orders Updated :",True,1485,255,0,4005,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblOrdersUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblCustomersUpdated.Create(Label,"Customers Updated :",True,1725,255,0,4005,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCustomersUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblContactsUpdated.Create(Label,"Contacts Updated :",True,1575,255,0,4005,870,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblContactsUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblOrdersUpdatedValue.Create(Label,"0",True,480,255,0,5685,330,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblOrdersUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblCustomersUpdatedValue.Create(Label,"0",True,480,255,0,5685,600,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCustomersUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblContactsUpdatedValue.Create(Label,"0",True,480,255,0,5685,870,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblContactsUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblBomsUploaded.Create(Label,"BOMs Uploaded :",True,1725,255,0,1725,1140,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblBomsUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblBOMsUpdated.Create(Label,"BOMs Updated :",True,1575,255,0,4005,1140,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblBOMsUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblBOMsUploadedValue.Create(Label,"0",True,480,255,0,3495,1140,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblBOMsUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblBOMsUpdatedValue.Create(Label,"0",True,480,255,0,5685,1140,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblBOMsUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblRoutersUploaded.Create(Label,"Routers Uploaded :",True,1725,255,0,1725,1410,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblRoutersUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblRoutersUploadedValue.Create(Label,"0",True,480,255,0,3495,1410,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblRoutersUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblRoutersUpdated.Create(Label,"Routers Updated :",True,1575,255,0,4005,1410,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblRoutersUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblRoutersUpdatedValue.Create(Label,"0",True,480,255,0,5685,1410,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblRoutersUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblPartsUploaded.Create(Label,"Parts Uploaded :",True,1725,255,0,1725,1680,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblPartsUploaded.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblPartsUploadedValue.Create(Label,"0",True,480,255,0,3495,1680,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblPartsUploadedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblPartsUpdated.Create(Label,"Parts Updated :",True,1575,255,0,4005,1680,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblPartsUpdated.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblPartsUpdatedValue.Create(Label,"0",True,480,255,0,5685,1680,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblPartsUpdatedValue.Parent("frameTransactions")
+Gui.FormOrderUploaderWatchdog.lblCurrentProcess.Create(Label,"Current Process :",True,1440,255,0,3855,675,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCurrentProcessValue.Create(Label,"***PROCESS***",True,1935,255,0,5220,675,True,0,"Arial",8,-2147483633,0)
+Gui.FormOrderUploaderWatchdog.lblCurrentProcessValue.FontStyle(False,True,False,False,False)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+V.Global.bAsyncUpload.Declare(Boolean, False)
+
+V.Global.iInterval.Declare(Long)
+V.Global.dLaunchedDate.Declare(Date)
+
+V.Global.sOrderUploader.Declare(String)
+V.Global.sCustomerUploader.Declare(String)
+V.Global.sContactUploader.Declare(String)
+V.Global.sBOMUploader.Declare(String)
+V.Global.sRouterUploader.Declare(String)
+V.Global.sPartUploader.Declare(String)
+V.Global.sChangeLogger.Declare(String)
+V.Global.sPartCrossReferenceUploader.Declare(String)
+V.Global.sDocumentControlUploader.Declare(String)
+V.Global.sPriceUploader.Declare(String)
+V.Global.sShipToUploader.Declare(String)
+
+'options
+V.Global.sCallback.Declare(String, "ErrorUnload")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Watchdog")
+V.Global.bUnattended.Declare(Boolean, True)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_OrderUploaderWatchdog.g2u
+'Trey S
+'December 27th, 2019
+'For several customers: Just Rite Manufacturing, IR Tools
+'This program is the upload watchdog for what is intended to be the standard
+'soap order uploader. It will run independently on the server, launched from online update,
+'and run the order, customer, contact upload on an interval
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+F.Intrinsic.Control.CallSub(ScriptPIDCheck, "Project", V.Global.sProject)
+
+'check if we're supposed to be running at all
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "UPLOADER", "NAME", "ENABLED")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+	F.Intrinsic.Control.Else
+		'check if any uploads are enabled
+		F.Intrinsic.Control.CallSub(CheckActiveUploads)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Launching watchdog...")
+
+F.Intrinsic.Control.AddEventHandler(IPMDATAIN, ProcessIPM)
+F.Intrinsic.Control.CallSub(InitialScreenLoading)
+F.Intrinsic.Control.CallSub(GetProcessInterval)
+F.Intrinsic.Control.CallSub(LoadScripts)
+
+GUI.FormOrderUploaderWatchdog..Show
+
+F.Intrinsic.Control.CallSub(timerProcess_Timer)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.CheckActiveUploads.Start
+F.Intrinsic.Control.Try
+
+V.Local.bActive.Declare(Boolean, False)
+V.Local.sParameters.Declare(String, "ORDER@!@ENABLED*!*CUSTOMER@!@STANDALONE_UPLOAD*!*BOM@!@UPLOAD*!*CONTACT@!@STANDALONE_UPLOAD*!*DISCOUNT@!@UPLOAD*!*DOCUMENT_CONTROL@!@UPLOAD*!*PART@!@UPLOAD*!*PART_CROSS_REFERENCE@!@UPLOAD*!*ROUTER@!@UPLOAD")
+V.Local.iCounter.Declare(Long)
+V.Local.sTemp.Declare(String)
+
+F.Intrinsic.String.Split(V.Local.sParameters, "*!*", V.Local.sParameters)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sParameters.UBound, 1)
+	F.Intrinsic.String.Split(V.Local.sParameters(V.Local.iCounter), "@!@", V.Local.sTemp)
+	F.Intrinsic.Control.CallSub(GetSetting, "TYPE", V.Local.sTemp(0), "NAME", V.Local.sTemp(1))
+	
+	'if any are active we're good
+	F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+		F.Intrinsic.Control.If(V.Args.Setting)
+			F.Intrinsic.Control.If(V.Local.sTemp(0), =, "ORDER")
+				F.Intrinsic.Control.CallSub(GetSetting, "TYPE", ORDER, "NAME", "REQUIRE_REVIEW")
+				F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+					V.Local.bActive.Set(V.Args.Setting.Not)
+				F.Intrinsic.Control.Else
+					V.Local.bActive.Set(True)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				V.Local.bActive.Set(True)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.Local.bActive)
+				F.Intrinsic.Control.ExitFor(V.Local.iCounter)
+			F.Intrinsic.Control.EndIf
+			
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	V.Local.sTemp.Redim(0, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+V.Local.sParameters.Redim(0, 0)
+
+'if none are active, exit
+F.Intrinsic.Control.If(V.Local.bActive.Not)
+	F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckActiveUploads.End
+
+Program.Sub.InitialScreenLoading.Start
+F.Intrinsic.Control.Try
+
+V.Local.sCaption.Declare(String)
+
+F.Intrinsic.Control.If(V.Caller.GSSVersion, <, "2019.1")
+	F.Intrinsic.String.Build("{0} ({1})", V.Screen.FormOrderUploaderWatchdog.Caption, V.Caller.CompanyCode, V.Local.sCaption)
+	GUI.FormOrderUploaderWatchdog..Caption(V.Local.sCaption)
+F.Intrinsic.Control.EndIf
+
+GUI.FormOrderUploaderWatchdog.lblLaunchedAtValue.Caption(V.Ambient.Now)
+GUI.FormOrderUploaderWatchdog.lblLastProcessValue.Caption("NA")
+GUI.FormOrderUploaderWatchdog.lblLastTransactionValue.Caption("NA")
+GUI.FormOrderUploaderWatchdog.lblStatusValue.Caption("Waiting...")
+GUI.FormOrderUploaderWatchdog.lblStatusValue.ForeColor(V.Color.Red)
+GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("")
+
+V.Global.dLaunchedDate.Set(V.Ambient.Date)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.InitialScreenLoading.End
+
+Program.Sub.LoadScripts.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.String.Build("{0}\GCG_5807_OrderUploader.g2u", V.Ambient.ScriptPath, V.Global.sOrderUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_CustomerUploader.g2u", V.Ambient.ScriptPath, V.Global.sCustomerUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_ContactUploader.g2u", V.Ambient.ScriptPath, V.Global.sContactUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_BOMUploader.g2u", V.Ambient.ScriptPath, V.Global.sBOMUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_RouterUploader.g2u", V.Ambient.ScriptPath, V.Global.sRouterUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_PartUploader.g2u", V.Ambient.ScriptPath, V.Global.sPartUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_ChangeLogging.g2u", V.Ambient.ScriptPath, V.Global.sChangeLogger)
+F.Intrinsic.String.Build("{0}\GCG_5807_PartCrossReferenceUploader.g2u", V.Ambient.ScriptPath, V.Global.sPartCrossReferenceUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_DocumentControlUploader.g2u", V.Ambient.ScriptPath, V.Global.sDocumentControlUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_PriceUploader.g2u", V.Ambient.ScriptPath, V.Global.sPriceUploader)
+F.Intrinsic.String.Build("{0}\GCG_5807_ShipToUploader.g2u", V.Ambient.ScriptPath, V.Global.sShipToUploader)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadScripts.End
+
+Program.Sub.UserUnload.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Watchdog closed by user.")
+F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UserUnload.End
+
+Program.Sub.ErrorUnload.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Closing Watchdog due to error.")
+F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ErrorUnload.End
+
+Program.Sub.FormOrderUploaderWatchdog_UnLoad.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(ScriptPIDClear, "Project", V.Global.sProject)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormOrderUploaderWatchdog_UnLoad.End
+
+Program.Sub.GetProcessInterval.Start
+F.Intrinsic.Control.Try
+
+V.Local.sInterval.Declare(String, "Second(s)")
+V.Local.iInterval.Declare(Long, 10)
+V.Local.sFullInterval.Declare(String)
+
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "ORDER", "Name", "UPLOAD_INTERVAL_UNIT")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.sInterval.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "ORDER", "Name", "UPLOAD_INTERVAL")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.iInterval.Set(V.Args.Setting.Long)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("{0} {1}", V.Local.iInterval, V.Local.sInterval, V.Local.sFullInterval)
+GUI.FormOrderUploaderWatchdog.lblProcessIntervalValue.Caption(V.Local.sFullInterval)
+
+'multiply out interval into seconds
+F.Intrinsic.Control.SelectCase(V.Local.sInterval)
+	F.Intrinsic.Control.Case("Minute(s)")
+		F.Intrinsic.Math.Mult(V.Local.iInterval, 60, V.Local.iInterval)
+	F.Intrinsic.Control.Case("Hour(s)")
+		F.Intrinsic.Math.Mult(V.Local.iInterval, 3600, V.Local.iInterval)
+	F.Intrinsic.Control.Case("Day(s)")
+		F.Intrinsic.Math.Mult(V.Local.iInterval, 86400, V.Local.iInterval)
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Math.Mult(V.Local.iInterval, 1000, V.Local.iInterval)
+
+V.Global.iInterval.Set(V.Local.iInterval)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetProcessInterval.End
+
+Program.Sub.cmdProcessNow_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "User triggered early process. Processing...")
+F.Intrinsic.Control.CallSub(timerProcess_Timer)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdProcessNow_Click.End
+
+Program.Sub.timerProcess_Timer.Start
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.iReturnPID.Declare(Long)
+
+GUI.FormOrderUploaderWatchdog.timerProcess.Enabled(False)
+GUI.FormOrderUploaderWatchdog.cmdProcessNow.Enabled(False)
+
+GUI.FormOrderUploaderWatchdog.lblStatusValue.Caption("Processing...")
+GUI.FormOrderUploaderWatchdog.lblStatusValue.ForeColor(V.Color.Green)
+
+'check if we're supposed to be running at all
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "UPLOADER", "NAME", "ENABLED")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Intrinsic.Control.CallSub(AddLog, "Message", "Setting change detected. Uploader is no longer enabled. Closing watchdog.")
+	F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", "Setting change detected. Uploader is no longer enabled. Closing watchdog.")
+		F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check if any active uploads
+F.Intrinsic.Control.CallSub(CheckActiveUploads)
+
+'get new interval
+F.Intrinsic.Control.CallSub(GetProcessInterval)
+
+'run change logging
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CHANGE_LOG", "NAME", "LOG_PART_PRICE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sChangeLogger, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Change Log")
+			F.Global.General.CallSyncGAS(V.Global.sChangeLogger, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run part uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "PART", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sPartUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Parts")
+			F.Global.General.CallSyncGAS(V.Global.sPartUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run part cross reference uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "PART_CROSS_REFERENCE", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sPartCrossReferenceUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Part XRefs")
+			F.Global.General.CallSyncGAS(V.Global.sPartCrossReferenceUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run part cross reference uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "DISCOUNT", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sPriceUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Discounts")
+			F.Global.General.CallSyncGAS(V.Global.sPriceUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run BOM uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "BOM", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sBOMUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("BOMs")
+			F.Global.General.CallSyncGAS(V.Global.sBOMUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run router uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "ROUTER", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sRouterUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Routers")
+			F.Global.General.CallSyncGAS(V.Global.sRouterUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run customer uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "CUSTOMER", "Name", "STANDALONE_UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sCustomerUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Customers")
+			F.Global.General.CallSyncGAS(V.Global.sCustomerUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run ship to uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "SHIP_TO", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sShipToUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Ship To IDs")
+			F.Global.General.CallSyncGAS(V.Global.sShipToUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run contact uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "CONTACT", "Name", "STANDALONE_UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+			F.Global.General.CallASyncGAS(V.Global.sContactUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+		F.Intrinsic.Control.Else
+			GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Contacts")
+			F.Global.General.CallSyncGAS(V.Global.sContactUploader, V.Ambient.MyIPMh)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run order uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "ORDER", "Name", "ENABLED")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		
+		'don't launch if option to use review dashboard is on
+		F.Intrinsic.Control.CallSub(GetSetting, "Type", "ORDER", "Name", "REQUIRE_REVIEW")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+			F.Intrinsic.Control.If(V.Args.Setting.Not)
+				F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+					F.Global.General.CallASyncGAS(V.Global.sOrderUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+				F.Intrinsic.Control.Else
+					GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Orders")
+					F.Global.General.CallSyncGAS(V.Global.sOrderUploader, V.Ambient.MyIPMh)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(V.Global.bAsyncUpload)
+				F.Global.General.CallASyncGAS(V.Global.sOrderUploader, V.Ambient.MyIPMh, V.Local.iReturnPID)
+			F.Intrinsic.Control.Else
+				GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Orders")
+				F.Global.General.CallSyncGAS(V.Global.sOrderUploader, V.Ambient.MyIPMh)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		'clear lock file, in case the program crashed before clearing it
+		F.Intrinsic.Control.CallSub(ClearUploaderLock, "Dashboard", False)
+		
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'run document control uploader
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "DOCUMENT_CONTROL", "Name", "UPLOAD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("Documents")
+		F.Global.General.CallSyncGAS(V.Global.sDocumentControlUploader, V.Ambient.MyIPMh)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'exit if after midnight
+F.Intrinsic.Control.If(V.Ambient.Date, !=, V.Global.dLaunchedDate)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", "Closing watchdog after midnight for memory cleanup.")
+	F.Intrinsic.Control.CallSub(FormOrderUploaderWatchdog_UnLoad)
+F.Intrinsic.Control.EndIf
+
+'update screen
+GUI.FormOrderUploaderWatchdog.lblCurrentProcessValue.Caption("")
+GUI.FormOrderUploaderWatchdog.lblStatusValue.Caption("Waiting...")
+GUI.FormOrderUploaderWatchdog.lblStatusValue.ForeColor(V.Color.Red)
+
+GUI.FormOrderUploaderWatchdog.lblLastProcessValue.Caption(V.Ambient.Now)
+
+GUI.FormOrderUploaderWatchdog.timerProcess.Interval(V.Global.iInterval)
+GUI.FormOrderUploaderWatchdog.timerProcess.Enabled(True)
+GUI.FormOrderUploaderWatchdog.cmdProcessNow.Enabled(True)
+
+F.Intrinsic.Control.CallSub(SaveLastProcess)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.timerProcess_Timer.End
+
+Program.Sub.SaveLastProcess.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+
+'save last process
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sFile)
+F.Global.Registry.AddValue(-1, V.Caller.CompanyCode, V.Local.sFile, V.Global.sProject, 1, False, "Last Process", False, 0, 0, V.Ambient.Date, V.Ambient.Now, V.Ambient.Now)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveLastProcess.End
+
+Program.Sub.ProcessIPM.Start
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+V.Local.iTotal.Declare(Long)
+V.Local.sControlName.Declare(String)
+
+'TYPE!@#$#@!Uploaded!@#$#@!Updated!@#$#@!Failed
+F.Intrinsic.String.Split(V.Args.MESSAGE, "!@@!", V.Local.sMessage)
+
+'total attempted
+F.Intrinsic.Math.Add(V.Screen.FormOrderUploaderWatchdog!lblAttemptedValue.Caption.Long, V.Local.sMessage(1).Long, V.Local.sMessage(2).Long, V.Local.sMessage(3).Long, V.Local.iTotal)
+GUI.FormOrderUploaderWatchdog.lblAttemptedValue.Caption(V.Local.iTotal)
+
+'total successful
+F.Intrinsic.Math.Add(V.Screen.FormOrderUploaderWatchdog!lblSuccessfulValue.Caption.Long, V.Local.sMessage(1).Long, V.Local.sMessage(2).Long, V.Local.iTotal)
+GUI.FormOrderUploaderWatchdog.lblSuccessfulValue.Caption(V.Local.iTotal)
+
+'update last transaction
+F.Intrinsic.Math.Add(V.Local.sMessage(1).Long, V.Local.sMessage(2).Long, V.Local.iTotal)
+F.Intrinsic.Control.If(V.Local.iTotal, >, 0)
+	GUI.FormOrderUploaderWatchdog.lblLastTransactionValue.Caption(V.Ambient.Now)
+F.Intrinsic.Control.EndIf
+
+'type uploaded
+F.Intrinsic.String.Build("lbl{0}UploadedValue", V.Local.sMessage(0).Trim, V.Local.sControlName)
+F.Intrinsic.Math.Add(V.Screen.FormOrderUploaderWatchdog![V.Local.sControlName].Caption.Long, V.Local.sMessage(1).Long, V.Local.iTotal)
+GUI.FormOrderUploaderWatchdog.[V.Local.sControlName].Caption(V.Local.iTotal)
+
+'type updated
+F.Intrinsic.String.Build("lbl{0}UpdatedValue", V.Local.sMessage(0).Trim, V.Local.sControlName)
+F.Intrinsic.Math.Add(V.Screen.FormOrderUploaderWatchdog![V.Local.sControlName].Caption.Long, V.Local.sMessage(2).Long, V.Local.iTotal)
+GUI.FormOrderUploaderWatchdog.[V.Local.sControlName].Caption(V.Local.iTotal)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ProcessIPM.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240303214649879$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9nyXE0uQ45QZ+xm9Vxwj1149n+R+WJP/GE=
+Program.Sub.Comments.End
