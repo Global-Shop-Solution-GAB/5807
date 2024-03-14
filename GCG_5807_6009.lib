@@ -1,0 +1,86 @@
+Program.Sub.Preflight.Start
+'only pass part number if using revisions
+F.Data.DataTable.Create("dt6009", True)
+F.Data.DataTable.AddColumn("dt6009", "PARENT", "String", "")
+F.Data.DataTable.AddColumn("dt6009", "PARENT_SEQUENCE", "Long", 0)
+F.Data.DataTable.AddColumn("dt6009", "PART_NUMBER", "Long", 0)
+F.Data.DataTable.AddColumn("dt6009", "COMMENT", "String", "")
+F.Data.DataTable.AddExpressionColumn("dt6009", "PARENT_SEQUENCE_FORMATTED", "String", "SUBSTRING('0000' + [PARENT_SEQUENCE], 1 + LEN(Convert(PARENT_SEQUENCE, 'System.String')), 4 + LEN(Convert(PARENT_SEQUENCE, 'System.String')))")
+
+'errors
+V.Global.s6009Error.Declare(String, "")
+Program.Sub.Preflight.End
+
+Program.Sub.6009.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sComments.Declare(String)
+V.Local.sSequence.Declare(String)
+V.Local.iRowCount.Declare(Long)
+V.Local.iJ.Declare(Long)
+V.Local.iSequence.Declare(Long)
+V.Local.sLengths.Declare(String, "20*!*4*!*3*!*20*!*30")
+V.Local.iLengths.Declare(Long)
+V.Local.sTemp.Declare(String)
+V.Local.sTempSplit.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+V.Global.s6009Error.Set("")
+
+F.Data.DataTable.AddColumn("dt6009", "TEXT_SEQUENCE", "String", "")
+
+'comments need to be in 30 character sections
+V.Local.iRowCount.Set(V.DataTable.dt6009.RowCount--)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.iRowCount, 1)
+	F.Intrinsic.String.LimitSplit(V.DataTable.dt6009(V.Local.iCounter).COMMENT!FieldValTrim, 30, V.Local.sComments)
+	
+	F.Intrinsic.Control.For(V.Local.iJ, 0, V.Local.sComments.UBound, 1)
+		F.Intrinsic.Math.Add(V.Local.iJ, 1, V.Local.iSequence)
+		F.Intrinsic.String.Format(V.Local.iSequence, "000", V.Local.sSequence)
+		
+		F.Intrinsic.Control.If(V.Local.iJ, =, 0)
+			'set value on initial row
+			F.Data.DataTable.SetValue("dt6009", V.Local.iCounter, "TEXT_SEQUENCE", V.Local.sSequence, "COMMENT", V.Local.sComments(V.Local.iJ))
+		F.Intrinsic.Control.Else
+			'add row
+			F.Data.DataTable.AddRow("dt6009", "PARENT", V.DataTable.dt6009(V.Local.iCounter).PARENT!FieldValTrim, "PARENT_SEQUENCE", V.DataTable.dt6009(V.Local.iCounter).PARENT_SEQUENCE!FieldValLong, "PART_NUMBER", V.DataTable.dt6009(V.Local.iCounter).PART_NUMBER!FieldValTrim, "TEXT_SEQUENCE", V.Local.sSequence, "COMMENT", V.Local.sComments(V.Local.iJ))
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iJ)
+	V.Local.sComments.Redim(0, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'now sort and create file
+F.Data.DataView.Create("dt6009", "dv6009", 22, "", "PARENT asc, PARENT_SEQUENCE asc, TEXT_SEQUENCE asc")
+F.Data.DataView.ToString("dt6009", "dv6009", "PARENT*!*PARENT_SEQUENCE*!*TEXT_SEQUENCE*!*PART_NUMBER*!*COMMENT", "*!*", V.Ambient.NewLine, V.Local.sTemp)
+F.Data.DataView.Close("dt6009", "dv6009")
+
+'build the final string
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.String.Split(V.Local.sTemp, V.Ambient.NewLine, V.Local.sTemp)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sTemp.UBound, 1)
+	F.Intrinsic.String.Split(V.Local.sTemp(V.Local.iCounter), "*!*", V.Local.sTempSplit)
+	F.Intrinsic.String.PositionalString(V.Local.sTempSplit, V.Local.iLengths, V.Local.sTemp(V.Local.iCounter))
+	V.Local.sTempSplit.Redim(0, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+V.Local.iLengths.Redim(0, 0)
+
+F.Intrinsic.String.Join(V.Local.sTemp, V.Ambient.NewLine, V.Local.sContents)
+V.Local.sTemp.Redim(0, 0)
+
+'create file
+F.Intrinsic.String.Build("{0}\BOMTEXT.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+
+'Upload
+F.Global.General.CallWrapperSync(6009, "NS!*!50")
+
+F.Data.DataTable.RemoveColumn("dt6009", "TEXT_SEQUENCE")
+F.Data.DataTable.DeleteRow("dt6009")
+F.Data.DataTable.AcceptChanges("dt6009")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.s6009Error)
+F.Intrinsic.Control.EndTry
+Program.Sub.6009.End
