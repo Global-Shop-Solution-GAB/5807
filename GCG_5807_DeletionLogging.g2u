@@ -1,0 +1,305 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Deletion Logging")
+V.Global.bUnattended.Declare(Boolean, False)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_DeletionLogging.g2u
+'part of what is intended to be the standard SOAP uploader project for CRM / E-Commerce integrations
+'this script is for logging deletion of objects to a custom table GCG_5807_DELETE_LOG, so that the CRM can delete them as well.
+'currently written for customer, contact, and ship to deletions
+'hooks: 51037 - CRM Contact post delete, 14386 - customer master post delete, 14443 - Ship To Post Save
+
+F.Intrinsic.Control.Try
+
+V.Local.bEnabled.Declare(Boolean, False)
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'first check if we're supposed to be running
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+	F.Intrinsic.Control.Case(51037)
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "LOG_CONTACT")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+			V.Local.bEnabled.Set(V.Args.Setting)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Case(14386)
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "LOG_CUSTOMER")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+			V.Local.bEnabled.Set(V.Args.Setting)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Case(14443)
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "LOG_SHIP_TO")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+			
+			F.Intrinsic.Control.If(V.Args.Setting)
+				'now check if we are actually deleting. There is no ship to delete hook, only a save hook.
+				'so we need to check if the passed ship to ID still exists. IF so, this was a delete.
+				F.Intrinsic.Control.CallSub(CheckShipToDeletion)
+				V.Local.bEnabled.Set(V.Args.DELETE)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+F.Intrinsic.Control.EndSelect
+
+'if we are supposed to be running, load the appropriate data and then log the deletion
+F.Intrinsic.Control.If(V.Local.bEnabled)
+	'grab dt using schema from table
+	F.Intrinsic.Control.CallSub(GetEmptyDataTable)
+	
+	'get appropriate data
+	F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+		F.Intrinsic.Control.Case(51037)
+			F.Intrinsic.Control.CallSub(LoadContactData)
+		F.Intrinsic.Control.Case(14386)
+			F.Intrinsic.Control.CallSub(LoadCustomerData)
+		F.Intrinsic.Control.Case(14443)
+			F.Intrinsic.Control.CallSub(LoadShipToData)
+	F.Intrinsic.Control.EndSelect
+	
+	'save deletion record
+	F.Intrinsic.Control.CallSub(LogDeletion)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.GetEmptyDataTable.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+F.Data.DataTable.CreateFromSQL("dtDelete", "Con", "select * from GCG_5807_DELETE_LOG where RECORD_ID = -1", True)
+
+'make sure table is empty, remove unnecessary columns
+F.Data.DataTable.DeleteRow("dtDelete")
+F.Data.DataTable.RemoveColumn("dtDelete", "PROCESSED")
+F.Data.DataTable.RemoveColumn("dtDelete", "PROCESSED_TIMESTAMP")
+F.Data.DataTable.RemoveColumn("dtDelete", "RECORD_ID")
+F.Data.DataTable.AcceptChanges("dtDelete")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetEmptyDataTable.End
+
+Program.Sub.LoadCustomerData.Start
+'hook 14386 passed values: 2 - customer id, 5 - bill to name, 22 - alpha sort, 38 - sort
+
+F.Intrinsic.Control.Try
+
+F.Data.Dictionary.Create("dictCustomerFields")
+F.Data.Dictionary.AddItem("dictCustomerFields", "Name", V.Passed.000002.Trim)
+F.Data.Dictionary.AddItem("dictCustomerFields", "Alpha Sort", V.Passed.000022.Trim)
+F.Data.Dictionary.AddItem("dictCustomerFields", "Sort", V.Passed.000038.Trim)
+F.Data.Dictionary.SetDefaultReturn("dictCustomerFields", "")
+
+'first field is always customer ID
+F.Data.DataTable.AddRow("dtDelete", "TYPE", "CUSTOMER", "DATA_1", V.Passed.000002.Trim)
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_2")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_2", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_3")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_3", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_4")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_4", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_5")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_5", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_2")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_3")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_4")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_5")
+
+F.Data.Dictionary.Close("dictCustomerFields")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadCustomerData.End
+
+Program.Sub.LoadContactData.Start
+'hook 51037 passed values: DATA-CRM-CompID - customer id, DATA-CRM-CompName - name, DATA-CRM-CompTypeAlpha - type, DATA-CRM-ContactAltID - ALT ID, CRM-txtUF-9 - user field 9-16
+'CRM-cboUF-1 - user field 1-8, CRM-txtCnctLastName - Last Name, CRM-txtCnctFirstName - First Name
+
+F.Intrinsic.Control.Try
+
+V.Local.sName.Declare(String)
+
+F.Intrinsic.String.Build("{0} {1}", V.Passed.CRM-txtCnctFirstName.Trim, V.Passed.CRM-txtCnctLastName.Trim, V.Local.sName)
+
+F.Data.Dictionary.Create("dictContactFields")
+F.Data.Dictionary.AddItem("dictContactFields", "Name", V.Local.sName)
+F.Data.Dictionary.AddItem("dictContactFields", "Type", V.Passed.DATA-CRM-CompTypeAlpha.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 1", V.Passed.CRM-cboUF-1.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 2", V.Passed.CRM-cboUF-2.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 3", V.Passed.CRM-cboUF-3.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 4", V.Passed.CRM-cboUF-4.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 5", V.Passed.CRM-cboUF-5.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 6", V.Passed.CRM-cboUF-6.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 7", V.Passed.CRM-cboUF-7.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 8", V.Passed.CRM-cboUF-8.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 9", V.Passed.CRM-txtUF-9.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 10", V.Passed.CRM-txtUF-10.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 11", V.Passed.CRM-txtUF-11.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 12", V.Passed.CRM-txtUF-12.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 13", V.Passed.CRM-txtUF-13.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 14", V.Passed.CRM-txtUF-14.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 15", V.Passed.CRM-txtUF-15.Trim)
+F.Data.Dictionary.AddItem("dictContactFields", "Field 16", V.Passed.CRM-txtUF-16.Trim)
+F.Data.Dictionary.SetDefaultReturn("dictContactFields", "")
+
+'first field is always contact ID, second is customer ID
+F.Data.DataTable.AddRow("dtDelete", "TYPE", "CONTACT", "DATA_1", V.Passed.DATA-CRM-ContactAltID, "DATA_2", V.Passed.DATA-CRM-CompID.Trim)
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CONTACT_DATA_3")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_3", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CONTACT_DATA_4")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_4", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "CONTACT_DATA_5")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_5", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictContactFields", "DATA_3")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictContactFields", "DATA_4")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictContactFields", "DATA_5")
+
+F.Data.Dictionary.Close("dictContactFields")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadContactData.End
+
+Program.Sub.CheckShipToDeletion.Start
+'check if we are actually deleting. There is no ship to delete hook, only a save hook.
+'so we need to check if the passed ship to ID still exists. IF so, this was a delete.
+'returns DELETE
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.bDelete.Declare(Boolean)
+
+F.Intrinsic.String.Build("select SHIP_SEQ from V_OE_MULTI_SHIP where CUSTOMER = '{0}' and SHIP_SEQ = '{1}'", V.Passed.000001.Trim, V.Passed.000003.Trim, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+V.Local.bDelete.Set(V.Ambient.ExecuteAndReturnEOF)
+
+F.Intrinsic.Variable.AddRV("DELETE", V.Local.bDelete)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckShipToDeletion.End
+
+Program.Sub.LoadShipToData.Start
+'doesn't make a whole lot of sense since there is only one field but we mayneed to add more
+'hook 14386 passed values: 1 - customer id, 3 - ship to id, 5 - bill to name
+
+F.Intrinsic.Control.Try
+
+F.Data.Dictionary.Create("dictCustomerFields")
+F.Data.Dictionary.AddItem("dictCustomerFields", "Name", V.Passed.000005.Trim)
+F.Data.Dictionary.SetDefaultReturn("dictCustomerFields", "")
+
+'first field is always ship to ID, second is always customer id
+F.Data.DataTable.AddRow("dtDelete", "TYPE", "SHIP_TO", "DATA_1", V.Passed.000003.Trim, "DATA_2", V.Passed.000001.Trim)
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_3")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_3", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_4")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_4", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_5")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtDelete", 0, "DATA_5", V.Args.Setting.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_3")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_4")
+F.Data.DataTable.FillFromDictionary("dtDelete", "dictCustomerFields", "DATA_5")
+
+F.Data.Dictionary.Close("dictCustomerFields")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadShipToData.End
+
+Program.Sub.LogDeletion.Start
+'save the deletion record to the GCG_5807_DELETE_LOG table
+
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.SetValue("dtDelete", -1, "GS_USER", V.Caller.User, "DELETED_TIMESTAMP", V.Ambient.Now)
+
+'post back to database
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.SaveToDB("dtDelete", "Con", "GCG_5807_DELETE_LOG", "TYPE*!*DATA_1*!*DATA_2", 128)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LogDeletion.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtDelete.Exists)
+	F.Data.DataTable.Close("dtDelete")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214155541540$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347T2scAYDBhkq28+b+on+C2hhV9tQbJqpJM=
+Program.Sub.Comments.End
