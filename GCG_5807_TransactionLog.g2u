@@ -1,0 +1,803 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormTransactionLog..Create(DashForm)
+Gui.FormTransactionLog..Caption("Uploader Transaction Log [5807]")
+Gui.FormTransactionLog..Size(1024,720)
+Gui.FormTransactionLog..MinX(700)
+Gui.FormTransactionLog..MinY(200)
+Gui.FormTransactionLog..Position(0,0)
+Gui.FormTransactionLog..AlwaysOnTop(False)
+Gui.FormTransactionLog..FontName("Tahoma")
+Gui.FormTransactionLog..FontSize(8.25)
+Gui.FormTransactionLog..ControlBox(True)
+Gui.FormTransactionLog..MaxButton(True)
+Gui.FormTransactionLog..MinButton(True)
+Gui.FormTransactionLog..MousePointer(0)
+Gui.FormTransactionLog..Moveable(True)
+Gui.FormTransactionLog..Sizeable(True)
+Gui.FormTransactionLog..ShowInTaskBar(True)
+Gui.FormTransactionLog..TitleBar(True)
+Gui.FormTransactionLog..BarRefreshButton(True)
+Gui.FormTransactionLog..BarExportButton(True)
+Gui.FormTransactionLog..Event(UnLoad,FormTransactionLog_UnLoad)
+Gui.FormTransactionLog..Event(ExportClick,FormTransactionLog_ExportClick)
+Gui.FormTransactionLog..Event(RefreshClick,FormTransactionLog_RefreshClick)
+Gui.FormTransactionLog..Event(UserButtonClicked,FormTransactionLog_UserButtonClicked)
+Gui.FormTransactionLog.SplitContainer1.Create(SplitContainer)
+Gui.FormTransactionLog.SplitContainer1.Enabled(True)
+Gui.FormTransactionLog.SplitContainer1.Visible(True)
+Gui.FormTransactionLog.SplitContainer1.Zorder(0)
+Gui.FormTransactionLog.SplitContainer1.Size(1024,654)
+Gui.FormTransactionLog.SplitContainer1.Position(0,-315)
+Gui.FormTransactionLog.SplitContainer1.Orientation(1)
+Gui.FormTransactionLog.SplitContainer1.SplitterPosition(22)
+Gui.FormTransactionLog.SplitContainer1.Collapsed(False)
+Gui.FormTransactionLog.SplitContainer1.Dock(5)
+Gui.FormTransactionLog.SplitContainer1.CollapsiblePanel(0)
+Gui.FormTransactionLog.SplitContainer1.FixedPanel(0)
+Gui.FormTransactionLog.SplitContainer1.Event(SplitterMoved,SplitContainer1_SplitterMoved)
+Gui.FormTransactionLog.gsgcTransactions.Create(GsGridControl)
+Gui.FormTransactionLog.gsgcTransactions.Enabled(True)
+Gui.FormTransactionLog.gsgcTransactions.Visible(True)
+Gui.FormTransactionLog.gsgcTransactions.Zorder(0)
+Gui.FormTransactionLog.gsgcTransactions.Size(1017,632)
+Gui.FormTransactionLog.gsgcTransactions.Position(0,0)
+Gui.FormTransactionLog.gsgcTransactions.Dock(0)
+Gui.FormTransactionLog.gsgcTransactions.Anchor(15)
+Gui.FormTransactionLog.gsgcTransactions.Parent("SplitContainer1",1)
+Gui.FormTransactionLog.gsgcTransactions.Event(RowCellClick,gsgcTransactions_RowCellClick)
+Gui.FormTransactionLog.dtpDateFilter.Create(DatePicker)
+Gui.FormTransactionLog.dtpDateFilter.Enabled(True)
+Gui.FormTransactionLog.dtpDateFilter.Visible(True)
+Gui.FormTransactionLog.dtpDateFilter.Zorder(0)
+Gui.FormTransactionLog.dtpDateFilter.Size(100,20)
+Gui.FormTransactionLog.dtpDateFilter.Position(59,2)
+Gui.FormTransactionLog.dtpDateFilter.CheckBox(False)
+Gui.FormTransactionLog.dtpDateFilter.FontName("Tahoma")
+Gui.FormTransactionLog.dtpDateFilter.FontSize(8.25)
+Gui.FormTransactionLog.dtpDateFilter.Value(1/1/0001 12:00:00 AM)
+Gui.FormTransactionLog.dtpDateFilter.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblCutoffDate.Create(Label,"Cutoff: ",True,38,13,0,4,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblCutoffDate.BorderStyle(0)
+Gui.FormTransactionLog.lblCutoffDate.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.progressBar1.Create(ProgressBar)
+Gui.FormTransactionLog.progressBar1.Visible(True)
+Gui.FormTransactionLog.progressBar1.Size(321,18)
+Gui.FormTransactionLog.progressBar1.Position(242,3)
+Gui.FormTransactionLog.progressBar1.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.progressBar1.Anchor(13)
+Gui.FormTransactionLog.lblLoading.Create(Label,"Loading Data...",True,75,13,0,162,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblLoading.BorderStyle(0)
+Gui.FormTransactionLog.lblLoading.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblOLUStatus.Create(Label,"OLU Status:",True,65,13,0,884,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblOLUStatus.BorderStyle(0)
+Gui.FormTransactionLog.lblOLUStatus.Anchor(9)
+Gui.FormTransactionLog.lblOLUStatus.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblOLUStatus.FontStyle(True,False,False,False,False)
+Gui.FormTransactionLog.lblOLURunning.Create(Label,"Not Running",True,59,13,0,952,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblOLURunning.BorderStyle(0)
+Gui.FormTransactionLog.lblOLURunning.Anchor(9)
+Gui.FormTransactionLog.lblOLURunning.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblUploader.Create(Label,"Uploader:",True,54,13,0,771,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblUploader.BorderStyle(0)
+Gui.FormTransactionLog.lblUploader.Anchor(9)
+Gui.FormTransactionLog.lblUploader.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblUploader.FontStyle(True,False,False,False,False)
+Gui.FormTransactionLog.lblUploaderEnabled.Create(Label,"Disabled",True,40,13,0,829,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblUploaderEnabled.BorderStyle(0)
+Gui.FormTransactionLog.lblUploaderEnabled.Anchor(9)
+Gui.FormTransactionLog.lblUploaderEnabled.Parent("SplitContainer1",0)
+Gui.FormTransactionLog.lblLastProcess.Create(Label,"Last Process:",True,74,13,0,571,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblLastProcess.BorderStyle(0)
+Gui.FormTransactionLog.lblLastProcess.Anchor(9)
+Gui.FormTransactionLog.lblLastProcess.FontStyle(True,False,False,False,False)
+Gui.FormTransactionLog.lblLastValue.Create(Label,"1/1/1900 12:00:00 AM",True,109,13,0,648,6,True,0,"Tahoma",8.25,,0,0)
+Gui.FormTransactionLog.lblLastValue.BorderStyle(0)
+Gui.FormTransactionLog.lblLastValue.Anchor(9)
+Gui.FormTransactionLog.timerRunChecks.Create(Timer)
+Gui.FormTransactionLog.timerRunChecks.Enabled(False)
+Gui.FormTransactionLog.timerRunChecks.Interval(30000)
+Gui.FormTransactionLog.timerRunChecks.Event(Timer,timerRunChecks_Timer)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("200000.lib")
+Program.External.Include.Library("3500.lib")
+Program.External.Include.Library("400000.lib")
+Program.External.Include.Library("251000.lib")
+Program.External.Include.Library("100000.lib")
+
+'options
+V.Global.sCallback.Declare(String, "FormTransactionLog_UnLoad")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Transaction Log")
+V.Global.bUnattended.Declare(Boolean, False)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+GUI.FormTransactionLog..BarAddButton("Logs", "Logs")
+GUI.FormTransactionLog.lblOLURunning.Caption("")
+GUI.FormTransactionLog.lblUploaderEnabled.Caption("")
+
+F.Intrinsic.Control.CallSub(SetCutoffDate)
+F.Intrinsic.Control.CallSub(LoadContextMenu)
+F.Intrinsic.Control.CallSub(LoadBaseDataTable)
+F.Intrinsic.Control.CallSub(LoadGridView)
+F.Intrinsic.Control.CallSub(Deserialize, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "RegID", 5807, "Child", "")
+F.Intrinsic.Control.CallSub(timerRunChecks_Timer)
+
+GUI.FormTransactionLog..Show
+GUI.FormTransactionLog..ApplySavedSettings
+F.Intrinsic.Control.CallSub(FormTransactionLog_RefreshClick)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.SetCutoffDate.Start
+F.Intrinsic.Control.Try
+
+V.Local.dDate.Declare(Date)
+
+F.Intrinsic.Date.DateAdd("M", -1, V.Ambient.Date, V.Local.dDate)
+GUI.FormTransactionLog.dtpDateFilter.Value(V.Local.dDate)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetCutoffDate.End
+
+Program.Sub.CheckSettings.Start
+F.Intrinsic.Control.Try
+
+V.Local.bSetting.Declare(Boolean, False)
+
+F.Intrinsic.Control.CallSub(GetSetting, "Type", "UPLOADER", "NAME", "ENABLED")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bSetting.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.bSetting)
+	GUI.FormTransactionLog.lblUploaderEnabled.Caption("Enabled")
+	GUI.FormTransactionLog.lblUploaderEnabled.ForeColor(V.Color.Green)
+F.Intrinsic.Control.Else
+	GUI.FormTransactionLog.lblUploaderEnabled.Caption("Disabled")
+	GUI.FormTransactionLog.lblUploaderEnabled.ForeColor(V.Color.Red)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckSettings.End
+
+Program.Sub.CheckLastProcess.Start
+F.Intrinsic.Control.Try
+
+V.Local.sProcess.Declare(String)
+
+F.Global.Registry.ReadValue(-1, V.Caller.CompanyCode, "GCG_5807_ORDERUPLOADERWATCHDOG.G2U", V.Global.sProject, 1, 6, V.Ambient.MinDate, V.Local.sProcess)
+GUI.FormTransactionLog.lblLastValue.Caption(V.Local.sProcess)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckLastProcess.End
+
+Program.Sub.LoadContextMenu.Start
+F.Intrinsic.Control.Try
+
+GUI.FormTransactionLog..ContextMenuCreate("ctxTransactions")
+GUI.FormTransactionLog..ContextMenuAddItem("ctxTransactions", "Reset", V.Enum.MenuItemType!Button, "Reset Formatting")
+GUI.FormTransactionLog..ContextMenuSetItemEventHandler("ctxTransactions", "Reset", "ctxTransactions_Reset")
+GUI.FormTransactionLog.gsgcTransactions.ContextMenuAttach("ctxTransactions")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadContextMenu.End
+
+Program.Sub.ctxTransactions_Reset.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(ResetSerialization, "RegID", 5807, "GridView", "gvTransactions")
+
+GUI.FormTransactionLog.gsgcTransactions.SuspendLayout
+F.Intrinsic.Control.CallSub(LoadGridView)
+GUI.FormTransactionLog.gsgcTransactions.ResumeLayout
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ctxTransactions_Reset.End
+
+Program.Sub.CheckOLUStatus.Start
+F.Intrinsic.Control.Try
+
+V.Local.bRunning.Declare(Boolean)
+
+F.Global.General.IsOLURunning(V.Local.bRunning)
+F.Intrinsic.Control.If(V.Local.bRunning)
+	GUI.FormTransactionLog.lblOLURunning.Caption("Running")
+	GUI.FormTransactionLog.lblOLURunning.ForeColor(V.Color.Green)
+F.Intrinsic.Control.Else
+	GUI.FormTransactionLog.lblOLURunning.Caption("Not Running")
+	GUI.FormTransactionLog.lblOLURunning.ForeColor(V.Color.Red)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckOLUStatus.End
+
+Program.Sub.FormTransactionLog_UnLoad.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Serialize, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "RegID", 5807, "Child", "")
+GUI.FormTransactionLog..SaveSettings
+
+F.Intrinsic.Control.If(V.DataTable.dtTransactions.Exists)
+	F.Data.DataTable.Close("dtTransactions")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormTransactionLog_UnLoad.End
+
+Program.Sub.FormTransactionLog_ExportClick.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Export, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "FileName", "5807-TransactionLog")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormTransactionLog_ExportClick.End
+
+Program.Sub.FormTransactionLog_RefreshClick.Start
+F.Intrinsic.Control.Try
+
+GUI.FormTransactionLog.gsgcTransactions.Enabled(False)
+F.Intrinsic.Control.CallSub(LoadData)
+GUI.FormTransactionLog.gsgcTransactions.Enabled(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormTransactionLog_RefreshClick.End
+
+Program.Sub.LoadBaseDataTable.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.Create("dtTransactions", True)
+
+F.Data.DataTable.AddColumn("dtTransactions", "TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtTransactions", "RECORD_ID", "Long", -1)
+F.Data.DataTable.AddColumn("dtTransactions", "RECORD_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtTransactions", "STATUS", "String", "")
+F.Data.DataTable.AddColumn("dtTransactions", "PROCESSED_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtTransactions", "EXTERNAL_ID", "String", "")
+F.Data.DataTable.AddColumn("dtTransactions", "GSS_ID", "String", "")
+F.Data.DataTable.AddColumn("dtTransactions", "FEEDBACK", "String", "")
+F.Data.DataTable.AddColumn("dtTransactions", "STAGING_TABLE", "String", "")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadBaseDataTable.End
+
+Program.Sub.LoadGridView.Start
+F.Intrinsic.Control.Try
+
+V.Local.sColumnNames.Declare(String)
+V.Local.iCounter.Declare(Long)
+
+GUI.FormTransactionLog.gsgcTransactions.AddGridviewFromDatatable("gvTransactions", "dtTransactions")
+
+GUI.FormTransactionLog.gsgcTransactions.SetGridviewProperty("gvTransactions", V.Enum.GridViewPropertyNames!Editable, False)
+GUI.FormTransactionLog.gsgcTransactions.SetGridviewProperty("gvTransactions", V.Enum.GridViewPropertyNames!SuppressNothingDates, True)
+GUI.FormTransactionLog.gsgcTransactions.SetGridviewProperty("gvTransactions", V.Enum.GridViewPropertyNames!ShowAutoFilterRow, True)
+GUI.FormTransactionLog.gsgcTransactions.SetGridviewProperty("gvTransactions", V.Enum.GridViewPropertyNames!ColumnAutoWidth, False)
+GUI.FormTransactionLog.gsgcTransactions.SetGridviewProperty("gvTransactions", "ShowConditionalFormattingItem", True)
+
+F.Intrinsic.Control.CallSub(ColumnFormatting, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "Property", V.Enum.ColumnPropertyNames!Caption, "Columns", V.DataTable.dtTransactions.FieldNames, "Values", "Type*!*Table ID*!*Record Timestamp*!*Status*!*Processed Timestamp*!*External ID*!*GSS ID*!*Feedback*!*Staging Table")
+F.Intrinsic.Control.CallSub(ColumnFormatting, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "Property", V.Enum.ColumnPropertyNames!HeaderFontBold, "Columns", V.DataTable.dtTransactions.FieldNames, "Values", True)
+F.Intrinsic.Control.CallSub(ColumnFormatting, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "Property", V.Enum.ColumnPropertyNames!MinWidth, "Columns", V.DataTable.dtTransactions.FieldNames, "Values", "60*!*50*!*80*!*60*!*80*!*60*!*60*!*200*!*80")
+F.Intrinsic.Control.CallSub(ColumnFormatting, "Form", "FormTransactionLog", "GridControl", "gsgcTransactions", "GridView", "gvTransactions", "Property", V.Enum.ColumnPropertyNames!VisibleIndex, "Columns", V.DataTable.dtTransactions.FieldNames, "Values", "2*!*3*!*4*!*0*!*5*!*6*!*7*!*8*!*1")
+
+GUI.FormTransactionLog.gsgcTransactions.AddStyleFormatCondition("gvTransactions", "STATUS", "Status1", V.Enum.ConditionalOperations!Equal, "Processed")
+GUI.FormTransactionLog.gsgcTransactions.AddStyleFormatCondition("gvTransactions", "STATUS", "Status2", V.Enum.ConditionalOperations!Equal, "Failed")
+GUI.FormTransactionLog.gsgcTransactions.AddStyleFormatCondition("gvTransactions", "STATUS", "Status3", V.Enum.ConditionalOperations!Equal, "Pending")
+GUI.FormTransactionLog.gsgcTransactions.SetStyleFormatConditionProperty("gvTransactions", "STATUS", "Status1", V.Enum.ConditionalPropertyNames!BackColor, "LightGreen")
+GUI.FormTransactionLog.gsgcTransactions.SetStyleFormatConditionProperty("gvTransactions", "STATUS", "Status2", V.Enum.ConditionalPropertyNames!BackColor, "LightPink")
+GUI.FormTransactionLog.gsgcTransactions.SetStyleFormatConditionProperty("gvTransactions", "STATUS", "Status3", V.Enum.ConditionalPropertyNames!BackColor, "LightYellow")
+
+GUI.FormTransactionLog.gsgcTransactions.SetColumnProperty("gvTransactions", "RECORD_TIMESTAMP", V.Enum.ColumnPropertyNames!SortOrder, "Descending")
+GUI.FormTransactionLog.gsgcTransactions.SetColumnProperty("gvTransactions", "GSS_ID", V.Enum.ColumnPropertyNames!IsHyperlink, True)
+
+GUI.FormTransactionLog.gsgcTransactions.BestFitColumns("gvTransactions")
+GUI.FormTransactionLog.gsgcTransactions.MainView("gvTransactions")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadGridView.End
+
+Program.Sub.LoadData.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iProgress.Declare(Long, 0)
+
+F.Data.DataTable.Create("dtTempRecords")
+
+GUI.FormTransactionLog.progressBar1.Min(0)
+GUI.FormTransactionLog.progressBar1.Max(11)
+GUI.FormTransactionLog.progressBar1.Value(0)
+GUI.FormTransactionLog.progressBar1.Visible(True)
+GUI.FormTransactionLog.lblLoading.Visible(True)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'Contacts
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_CNTCT_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_CNTCT_STAGE' STAGING_TABLE, 'Contact' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_CONTACT_ID) EXTERNAL_ID, RTRIM(IF(GSS_CONTACT_ID = -1, '', GSS_CONTACT_ID)) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_CNTCT_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Customers
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_CUST_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_CUST_STAGE' STAGING_TABLE, 'Customer' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_CUSTOMER_ID) EXTERNAL_ID, RTRIM(GSS_CUSTOMER_NUMBER) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_CUST_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Document Control
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_DOC_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_DOC_STAGE' STAGING_TABLE, 'Document Control' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(LINK_ID) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_DOC_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Parts
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_PART_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_PART_STAGE' STAGING_TABLE, 'Part' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_PARTNUMBER) EXTERNAL_ID, RTRIM(IF(IsNull(REVISION, '') = '', PARTNUMBER, SUBSTRING(PARTNUMBER, 1, 17) + REVISION)) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_PART_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Pricing
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_PRICE_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_PRICE_STAGE' STAGING_TABLE, IF(TYPE = 'IQD', 'Inventory Quantity Discount', IF(TYPE = 'MQD', 'Material Quantity Discount', IF(TYPE = 'CPP', 'Contract Part Pricing', 'Pricing'))) TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(IF(IsNull(REVISION, '') = '', PART_NUMBER, SUBSTRING(PART_NUMBER, 1, 17) + REVISION)) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_PRICE_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Ship Tos
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_SHPTO_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_SHPTO_STAGE' STAGING_TABLE, 'Ship To' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(SHIP_TO_ID) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_SHPTO_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Cross References
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_XREF_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_XREF_STAGE' STAGING_TABLE, 'Part Cross Reference' TYPE, RECORD_ID, RECORD_TIMESTAMP, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_PARTNUMBER) EXTERNAL_ID, RTRIM(IF(IsNull(REVISION, '') = '', PARTNUMBER, SUBSTRING(PARTNUMBER, 1, 17) + REVISION)) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_XREF_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'BOMs
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_BOM_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_BOM_STAGE' STAGING_TABLE, 'BOM' TYPE, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '') PROCESSED_TIMESTAMP_STRING, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(TOP_BOM) GSS_ID, RTRIM(FEEDBACK) FEEDBACK from GCG_5807_BOM_STAGE A where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	
+	F.Data.DataTable.AddExpressionColumn("dtTemp", "PROCESS_KEY", "String", "EXTERNAL_ID + PROCESSED_TIMESTAMP_STRING")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ID) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_ID from GCG_5807_BOM_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_ID", "Long", -1)
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_ID")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ID) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_TIMESTAMP from GCG_5807_BOM_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", V.Ambient.MinDate)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_TIMESTAMP", "Date")
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_TIMESTAMP")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESS_KEY")
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESSED_TIMESTAMP_STRING")
+	
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Quotes, Orders
+F.Intrinsic.String.Build("select count(RECORDID) from GCG_5807_ORDER_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_ORDER_STAGE' STAGING_TABLE, IF(TransactionCode = 'Q', 'Quote', 'Order') TYPE, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(ORDER_NO_EXTERNAL) EXTERNAL_ID, RTRIM(ORDERNUMBER) GSS_ID, RTRIM(FEEDBACK) FEEDBACK, IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '') PROCESSED_TIMESTAMP_STRING from GCG_5807_ORDER_STAGE A where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	
+	F.Data.DataTable.AddExpressionColumn("dtTemp", "PROCESS_KEY", "String", "EXTERNAL_ID + PROCESSED_TIMESTAMP_STRING")
+	
+	F.Intrinsic.String.Build("select RTRIM(ORDER_NO_EXTERNAL) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORDID from GCG_5807_ORDER_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_ID", "Long", -1)
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_ID")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Intrinsic.String.Build("select RTRIM(ORDER_NO_EXTERNAL) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_TIMESTAMP from GCG_5807_ORDER_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", V.Ambient.MinDate)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_TIMESTAMP", "Date")
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_TIMESTAMP")
+	F.Data.Dictionary.Close("dictTemp")
+
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESS_KEY")
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESSED_TIMESTAMP_STRING")
+	
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Routers
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_ROUT_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_ROUT_STAGE' STAGING_TABLE, 'Router' TYPE, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(IF(IsNull(REVISION, '') = '', ROUTER_NUMBER, SUBSTRING(ROUTER_NUMBER, 1, 17) + REVISION)) GSS_ID, RTRIM(FEEDBACK) FEEDBACK, IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '') PROCESSED_TIMESTAMP_STRING from GCG_5807_ROUT_STAGE A where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	
+	F.Data.DataTable.AddExpressionColumn("dtTemp", "PROCESS_KEY", "String", "EXTERNAL_ID + PROCESSED_TIMESTAMP_STRING")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ID) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_ID from GCG_5807_ROUT_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_ID", "Long", -1)
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_ID")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ID) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_TIMESTAMP from GCG_5807_ROUT_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", V.Ambient.MinDate)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_TIMESTAMP", "Date")
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_TIMESTAMP")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESS_KEY")
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESSED_TIMESTAMP_STRING")
+	
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+'Configurator
+F.Intrinsic.String.Build("select count(RECORD_ID) from GCG_5807_CNFG_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Local.sSQL.Long, !=, 0)
+	F.Intrinsic.String.Build("select distinct 'GCG_5807_CNFG_STAGE' STAGING_TABLE, 'Part Configuration' TYPE, IF(PROCESSED = 0, 'Pending', IF(FAILED = 0, 'Processed', 'Failed')) STATUS, PROCESSED_TIMESTAMP, RTRIM(EXTERNAL_ORDER) EXTERNAL_ID, RTRIM(CONFIGURED_PART) GSS_ID, RTRIM(FEEDBACK) FEEDBACK, IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '') PROCESSED_TIMESTAMP_STRING from GCG_5807_CNFG_STAGE A where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtTemp", "Con", V.Local.sSQL)
+	
+	F.Data.DataTable.AddExpressionColumn("dtTemp", "PROCESS_KEY", "String", "EXTERNAL_ID + PROCESSED_TIMESTAMP_STRING")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ORDER) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_ID from GCG_5807_CNFG_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_ID", "Long", -1)
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_ID")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_ORDER) + RTRIM(IsNull(CAST(PROCESSED_TIMESTAMP as CHAR(23)), '')), RECORD_TIMESTAMP from GCG_5807_CNFG_STAGE where RECORD_TIMESTAMP > '{0}' or PROCESSED_TIMESTAMP > '{0}' or PROCESSED = 0", V.Screen.FormTransactionLog!dtpDateFilter.Value.PervasiveDate, V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", V.Ambient.MinDate)
+	F.Data.DataTable.AddColumn("dtTemp", "RECORD_TIMESTAMP", "Date")
+	F.Data.DataTable.FillFromDictionary("dtTemp", "dictTemp", "PROCESS_KEY", "RECORD_TIMESTAMP")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESS_KEY")
+	F.Data.DataTable.RemoveColumn("dtTemp", "PROCESSED_TIMESTAMP_STRING")
+	
+	F.Data.DataTable.Merge("dtTemp", "dtTempRecords", False, 1)
+	F.Data.DataTable.Close("dtTemp")
+F.Intrinsic.Control.EndIf
+GUI.FormTransactionLog.progressBar1.Value(V.Local.iProgress.++)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.If(V.DataTable.dtTempRecords.RowCount, !=, V.DataTable.dtTransactions.RowCount)
+	F.Data.DataTable.DeleteRow("dtTransactions")
+	F.Data.DataTable.Merge("dtTempRecords", "dtTransactions", False, 2)
+	F.Data.DataTable.AcceptChanges("dtTransactions")
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("dtTempRecords")
+
+GUI.FormTransactionLog.lblLoading.Visible(False)
+GUI.FormTransactionLog.progressBar1.Visible(False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadData.End
+
+Program.Sub.SplitContainer1_SplitterMoved.Start
+F.Intrinsic.Control.Try
+
+GUI.FormTransactionLog.SplitContainer1.SplitterPosition(22)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SplitContainer1_SplitterMoved.End
+
+Program.Sub.FormTransactionLog_UserButtonClicked.Start
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.Button.UCase, =, "LOGS")
+	F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Log\", V.Caller.GlobalDir, V.Global.sProject, V.Caller.CompanyCode, V.Local.sPath)
+	F.Intrinsic.Task.ShellExec(V.Caller.Handle, "OPEN", V.Local.sPath, "", "", 0)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormTransactionLog_UserButtonClicked.End
+
+Program.Sub.gsgcTransactions_RowCellClick.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+
+F.Intrinsic.Control.BlockEvents
+F.Intrinsic.Control.If(V.Args.Column.UCase, =, "GSS_ID")
+	F.Intrinsic.Control.If(V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, !=, "", "AND", V.DataTable.dtTransactions(V.Args.RowIndex).Status!FieldValTrim, !=, "Failed")
+		GUI.FormTransactionLog.gsgcTransactions.Enabled(False)
+		F.Intrinsic.Control.SelectCase(V.DataTable.dtTransactions(V.Args.RowIndex).Type!FieldValTrim)
+			F.Intrinsic.Control.Case("Order")
+				F.Data.DataTable.AddRow("200000", "OrdNum", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, "Mode", "O")
+				F.Intrinsic.Control.CallSub(200000Async)
+				
+			F.Intrinsic.Control.Case("Part")
+				F.Intrinsic.String.Build("select RTRIM(LOCATION) from GCG_5807_PART_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Data.DataTable.AddRow("3500", "CompanyCode", V.Caller.CompanyCode, "Mode", "O", "Part", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, "Loc", V.Local.sSQL.Trim)
+				F.Intrinsic.Control.CallSub(3500Async)
+				
+			F.Intrinsic.Control.Case("Router")
+				F.Data.DataTable.AddRow("400000", "Router", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, "Mode", "O")
+				F.Intrinsic.Control.CallSub(400000Async)
+				
+			F.Intrinsic.Control.Case("BOM")
+				F.Global.Callwrapper.New("OpenBOM", "Manufacturing.BOM.OpenBOMMaintenance")
+				F.Global.Callwrapper.SetProperty("OpenBOM", "Parent", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim)
+				F.Global.CallWrapper.Run("OpenBOM")
+				
+			F.Intrinsic.Control.Case("Quote")
+				F.Data.DataTable.AddRow("251000", "QuoteNo", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, "Mode", "O")
+				F.Intrinsic.Control.CallSub(251000Async)
+				
+			F.Intrinsic.Control.Case("Customer")
+				F.Data.DataTable.AddRow("100000", "Mode", "O", "Customer", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim)
+				F.Intrinsic.Control.CallSub(100000Async)
+				
+			F.Intrinsic.Control.Case("Document Control")
+				F.Intrinsic.String.Build("select LINK_TYPE, LINK_KEY from GCG_5807_DOC_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Intrinsic.String.Split(V.Local.sSQL, "*!*", V.Local.sSQL)
+				F.Global.DocumentControl.Invoke(V.Local.sSQL(1), V.Local.sSQL(0).Long, "", V.Ambient.PID)
+				V.Local.sSQL.Redim(0, 0)
+				
+			F.Intrinsic.Control.Case("Material Quantity Discount")
+				F.Intrinsic.String.Build("select RTRIM(PART_NUMBER), RTRIM(REVISION) from GCG_5807_PRICE_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Intrinsic.String.Split(V.Local.sSQL, "*!*", V.Local.sSQL)
+				F.Global.Callwrapper.New("OpenMQD", "Manufacturing.Estimating.OpenMaterialQuantityDiscount")
+				F.Global.Callwrapper.SetProperty("OpenMQD", "Company", V.Caller.CompanyCode)
+				F.Global.Callwrapper.SetProperty("OpenMQD", "PartNumber", V.Local.sSQL(0))
+				F.Global.Callwrapper.SetProperty("OpenMQD", "Revision", V.Local.sSQL(1))
+				F.Global.CallWrapper.Run("OpenMQD")
+				V.Local.sSQL.Redim(0, 0)
+				
+			F.Intrinsic.Control.Case("Contract Part Pricing")
+				F.Intrinsic.String.Build("select RTRIM(LOCATION) from GCG_5807_PRICE_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				'might need to check revision here
+				F.Intrinsic.String.ConcatCallWrapperArgs(V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, V.Local.sSQL.Trim, "", "", V.Local.sSQL)
+				F.Global.General.CallWrapperAsync(300050, V.Local.sSQL)
+				
+			F.Intrinsic.Control.Case("Inventory Quantity Discount")
+				F.Intrinsic.String.ConcatCallWrapperArgs(V.Caller.CompanyCode, V.Caller.Terminal, V.Global.sProject, V.Caller.User, V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, V.Local.sSQL)
+				F.Global.General.CallWrapperAsync(4001, V.Local.sSQL)
+				
+			F.Intrinsic.Control.Case("Ship To")
+				'for now just open customer
+				F.Intrinsic.String.Build("select RTRIM(GSS_CUSTOMER_NUMBER) from GCG_5807_SHPTO_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Data.DataTable.AddRow("100000", "Mode", "O", "Customer", V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(100000Async)
+				
+			F.Intrinsic.Control.Case("Part Cross Reference")
+				'this does not work
+				'F.Intrinsic.String.Build("select RTRIM(PARTNUMBER), RTRIM(REVISION), RTRIM(LOCATION) from GCG_5807_XREF_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				'F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				'F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				'F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				'F.Intrinsic.String.Split(V.Local.sSQL, "*!*", V.Local.sSQL)
+				'F.Global.Callwrapper.New("OpenCrossReference", "Inventory.OpenPartCrossReference")
+				'F.Global.Callwrapper.SetProperty("OpenCrossReference", "CompanyCode", V.Caller.CompanyCode)
+				'F.Global.Callwrapper.SetProperty("OpenCrossReference", "PartNumber", V.Local.sSQL(0))
+				'F.Global.Callwrapper.SetProperty("OpenCrossReference", "PartNumberRevision", V.Local.sSQL(1))
+				'F.Global.Callwrapper.SetProperty("OpenCrossReference", "LocationCode", V.Local.sSQL(2))
+				'F.Global.CallWrapper.Run("OpenCrossReference")
+				'V.Local.sSQL.Redim(0, 0)
+				
+				'for now just open part
+				F.Intrinsic.String.Build("select RTRIM(LOCATION) from GCG_5807_XREF_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Data.DataTable.AddRow("3500", "CompanyCode", V.Caller.CompanyCode, "Mode", "O", "Part", V.DataTable.dtTransactions(V.Args.RowIndex).GSS_ID!FieldValTrim, "Loc", V.Local.sSQL.Trim)
+				F.Intrinsic.Control.CallSub(3500Async)
+				
+			F.Intrinsic.Control.Case("Contact")
+				'this does not work
+				'F.Intrinsic.String.Build("select RTRIM(TYPE), RTRIM(GSS_COMPANY_ID) from GCG_5807_CNTCT_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				'F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				'F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				'F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				'F.Intrinsic.String.Split(V.Local.sSQL, "*!*", V.Local.sSQL)
+				'F.Intrinsic.Control.SelectCase(V.Local.sSQL(0))
+					'F.Intrinsic.Control.Case("V")
+						'V.Local.sSQL(0).Set("10")
+					'F.Intrinsic.Control.Case("C")
+						'V.Local.sSQL(0).Set("15")
+					'F.Intrinsic.Control.Case("P")
+						'V.Local.sSQL(0).Set("18")
+					'F.Intrinsic.Control.Case("S")
+						'V.Local.sSQL(0).Set("19")
+					'F.Intrinsic.Control.CaseElse
+						'V.Local.sSQL(0).Set("0")
+				'F.Intrinsic.Control.EndSelect
+				
+				'F.Intrinsic.String.Build("MODE::1*!*COMPANY-NUMBER::{0}*!*COMPANY-TYPE::{1}", V.Local.sSQL(1), V.Local.sSQL(0).Long, V.Local.sSQL)
+				'F.Global.CRM.Invoke(V.Local.sSQL, V.Caller.Handle)
+				'V.Local.sSQL.Redim(0, 0)
+
+				'for now just open customer/prospect/vendor screen
+				F.Intrinsic.String.Build("select RTRIM(GSS_COMPANY_ID), RTRIM(TYPE) from GCG_5807_CNTCT_STAGE where RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Intrinsic.String.Split(V.Local.sSQL, "*!*", V.Local.sSQL)
+				F.Intrinsic.Control.SelectCase(V.Local.sSQL(1))
+					F.Intrinsic.Control.CaseAny("C", "P")
+						F.Intrinsic.Control.If(V.Local.sSQL(1).Trim, =, "P")
+							F.Data.DataTable.AddRow("100000", "Mode", "O", "Customer", V.Local.sSQL(0), "ProspectFlag", "P")
+						F.Intrinsic.Control.Else
+							F.Data.DataTable.AddRow("100000", "Mode", "O", "Customer", V.Local.sSQL(0))
+						F.Intrinsic.Control.EndIf
+						F.Intrinsic.Control.CallSub(100000Async)
+						
+					F.Intrinsic.Control.Case("V")
+						F.Global.Callwrapper.New("OpenVendor", "Accounting.AccountsPayable.VendorMaintenanceOpenVendor")
+						F.Global.Callwrapper.SetProperty("OpenVendor", "VendorNumber", V.Local.sSQL(0))
+						F.Global.Callwrapper.Run("OpenVendor")
+						
+					F.Intrinsic.Control.CaseElse
+						F.Intrinsic.UI.Msgbox("Suspect/Oppurtunity Contacts cannot currently be launched from this menu. Please view them in the CRM.")
+						
+				F.Intrinsic.Control.EndSelect
+				V.Local.sSQL.Redim(0, 0)
+				
+			F.Intrinsic.Control.Case("Part Configuration")
+				'for now just open sales order
+				F.Intrinsic.String.Build("select RTRIM(B.ORDERNUMBER) from GCG_5807_CNFG_STAGE A left join GCG_5807_ORDER_STAGE B on A.EXTERNAL_ORDER = B.ORDER_NO_EXTERNAL where A.RECORD_ID = {0}", V.DataTable.dtTransactions(V.Args.RowIndex).RECORD_ID!FieldValLong, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Data.DataTable.AddRow("200000", "OrdNum", V.Local.sSQL, "Mode", "O")
+				F.Intrinsic.Control.CallSub(200000Async)
+			
+			F.Intrinsic.Control.CaseElse
+				F.Intrinsic.UI.Msgbox("Invalid Type, Cannot Open.", V.Global.sProjectTitle)
+				
+		F.Intrinsic.Control.EndSelect
+		GUI.FormTransactionLog.gsgcTransactions.Enabled(True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgcTransactions_RowCellClick.End
+
+Program.Sub.timerRunChecks_Timer.Start
+F.Intrinsic.Control.Try
+
+GUI.FormTransactionLog.timerRunChecks.Enabled(False)
+F.Intrinsic.Control.CallSub(CheckOLUStatus)
+F.Intrinsic.Control.CallSub(CheckSettings)
+F.Intrinsic.Control.CallSub(CheckLastProcess)
+GUI.FormTransactionLog.timerRunChecks.Enabled(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.timerRunChecks_Timer.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240304170617140$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9lH5srDMLbUs5t3h3rz7VM3CiBksd9e6L4=
+Program.Sub.Comments.End
