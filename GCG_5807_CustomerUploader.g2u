@@ -1,0 +1,1336 @@
+﻿Program.Sub.Preflight.Start
+'Program.External.Include.Library("6013.lib")
+Program.External.Include.Library("GCG_5807_6013.lib")
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+V.Global.bFromOrder.Declare(Boolean, False)
+V.Global.iFailed.Declare(Long, 0)
+V.Global.bAutomatedNumbering.Declare(Boolean, False)
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, True)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Customer Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_CustomerUploader.g2u
+'Trey S'
+'January 24th, 2020
+'This program is part of the standard SOAP uploader
+'This script will upload customers from a staging table, GCG_5807_CUST_STAGE
+'will be called from the watchdog, GCG_5807_OrderUploaderWatchdog.g2u
+'or called from the order upload program GCG_5807_OrderUploader (which is called from the watchdog)
+
+F.Intrinsic.Control.Try
+
+V.Local.bExists.Declare(Boolean)
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check if already running
+F.Intrinsic.Control.CallSub(ScriptPIDCheck, "PROJECT", V.Global.sProject)
+
+F.Intrinsic.Variable.PassedExists("FROM_ORDER", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	V.Global.bFromOrder.Set(True)
+F.Intrinsic.Control.EndIf
+
+'check for customers
+F.Intrinsic.Control.CallSub(LoadStagedCustomers)
+F.Intrinsic.Control.If(V.DataTable.dtCustomers.RowCount, >, 0)
+	F.Intrinsic.String.Build("{0} potential customer(s) found to upload/update.", V.DataTable.dtCustomers.RowCount, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'if there are staged orders, check / prep them
+	F.Intrinsic.Control.CallSub(PrepareStagedCustomers)
+	
+	'upload any valid orders
+	'prospect is actually a different upload, will need to look into that
+	F.Data.DataView.Create("dtCustomers", "dvValid", 22, "FAILED = False and Update_Customer = False and PROSPECT = False", "")
+	F.Intrinsic.Control.If(V.DataView.dtCustomers!dvValid.RowCount, >, 0)
+		F.Intrinsic.String.Build("{0} valid customer(s) found to upload.", V.DataView.dtCustomers!dvValid.RowCount, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'if there are valid orders to upload, upload them
+		F.Intrinsic.Control.CallSub(UploadStagedCustomers)
+	F.Intrinsic.Control.EndIf
+	
+	'update any valid customers
+	F.Data.DataView.SetFilter("dtCustomers", "dvValid", "FAILED = False and Update_Customer = True and PROSPECT = False")
+	F.Intrinsic.Control.If(V.DataView.dtCustomers!dvValid.RowCount, >, 0)
+		F.Intrinsic.String.Build("{0} valid customer(s) found to update.", V.DataView.dtCustomers!dvValid.RowCount, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(UpdateCustomers)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtCustomers", "dvValid")
+	
+	F.Data.DataTable.AcceptChanges("dtCustomers")
+	F.Intrinsic.Control.CallSub(LogUploads)
+	F.Intrinsic.Control.CallSub(SaveFeedBack)
+	
+	F.Intrinsic.String.Build("Processing done. {0} customers uploaded, {1} updated, {2} failed.", V.Global.iSuccessful, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedCustomers.Start
+'grab everything from the staging table
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'it's times like this I regret my dedication to right trimming
+V.Local.sSQL.Set("select RTRIM(EXTERNAL_CUSTOMER_ID) EXTERNAL_CUSTOMER_ID, RTRIM(GSS_CUSTOMER_NUMBER) GSS_CUSTOMER_NUMBER, RTRIM(CUSTOMER_NAME) CUSTOMER_NAME, RTRIM(ADDRESS_1) ADDRESS_1, RTRIM(ADDRESS_2) ADDRESS_2, RTRIM(ADDRESS_3) ADDRESS_3, RTRIM(ADDRESS_4) ADDRESS_4, RTRIM(ADDRESS_5) ADDRESS_5, RTRIM(CITY) CITY, RTRIM(STATE) STATE, RTRIM(ZIP) ZIP, RTRIM(COUNTRY) COUNTRY, RTRIM(COUNTY) COUNTY, RTRIM(ATTENTION) ATTENTION, RTRIM(PHONE) PHONE, RTRIM(FAX) FAX, RTRIM(EMAIL) EMAIL, INTERNATIONAL, RTRIM(SHIP_NAME) SHIP_NAME, RTRIM(SHIP_ADDRESS_1) SHIP_ADDRESS_1, RTRIM(SHIP_ADDRESS_2) SHIP_ADDRESS_2, RTRIM(SHIP_ADDRESS_3) SHIP_ADDRESS_3, RTRIM(SHIP_ADDRESS_4) SHIP_ADDRESS_4, RTRIM(SHIP_ADDRESS_5) SHIP_ADDRESS_5, RTRIM(SHIP_CITY) SHIP_CITY, RTRIM(SHIP_STATE) SHIP_STATE, RTRIM(SHIP_ZIP) SHIP_ZIP, RTRIM(SHIP_COUNTRY) SHIP_COUNTRY, RTRIM(SHIP_COUNTY) SHIP_COUNTY, RTRIM(SHIP_ATTENTION) SHIP_ATTENTION, RTRIM(SHIP_PHONE) SHIP_PHONE, RTRIM(SHIP_FAX) SHIP_FAX, SHIP_INTERNATIONAL, RTRIM(ALPHA_SORT) ALPHA_SORT, RTRIM(SORT) SORT, IsNull(CUSTOMER_SINCE, now()) CUSTOMER_SINCE, RTRIM(WEB_ADDRESS) WEB_ADDRESS, RTRIM(LOCATION) LOCATION, PROCESSED, FAILED, RTRIM(FEEDBACK) FEEDBACK, PROSPECT, UPDATE_CUSTOMER, RECORD_ID, RECORD_TIMESTAMP, SET_CREDIT_HOLD, SET_SHIPPING_HOLD, ORDER_SHIPPING_HOLD, RTRIM(CREDIT_LIMIT_CODE) CREDIT_LIMIT_CODE, CREDIT_LIMIT, RTRIM(SALESPERSON_CODE) SALESPERSON_CODE, RTRIM(CURRENCY_CODE) CURRENCY_CODE, RTRIM(CATALOG_CURRENCY) CATALOG_CURRENCY, RTRIM(E_INVOICING_EMAILS) E_INVOICING_EMAILS, RTRIM(ORDER_NOTES) ORDER_NOTES, RTRIM(CARRIER) CARRIER, RTRIM(TERMS) TERMS, RTRIM(SIC_CODE) SIC_CODE, CREDIT_HOLD, SUPPRESS_INVOICE, RTRIM(SHIP_VIA_CODE) SHIP_VIA_CODE, RTRIM(TAX_EXEMPT_NUMBER) TAX_EXEMPT_NUMBER, UPPER(RTRIM(INVOICE_DELIVERY)) INVOICE_DELIVERY, UPPER(RTRIM(COMMISSION_TYPE_CODE)) COMMISSION_TYPE_CODE, UPPER(RTRIM(PRIMARY_GROUP)) PRIMARY_GROUP, RTRIM(TAX_ZONE) TAX_ZONE, RTRIM(TAX_ZIP) TAX_ZIP, RTRIM(TAX_CODE_1) TAX_CODE_1, RTRIM(TAX_CODE_2) TAX_CODE_2, RTRIM(TAX_CODE_3) TAX_CODE_3, RTRIM(TAX_CODE_4) TAX_CODE_4, RTRIM(TAX_CODE_5) TAX_CODE_5, RTRIM(TAX_CODE_6) TAX_CODE_6, RTRIM(TAX_CODE_7) TAX_CODE_7, RTRIM(TAX_CODE_8) TAX_CODE_8, RTRIM(TAX_CODE_9) TAX_CODE_9, RTRIM(TAX_CODE_10) TAX_CODE_10, VAT_RULE, RTRIM(VAT_NIT_NUMBER) VAT_NIT_NUMBER, RTRIM(VAT_COUNTRY_CODE) VAT_COUNTRY_CODE, VAT_EC, VAT_REGISTERED, RTRIM(VAT_NUMBER) VAT_NUMBER, VAT_REGISTER_DATE, RTRIM(PRICE_CLASS) PRICE_CLASS from GCG_5807_CUST_STAGE where PROCESSED = 0")
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomers", "Con", V.Local.sSQL, True)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedCustomers.End
+
+Program.Sub.PrepareStagedCustomers.Start
+'run tests and add calculated columns
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.bValidateLocations.Declare(Boolean, False)
+V.Local.bLocations.Declare(Boolean, False)
+V.Local.bNoBlankLocations.Declare(Boolean, False)
+V.Local.sSplit.Declare(String)
+
+F.Data.DataView.Create("dtCustomers", "dvCheck", 22)
+
+'calculated fields
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_NAME", "String", "IIF(IsNull([SHIP_NAME], '') = '', [CUSTOMER_NAME], [SHIP_NAME])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ADDRESS_1", "String", "IIF(IsNull([SHIP_ADDRESS_1], '') = '', [ADDRESS_1], [SHIP_ADDRESS_1])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ADDRESS_2", "String", "IIF(IsNull([SHIP_ADDRESS_2], '') = '', [ADDRESS_2], [SHIP_ADDRESS_2])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ADDRESS_3", "String", "IIF(IsNull([SHIP_ADDRESS_3], '') = '', [ADDRESS_3], [SHIP_ADDRESS_3])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ADDRESS_4", "String", "IIF(IsNull([SHIP_ADDRESS_4], '') = '', [ADDRESS_4], [SHIP_ADDRESS_4])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ADDRESS_5", "String", "IIF(IsNull([SHIP_ADDRESS_5], '') = '', [ADDRESS_5], [SHIP_ADDRESS_5])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_CITY", "String", "IIF(IsNull([SHIP_CITY], '') = '', [CITY], [SHIP_CITY])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_STATE", "String", "IIF(IsNull([SHIP_STATE], '') = '', [STATE], [SHIP_STATE])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ZIP", "String", "IIF(IsNull([SHIP_ZIP], '') = '', [ZIP], [SHIP_ZIP])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_COUNTRY", "String", "IIF(IsNull([SHIP_COUNTRY], '') = '', [COUNTRY], [SHIP_COUNTRY])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_COUNTY", "String", "IIF(IsNull([SHIP_COUNTY], '') = '', [COUNTY], [SHIP_COUNTY])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_ATTENTION", "String", "IIF(IsNull([SHIP_ATTENTION], '') = '', [ATTENTION], [SHIP_ATTENTION])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_PHONE", "String", "IIF(IsNull([SHIP_PHONE], '') = '', [PHONE], [SHIP_PHONE])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIP_FAX", "String", "IIF(IsNull([SHIP_FAX], '') = '', [FAX], [SHIP_FAX])")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "INTERNATIONAL_STRING", "String", "IIF([INTERNATIONAL], 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "SHIP_INTERNATIONAL_STRING", "String", "IIF([SHIP_INTERNATIONAL], 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_INVOICE_DELIVERY", "String", "IIF([INVOICE_DELIVERY] = 'PRINT', '1', IIF([INVOICE_DELIVERY] = 'EMAIL', '2', IIF([INVOICE_DELIVERY] = 'BOTH', '3', '')))")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_VAT_DATE", "Date", "IsNull([VAT_REGISTER_DATE], '1900-01-01')")
+
+F.Data.DataTable.AddColumn("dtCustomers", "EXTERNAL_ID", "String", "")
+
+'check prospect
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "ALLOW_PROSPECT")
+F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[PROSPECT]")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The prospect upload failed because the option to allow prospect upload is turned off.", "Failed", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The prospect upload failed because the option to allow prospect upload is turned off.", "Failed", True)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'check customer from external id
+F.Data.DataTable.AddColumn("dtCustomers", "CUSTOMER_FROM_EXTERNAL_ID", "String", "")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomers", "Field", "EXTERNAL_CUSTOMER_ID")
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+F.Intrinsic.Control.If(V.Args.Core_Field, !=, "***DONOTSTORE***")
+	F.Intrinsic.String.Build("select RTRIM({0}) CUSTOMER_ID, RTRIM(CUSTOMER) CUSTOMER from {1} where {0} in ('{2}')", V.Args.Core_Field, V.Args.Core_Table, V.Args.Filter, V.Local.sSQL)
+	
+	'dictionary keys are uppercase only while Salesforce has mixed case IDs, so I can't use a dictionary
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+	F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+	F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "")
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtCustomers!dvCheck.RowCount--, 1)
+		F.Intrinsic.String.Build("[CUSTOMER_ID] = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+		
+		F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomers", "dvCheck", V.Local.iCounter, "CUSTOMER_FROM_EXTERNAL_ID", V.DataView.dtIDs!dvIDs(0).CUSTOMER!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Data.DataView.Close("dtIDs", "dvIDs")
+	F.Data.DataTable.Close("dtIDs")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_CUSTOMER_NUMBER", "String", "IIF(Trim(IsNull([GSS_CUSTOMER_NUMBER], '')) = '', [CUSTOMER_FROM_EXTERNAL_ID], [GSS_CUSTOMER_NUMBER])")
+
+'check if customer exists
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomers", "Field", "FINAL_CUSTOMER_NUMBER")
+F.Intrinsic.String.Build("select RTRIM(CUSTOMER), CAST(1 as Bit) from V_CUSTOMER_MASTER where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtCustomers", "CUSTOMER_NUMBER_EXISTS", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "FINAL_CUSTOMER_NUMBER", "CUSTOMER_NUMBER_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+'now setting the update flag ourselves based off keys instead of requiring the inserter to set it
+F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "Failed = False and CUSTOMER_NUMBER_EXISTS = True")
+F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck.RowCount, >, 0)
+	F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "UPDATE_CUSTOMER", True)
+F.Intrinsic.Control.EndIf
+
+'check update
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "ALLOW_UPDATE")
+F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[UPDATE_CUSTOMER]")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer update failed because the option to allow customer updates is turned off.", "Failed", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer update failed because the option to allow customer updates is turned off.", "Failed", True)
+F.Intrinsic.Control.EndIf
+
+'some of the below update checks don't make much sense anymore, leaving them in for now. 
+'these were for when we were updating based solely off the update flag, and the update flag was set by the inserter, not us.
+'if updating, check if the order exists
+'if updating, check if customer exists
+F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[UPDATE_CUSTOMER] = True and [CUSTOMER_NUMBER_EXISTS] = False")
+F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer update failed because the customer does not exist.", "Failed", True)
+
+'if not updating, check if customer already exists
+F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[UPDATE_CUSTOMER] = False and [CUSTOMER_NUMBER_EXISTS] = True")
+F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer upload failed because the customer already exists.", "Failed", True)
+
+'check if duplicate customer names are allowed
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "ALLOW_DUPLICATE_NAME")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomers", "Field", "CUSTOMER_NAME")
+		F.Intrinsic.String.Build("select RTRIM(NAME_CUSTOMER), CAST(1 as Bit) from V_CUSTOMER_MASTER where UCASE(NAME_CUSTOMER) in ('{0}')", V.Args.Filter, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+		
+		F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+		F.Data.DataTable.AddColumn("dtCustomers", "CUSTOMER_EXISTS", "Boolean", False)
+		F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CUSTOMER_NAME", "CUSTOMER_EXISTS")
+		F.Data.Dictionary.Close("dictTemp")
+		
+		F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[CUSTOMER_EXISTS] and [FAILED] = False and [UPDATE_CUSTOMER] = False")
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer upload failed because the customer name already exists in Global Shop and the option to allow duplicate customer names is turned off.", "Failed", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check location options
+F.Data.DataTable.AddColumn("dtCustomers", "LOCATION_EXISTS", "Boolean", True)
+F.Global.General.ReadOption(400363, 0, False, V.Local.bLocations)
+F.Intrinsic.Control.If(V.Local.bLocations)
+	'validate locations
+	F.Global.General.ReadOption(400363, 0, False, 2, V.Local.bValidateLocations)
+	F.Intrinsic.Control.If(V.Local.bValidateLocations)
+		F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomers", "Field", "LOCATION")
+		F.Intrinsic.String.Build("select RTRIM(LOCATION), Cast(1 as Bit) from V_LOCATIONS where LOCATION in ('{0}')", V.Args.Filter, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+		F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+		F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "LOCATION", "LOCATION_EXISTS")
+		F.Data.Dictionary.Close("dictTemp")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.bLocations)
+	F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[FAILED] = False and [LOCATION_EXISTS] = False and [LOCATION] <> ''")
+	F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck.RowCount, >, 0)
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer upload failed because the passed location was invalid.", "Failed", True)
+	F.Intrinsic.Control.EndIf
+	
+	'check blank locations
+	F.Global.General.ReadOption(400363, 0, False, 3, V.Local.bNoBlankLocations)
+	F.Intrinsic.Control.If(V.Local.bNoBlankLocations)
+		F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[FAILED] = False and [LOCATION] = ''")
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer upload failed because the no location was passed and the company option to prohibit blank locations is on.", "Failed", True)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Data.DataView.SetFilter("dtCustomers", "dvCheck", "[FAILED] = False and [LOCATION] <> ''")
+	F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck.RowCount, >, 0)
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", -1, "FEEDBACK", "The customer upload failed because a location was passed and the company option to use locations is not on.", "Failed", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check invoice options
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SUPPRESS_INVOICE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SUPPRESS_INVOICE", "String", "IIF([SUPPRESS_INVOICE], 'Y', 'N')")
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.AddColumn("dtCustomers", "FINAL_SUPPRESS_INVOICE", "String", "Y")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SUPPRESS_INVOICE", "String", "IIF([SUPPRESS_INVOICE], 'Y', 'N')")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check hold options
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SET_CREDIT_HOLD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SET_CREDIT_HOLD", "String", "IIF([SET_CREDIT_HOLD], 'Y', 'N')")
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.AddColumn("dtCustomers", "FINAL_SET_CREDIT_HOLD", "String", "Y")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SET_CREDIT_HOLD", "String", "IIF([SET_CREDIT_HOLD], 'Y', 'N')")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SHIP_HOLD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIPPING_HOLD", "String", "IIF([SET_SHIPPING_HOLD], 'Y', 'N')")
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.AddColumn("dtCustomers", "FINAL_SHIPPING_HOLD", "String", "Y")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_SHIPPING_HOLD", "String", "IIF([SET_SHIPPING_HOLD], 'Y', 'N')")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_ORDER_HOLD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_ORDER_LEVEL_HOLD", "String", "IIF([ORDER_SHIPPING_HOLD], 'Y', 'N')")
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.AddColumn("dtCustomers", "FINAL_ORDER_LEVEL_HOLD", "String", "Y")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_ORDER_LEVEL_HOLD", "String", "IIF([ORDER_SHIPPING_HOLD], 'Y', 'N')")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_CREDIT_HOLD")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, =, "")
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_CREDIT_HOLD", "String", "IIF([CREDIT_HOLD], 'Y', 'N')")
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.AddColumn("dtCustomers", "FINAL_CREDIT_HOLD", "String", "Y")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_CREDIT_HOLD", "String", "IIF([CREDIT_HOLD], 'Y', 'N')")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_INVOICE_DELIVERY")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtCustomers", -1, "INVOICE_DELIVERY", V.Args.Setting.Trim)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CUSTOMER", "NAME", "OVERRIDE_PRIMARY_GROUP")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Data.DataTable.SetValue("dtCustomers", -1, "PRIMARY_GROUP", V.Args.Setting.Trim)
+F.Intrinsic.Control.EndIf
+
+'tax overrides
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+	
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "TAX_KEY", "String", "Trim(IsNull([SHIP_STATE], '')) + Trim(IsNull([SHIP_ZIP], ''))")
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "TAX_KEY_2", "String", "Trim(IsNull([SHIP_STATE], ''))")
+		F.Data.Dictionary.Create("dictTaxOverride")
+		F.Data.Dictionary.SetDefaultReturn("dictTaxOverride", "")
+		
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_1")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "--")
+			F.Intrinsic.String.Split(V.Args.Setting, "-", V.Local.sSplit)
+			V.Local.sSplit.RedimPreserve(0, 2)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sSplit(0).Trim, V.Local.sSplit(1).Trim, V.Local.sSplit(0))
+			F.Data.Dictionary.AddItem("dictTaxOverride", V.Local.sSplit(0), V.Local.sSplit(2))
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_2")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "--")
+			F.Intrinsic.String.Split(V.Args.Setting, "-", V.Local.sSplit)
+			V.Local.sSplit.RedimPreserve(0, 2)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sSplit(0).Trim, V.Local.sSplit(1).Trim, V.Local.sSplit(0))
+			F.Data.Dictionary.AddItem("dictTaxOverride", V.Local.sSplit(0), V.Local.sSplit(2))
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_3")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "--")
+			F.Intrinsic.String.Split(V.Args.Setting, "-", V.Local.sSplit)
+			V.Local.sSplit.RedimPreserve(0, 2)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sSplit(0).Trim, V.Local.sSplit(1).Trim, V.Local.sSplit(0))
+			F.Data.Dictionary.AddItem("dictTaxOverride", V.Local.sSplit(0), V.Local.sSplit(2))
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_4")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "--")
+			F.Intrinsic.String.Split(V.Args.Setting, "-", V.Local.sSplit)
+			V.Local.sSplit.RedimPreserve(0, 2)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sSplit(0).Trim, V.Local.sSplit(1).Trim, V.Local.sSplit(0))
+			F.Data.Dictionary.AddItem("dictTaxOverride", V.Local.sSplit(0), V.Local.sSplit(2))
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_5")
+		F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "--")
+			F.Intrinsic.String.Split(V.Args.Setting, "-", V.Local.sSplit)
+			V.Local.sSplit.RedimPreserve(0, 2)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sSplit(0).Trim, V.Local.sSplit(1).Trim, V.Local.sSplit(0))
+			F.Data.Dictionary.AddItem("dictTaxOverride", V.Local.sSplit(0), V.Local.sSplit(2))
+		F.Intrinsic.Control.EndIf
+
+		F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTaxOverride", "TAX_KEY", "TAX_CODE_1")
+		F.Data.DataTable.AddColumn("dtCustomers", "TAX_CODE_1_2", "String", "")
+		F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTaxOverride", "TAX_KEY_2", "TAX_CODE_1_2")
+		F.Data.Dictionary.Close("dictTaxOverride")
+		
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_TAX_CODE_1", "String", "IIF(Trim(IsNull(TAX_CODE_1, '')) = '', TAX_CODE_1_2, TAX_CODE_1)")
+		
+		'need to set zip and zone too
+		F.Data.DataView.Create("dtCustomers", "dvTaxes", 22, "[FINAL_TAX_CODE_1] <> ''", "")
+		F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtCustomers!dvTaxes.RowCount--, 1)
+			F.Data.DataView.SetValue("dtCustomers", "dvTaxes", V.Local.iCounter, "TAX_ZONE", V.DataView.dtCustomers!dvTaxes(V.Local.iCounter).SHIP_STATE!FieldValTrim, "TAX_ZIP", V.DataView.dtCustomers!dvTaxes(V.Local.iCounter).SHIP_ZIP!FieldValTrim)
+		F.Intrinsic.Control.Next(V.Local.iCounter)
+		F.Data.DataView.Close("dtCustomers", "dvTaxes")
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_TAX_CODE_1", "String", "TAX_CODE_1")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_TAX_CODE_1", "String", "TAX_CODE_1")
+F.Intrinsic.Control.EndIf
+
+'check credit limits
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(CREDIT), RTRIM(CREDIT) from V_AR_CRD_LIMIT union select RTRIM(CREDIT_CODE), RTRIM(CREDIT_CODE) from V_AR_CREDIT_LIMIT")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(CREDIT), RTRIM(CREDIT) from V_AR_CRD_LIMIT union select RTRIM(CREDIT_CODE), RTRIM(CREDIT_CODE) from V_AR_CREDIT_LIMIT")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "CREDIT_CODE_FROM_CREDIT_CODE", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CREDIT_LIMIT_CODE", "CREDIT_CODE_FROM_CREDIT_CODE")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select AMOUNT, RTRIM(CREDIT) from V_AR_CRD_LIMIT union select CREDIT_AMOUNT, RTRIM(CREDIT_CODE) from V_AR_CREDIT_LIMIT")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select AMOUNT, RTRIM(CREDIT) from V_AR_CRD_LIMIT union select CREDIT_AMOUNT, RTRIM(CREDIT_CODE) from V_AR_CREDIT_LIMIT")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "CREDIT_CODE_FROM_CREDIT_AMOUNT", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CREDIT_LIMIT", "CREDIT_CODE_FROM_CREDIT_AMOUNT")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_CREDIT_LIMIT_CODE", "String", "IIF([CREDIT_CODE_FROM_CREDIT_CODE] = '', [CREDIT_CODE_FROM_CREDIT_AMOUNT], [CREDIT_CODE_FROM_CREDIT_CODE])")
+
+'check salesperson
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(SALESPERSON_CODE), RTRIM(SALESPERSON_CODE) from V_SALESPEOPLE")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(SALESPERSON_CODE), RTRIM(SALESPERSON_CODE) from V_SALESPEOPLE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "FINAL_SALESPERSON_CODE", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "SALESPERSON_CODE", "FINAL_SALESPERSON_CODE")
+F.Data.Dictionary.Close("dictTemp")
+
+'check currency codes
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(ISO_CODE), RTRIM(ISO_CODE) from V_EXCHANGE_CURRENCY")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(ISO_CODE), RTRIM(ISO_CODE) from V_EXCHANGE_CURRENCY")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "FINAL_CURRENCY_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtCustomers", "FINAL_CATALOG_CURRENCY_CODE", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CURRENCY_CODE", "FINAL_CURRENCY_CODE")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CATALOG_CURRENCY", "FINAL_CATALOG_CURRENCY_CODE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_FINAL_CATALOG_CURRENCY_CODE", "String", "IIF(Trim(IsNull([FINAL_CATALOG_CURRENCY_CODE], '')) = '', [FINAL_CURRENCY_CODE], [FINAL_CATALOG_CURRENCY_CODE])")
+
+'check carrier
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(CARRIER_CD), RTRIM(CARRIER_CD) from V_OE_CARRIER")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(CARRIER_CD), RTRIM(CARRIER_CD) from V_OE_CARRIER")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "FINAL_CARRIER", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CARRIER", "FINAL_CARRIER")
+F.Data.Dictionary.Close("dictTemp")
+
+'load service type
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(CARRIER_CD), SRVC_TYPE from V_OE_CARRIER")
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(CARRIER_CD), SRVC_TYPE from V_OE_CARRIER")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtCustomers", "FINAL_SERVICE_TYPE", "String", "")
+F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "CARRIER", "FINAL_SERVICE_TYPE")
+F.Data.Dictionary.Close("dictTemp")
+
+'grab terms, they may pass the code or the description
+F.Data.DataTable.AddColumn("dtCustomers", "TERMS_CODE_FROM_MESSAGE", "String", "")
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(UPPER(TERMS_MESSAGE)) TERMS_MESSAGE_KEY, RTRIM(TERMS_CODE) TERMS_CODE from V_AR_TERMS where TERMS_MESSAGE not like '%\%%'")
+F.Data.DataTable.CreateFromSQL("dtTemp", "Con", "select RTRIM(UPPER(TERMS_MESSAGE)) TERMS_MESSAGE_KEY, RTRIM(TERMS_CODE) TERMS_CODE from V_AR_TERMS where TERMS_MESSAGE not like '%\%%'")
+F.Data.DataView.Create("dtTemp", "dvTemp", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtCustomers.RowCount--, 1)
+	V.Local.sFilter.Set(V.DataTable.dtCustomers(V.Local.iCounter).TERMS!FieldValTrim)
+	F.Intrinsic.String.Build("[TERMS_MESSAGE_KEY] = '{0}'", V.Local.sFilter.UCase, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtTemp", "dvTemp", V.Local.sFilter)
+	F.Intrinsic.Control.If(V.DataView.dtTemp!dvTemp.RowCount, >, 0)
+		F.Data.DataTable.SetValue("dtCustomers", V.Local.iCounter, "TERMS_CODE_FROM_MESSAGE", V.DataView.dtTemp!dvTemp(0).TERMS_CODE!FieldValTrim)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtTemp", "dvTemp")
+F.Data.DataTable.Close("dtTemp")
+
+F.Data.DataTable.AddColumn("dtCustomers", "TERMS_CODE_FROM_CODE", "String", "")
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(UPPER(TERMS_CODE)) TERMS_CODE_KEY, RTRIM(TERMS_CODE) TERMS_CODE from V_AR_TERMS where TERMS_MESSAGE not like '%\%%'")
+F.Data.DataTable.CreateFromSQL("dtTemp", "Con", "select RTRIM(UPPER(TERMS_CODE)) TERMS_CODE_KEY, RTRIM(TERMS_CODE) TERMS_CODE from V_AR_TERMS where TERMS_MESSAGE not like '%\%%'")
+F.Data.DataView.Create("dtTemp", "dvTemp", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtCustomers.RowCount--, 1)
+	V.Local.sFilter.Set(V.DataTable.dtCustomers(V.Local.iCounter).TERMS!FieldValTrim)
+	F.Intrinsic.String.Build("[TERMS_CODE_KEY] = '{0}'", V.Local.sFilter.UCase, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtTemp", "dvTemp", V.Local.sFilter)
+	F.Intrinsic.Control.If(V.DataView.dtTemp!dvTemp.RowCount, >, 0)
+		F.Data.DataTable.SetValue("dtCustomers", V.Local.iCounter, "TERMS_CODE_FROM_CODE", V.DataView.dtTemp!dvTemp(0).TERMS_CODE!FieldValTrim)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtTemp", "dvTemp")
+F.Data.DataTable.Close("dtTemp")
+
+F.Data.DataTable.AddExpressionColumn("dtCustomers", "FINAL_TERMS_CODE", "String", "IIF(TRIM([TERMS_CODE_FROM_CODE]) = '', TRIM([TERMS_CODE_FROM_MESSAGE]), TRIM([TERMS_CODE_FROM_CODE]))")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataView.Close("dtCustomers", "dvCheck")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.PrepareStagedCustomers.End
+
+Program.Sub.UploadStagedCustomers.Start
+'add customers to the 6013 datatable, call the library to upload them
+
+F.Intrinsic.Control.Try
+
+V.Local.sFilePath.Declare(String)
+V.Local.sBackupPath.Declare(String)
+V.Local.sNewName.Declare(String)
+V.Local.bExists.Declare(String)
+V.Local.sSuffix.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sLastCustomer.Declare(String, "")
+V.Local.sExternalIDField.Declare(String)
+V.Local.iMax.Declare(Long)
+V.Local.sTemp.Declare(String)
+V.Local.sExternalID.Declare(String)
+V.Local.sCustomerNumber.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sPSQLFriendly.Declare(String)
+V.Local.sCustomerSince.Declare(String)
+V.Local.sPhone.Declare(String)
+V.Local.sFax.Declare(String)
+V.Local.sShipPhone.Declare(String)
+V.Local.sShipFax.Declare(String)
+V.Local.bVAT.Declare(Boolean, False)
+V.Local.iExemptType.Declare(Long)
+V.Local.iTaxInPrice.Declare(Long, 0)
+V.Local.bTaxInPrice.Declare(Boolean, False)
+
+F.Global.General.ReadOption("400078", 0, False, V.Local.bVAT)
+
+'grab external ID option
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+'add to 6013 datatable
+F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtCustomers!dvValid.RowCount--, 0, -1)
+		
+	'get customer number
+	F.Intrinsic.Control.If(V.DataView.dtCustomers!dvValid(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, !=, "")
+		V.Local.sCustomerNumber.Set(V.DataView.dtCustomers!dvValid(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(GetCustomerNumber, "CUSTOMER_NAME", V.DataView.dtCustomers!dvValid(V.Local.iCounter).CUSTOMER_NAME!FieldValTrim)
+		V.Local.sCustomerNumber.Set(V.Args.CUSTOMER_NUMBER.Trim)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.sCustomerNumber, =, "***NO_VALID_CUSTOMER_NUMBER***")
+		F.Data.DataView.SetValue("dtCustomers", "dvValid", V.Local.iCounter, "FEEDBACK", "The customer upload failed because the system was unable to generate a new customer number for them.", "Failed", True)
+	F.Intrinsic.Control.Else
+	
+		'store the external ID
+		F.Intrinsic.Control.If(V.Args.UPLOAD_FIELD.Trim, !=, "***DONOTSTORE***")
+			'should we fail if the ID is too long?
+			V.Local.sExternalID.Set(V.DataView.dtCustomers!dvValid(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim)
+			F.Intrinsic.Control.If(V.Local.sExternalID.Length, >, V.Args.Size)
+				'add log?
+				F.Intrinsic.String.Build("External ID [{0}] is too long ({1}) for field [{2}] ({3}). ID will be truncated.", V.Local.sExternalID, V.Local.sExternalID.Length, V.Args.CORE_FIELD, V.Args.Size, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.String.Left(V.Local.sExternalID, V.Args.Size, V.Local.sExternalID)
+			F.Intrinsic.Control.EndIf
+			
+			F.Data.DataView.SetValue("dtCustomers", "dvValid", V.Local.iCounter, V.Args.UPLOAD_FIELD, V.Local.sExternalID)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Build("Processing external customer [{0}]...", V.Local.sExternalID, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'format date
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvValid(V.Local.iCounter).CUSTOMER_SINCE!FieldVal, =, V.Ambient.MinDate)
+			V.Local.sCustomerSince.Set("")
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Format(V.DataView.dtCustomers!dvValid(V.Local.iCounter).CUSTOMER_SINCE!FieldVal, "MMDDYY", V.Local.sCustomerSince)
+		F.Intrinsic.Control.EndIf
+		
+		'format phone numbers
+		F.Intrinsic.String.StripCharacters(V.DataView.dtCustomers!dvValid(V.Local.iCounter).PHONE!FieldValTrim, V.Local.sPhone)
+		F.Intrinsic.String.RegExReplace(V.Local.sPhone, "[A-z]", "", True, True, V.Local.sPhone)
+		
+		F.Intrinsic.String.StripCharacters(V.DataView.dtCustomers!dvValid(V.Local.iCounter).FAX!FieldValTrim, V.Local.sFax)
+		F.Intrinsic.String.RegExReplace(V.Local.sFax, "[A-z]", "", True, True, V.Local.sFax)
+		
+		F.Intrinsic.String.StripCharacters(V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_PHONE!FieldValTrim, V.Local.sShipPhone)
+		F.Intrinsic.String.RegExReplace(V.Local.sShipPhone, "[A-z]", "", True, True, V.Local.sShipPhone)
+		
+		F.Intrinsic.String.StripCharacters(V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_FAX!FieldValTrim, V.Local.sShipFax)
+		F.Intrinsic.String.RegExReplace(V.Local.sShipFax, "[A-z]", "", True, True, V.Local.sShipFax)
+		
+		F.Data.DataView.SetValue("dtCustomers", "dvValid", V.Local.iCounter, "GSS_CUSTOMER_NUMBER", V.Local.sCustomerNumber)
+		F.Data.DataTable.AddRow("6013", "CustNum", V.DataView.dtCustomers!dvValid(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, "CustName", V.DataView.dtCustomers!dvValid(V.Local.iCounter).CUSTOMER_NAME!FieldValTrim, "Address1", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ADDRESS_1!FieldValTrim, "Address2", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ADDRESS_2!FieldValTrim, "City", V.DataView.dtCustomers!dvValid(V.Local.iCounter).CITY!FieldValTrim, "State", V.DataView.dtCustomers!dvValid(V.Local.iCounter).STATE!FieldValTrim, "Zip", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ZIP!FieldValTrim, "Country", V.DataView.dtCustomers!dvValid(V.Local.iCounter).COUNTRY!FieldValTrim, "County", V.DataView.dtCustomers!dvValid(V.Local.iCounter).COUNTY!FieldValTrim, "Attention", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ATTENTION!FieldValTrim, "IntlAddressFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).INTERNATIONAL_STRING!FieldValTrim, "PhoneNum", V.Local.sPhone, "AlphaSort", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ALPHA_SORT!FieldValTrim, "FaxNum", V.Local.sFax, "SortField", V.DataView.dtCustomers!dvValid(V.Local.iCounter).SORT!FieldValTrim, "Email", V.DataView.dtCustomers!dvValid(V.Local.iCounter).EMAIL!FieldValTrim, "ShipName", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_NAME!FieldValTrim, "ShipAddress1", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ADDRESS_1!FieldValTrim, "ShipAddress2", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ADDRESS_2!FieldValTrim, "ShipCity", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_CITY!FieldValTrim, "ShipState", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_STATE!FieldValTrim, "ShipZip", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ZIP!FieldValTrim, "ShipCountry", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_COUNTRY!FieldValTrim, "ShipCounty", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_COUNTY!FieldValTrim, "ShipAttention", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ATTENTION!FieldValTrim, "ShipPhone", V.Local.sShipPhone, "ShipFax", V.Local.sShipFax, "Address3", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ADDRESS_3!FieldValTrim, "Address4", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ADDRESS_4!FieldValTrim, "Address5", V.DataView.dtCustomers!dvValid(V.Local.iCounter).ADDRESS_5!FieldValTrim, "ShipAddress3", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ADDRESS_3!FieldValTrim, "ShipAddress4", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ADDRESS_4!FieldValTrim, "ShipAddress5", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIP_ADDRESS_5!FieldValTrim, "IntlShipAddressFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).SHIP_INTERNATIONAL_STRING!FieldValTrim, "WebAddress", V.DataView.dtCustomers!dvValid(V.Local.iCounter).WEB_ADDRESS!FieldValTrim, "ExternalID", V.DataView.dtCustomers!dvValid(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, "Loc", V.DataView.dtCustomers!dvValid(V.Local.iCounter).LOCATION!FieldValTrim, "SetCreditHoldWhenLimitExceededFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SET_CREDIT_HOLD!FieldValTrim, "SetShipHoldWhenCreditLimitExceededFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SHIPPING_HOLD!FieldValTrim, "AllowShipHoldChangeAtOrderLevelFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_ORDER_LEVEL_HOLD!FieldValTrim, "CreditCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CREDIT_LIMIT_CODE!FieldValTrim, "SalesRep", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SALESPERSON_CODE!FieldValTrim, "DefaultCurrCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CURRENCY_CODE!FieldValTrim, "CatalogCurrCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_FINAL_CATALOG_CURRENCY_CODE!FieldValTrim, "CarrierCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CARRIER!FieldValTrim, "SICCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).SIC_CODE!FieldValTrim, "TermsCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_TERMS_CODE!FieldValTrim, "CustInceptionDate", V.Local.sCustomerSince, "SuppressInvoicePrintFlag", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SUPPRESS_INVOICE!FieldValTrim, "ShipViaCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).SHIP_VIA_CODE!FieldValTrim, "SalesTaxExemptNum", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_EXEMPT_NUMBER!FieldValTrim, "InvoiceDelivery", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_INVOICE_DELIVERY!FieldValTrim, "CommRateType", V.DataView.dtCustomers!dvValid(V.Local.iCounter).COMMISSION_TYPE_CODE!FieldValTrim, "TaxState", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_ZONE!FieldValTrim, "TaxZipCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_ZIP!FieldValTrim, "TaxCode1", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_TAX_CODE_1!FieldValTrim, "TaxCode2", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_2!FieldValTrim, "TaxCode3", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_3!FieldValTrim, "TaxCode4", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_4!FieldValTrim, "TaxCode5", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_5!FieldValTrim, "TaxCode6", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_6!FieldValTrim, "TaxCode7", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_7!FieldValTrim, "TaxCode8", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_8!FieldValTrim, "TaxCode9", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_9!FieldValTrim, "TaxCode10", V.DataView.dtCustomers!dvValid(V.Local.iCounter).TAX_CODE_10!FieldValTrim, "ServiceType", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_SERVICE_TYPE!FieldValTrim, "PriceClassCode", V.DataView.dtCustomers!dvValid(V.Local.iCounter).PRICE_CLASS!FieldValTrim)
+	
+		'set last customer number if necessary
+		F.Intrinsic.Control.If(V.Global.bAutomatedNumbering)
+			F.Data.DataTable.Compute("dtCustomers", "Max(GSS_CUSTOMER_NUMBER)", "Failed = False", V.Local.sLastCustomer)
+			F.Intrinsic.Control.CallSub(SaveLastCustomerNumber, "LAST_CUSTOMER", V.Local.sLastCustomer)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.If(V.DataTable.6013.RowCount, >, 0)
+	'upload
+	F.Intrinsic.Control.CallSub(AddLog, "Message", "Running customer upload callwrapper 6013...")
+	F.Intrinsic.Control.CallSub(6013Sync)
+	
+	'log return
+	F.Intrinsic.Control.If(V.Global.bExtendingLogging)
+		F.Intrinsic.String.Build("Callwrapper 6013 returning [{0}]", V.Ambient.CallWrapperReturn, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		F.Intrinsic.String.Build("GCG_5807_6013.lib returning [{0}]", V.Global.s6013Error, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+	'back up upload
+	F.Intrinsic.String.Build("{0}\CUSTOMER.txt", V.Caller.FilesDir, V.Local.sFilePath)
+	F.Intrinsic.Control.CallSub(BackupFile, "Type", "Customer", "File", V.Local.sFilePath)
+
+	'check upload
+	F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomers", "Field", "GSS_CUSTOMER_NUMBER")
+	F.Intrinsic.String.Build("select RTRIM(CUSTOMER), CAST(1 as Bit) from V_CUSTOMER_MASTER where CUSTOMER in ('{0}')", V.Args.Filter.Trim, V.Local.sSQL)
+	
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+	
+	F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+	F.Data.DataTable.AddColumn("dtCustomers", "CUSTOMER_CREATED", "Boolean", False)
+	F.Data.DataTable.FillFromDictionary("dtCustomers", "dictTemp", "GSS_CUSTOMER_NUMBER", "CUSTOMER_CREATED")
+	F.Data.Dictionary.Close("dictTemp")
+	
+	F.Data.DataView.Create("dtCustomers", "dvCheck", 22, "FAILED = False and Update_Customer = False and PROSPECT = False and CUSTOMER_CREATED = False", "")
+	F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtCustomers!dvCheck.RowCount--, 0, -1)
+		F.Intrinsic.String.Build("Attempted upload of external customer '{0}' as GSS customer '{1}' failed.", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+		F.Data.DataView.SetValue("dtCustomers", "dvCheck", V.Local.iCounter, "FEEDBACK", V.Local.sMessage, "GSS_CUSTOMER_NUMBER", "", "Failed", True)
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Data.DataView.Close("dtCustomers", "dvCheck")
+	
+	'update extra fields
+	F.Data.DataView.Create("dtCustomers", "dvCheck", 22, "FAILED = False and Update_Customer = False and PROSPECT = False and CUSTOMER_CREATED = True", "")
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+	F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtCustomers!dvCheck.RowCount--, 0, -1)
+	
+		'e invoicing emails
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).E_INVOICING_EMAILS!FieldValTrim, !=, "")
+			F.Intrinsic.String.Build("select RTRIM(CUSTOMER_ID) from PPT_EINV_COPT where CUSTOMER_ID = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				F.Intrinsic.String.Build("insert into PPT_EINV_COPT (CUSTOMER_ID, ADDL_EMAILS) values ('{0}', '{1}')", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataView.dtCustomers!dvCheck(V.Local.iCounter).E_INVOICING_EMAILS!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("update PPT_EINV_COPT set ADDL_EMAILS = '{1}' where CUSTOMER_ID = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataView.dtCustomers!dvCheck(V.Local.iCounter).E_INVOICING_EMAILS!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		
+		'order notes
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).ORDER_NOTES!FieldValTrim, !=, "")
+			V.Local.sPSQLFriendly.Set(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).ORDER_NOTES!FieldValTrim)
+			
+			F.Intrinsic.String.Build("select RTRIM(CUSTOMER) from V_CUST_ORDER_NOTES where CUSTOMER = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				F.Intrinsic.String.Build("insert into CUST_ORDER_NOTES (CUSTOMER, TEXT) values ('{0}', '{1}')", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sPSQLFriendly.PSQLFriendly, V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("update CUST_ORDER_NOTES set TEXT = '{1}' where CUSTOMER = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sPSQLFriendly.PSQLFriendly, V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		
+		'credit hold doesn't seem to set from the upload
+		'so we set it here
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).FINAL_CREDIT_HOLD!FieldValTrim, =, "Y")
+			F.Intrinsic.String.Build("update CUSTOMER_MASTER set FLAG_CREDIT_HOLD = '{0}' where REC = 1 and CUSTOMER = '{1}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).FINAL_CREDIT_HOLD!FieldValTrim, V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		
+		'primary group
+		F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).PRIMARY_GROUP!FieldValTrim, !=, "")
+			F.Intrinsic.String.Build("update CUST_FORM_INFO set PRIMARY_GROUP = '{0}' where CUSTOMER = '{1}' and REC = 6", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).PRIMARY_GROUP!FieldValTrim, V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		
+		'vat fields
+		F.Intrinsic.Control.If(V.Local.bVAT)
+			F.Intrinsic.Control.If(V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_RULE!FieldValLong, !=, 0)
+				'grab exempt type
+				F.Intrinsic.String.Build("select EXEMPT_TYPE from VAT_TAX_RULE where RULE_ID = {0}", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_RULE!FieldValTrim, V.Local.sSQL)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.iExemptType)
+				
+				'grab tax in price flag
+				F.Intrinsic.String.Build("select ACTION_CODE from VAT_TAX_RULE where RULE_ID = {0}", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_RULE!FieldValTrim, V.Local.sSQL)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.iTaxInPrice)
+				F.Intrinsic.Control.If(V.Local.iTaxInPrice, =, 1)
+					V.Local.bTaxInPrice.Set(True)
+				F.Intrinsic.Control.Else
+					V.Local.bTaxInPrice.Set(False)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				V.Local.iExemptType.Set(0)
+				V.Local.bTaxInPrice.Set(False)
+			F.Intrinsic.Control.EndIf
+			
+			'grab customer_vat record
+			F.Intrinsic.String.Build("select * from CUSTOMER_VAT where CUST = '{0}'", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Data.DataTable.CreateFromSQL("dtCustomerVat", "Con", V.Local.sSQL)
+			F.Data.DataTable.SetValue("dtCustomerVat", -1, "RULE_ID", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_RULE!FieldValLong, "EXEMPT_TYPE", V.Local.iExemptType, "TAX_IN_PRC_FLG", V.Local.bTaxInPrice, "NIT_NO", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_NIT_NUMBER!FieldValTrim, "CNTRY_CD", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_COUNTRY_CODE!FieldValTrim, "REGSTR_NO", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_NUMBER!FieldValTrim, "REGSTR_DTE", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).FINAL_VAT_DATE!FieldVal, "REGSTR_FLG", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_REGISTERED!FieldVal, "EC_FLG", V.DataView.dtCustomers!dvCheck(V.Local.iCounter).VAT_EC!FieldVal)
+			
+			F.Data.DataTable.SaveToDB("dtCustomerVat", "Con", "CUSTOMER_VAT", "CUST", 256)
+			
+			F.Data.DataTable.Close("dtCustomerVat")
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+	F.Data.DataView.Close("dtCustomers", "dvCheck")
+	
+	V.Global.iSuccessful.Set(V.DataView.dtCustomers!dvValid.RowCount)
+	
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedCustomers.End
+
+Program.Sub.GetCustomerNumber.Start
+'pass CUSTOMER_NAME
+'returns CUSTOMER_NUMBER
+'returns a customer number either based on the auto numbering option or the passed name
+
+F.Intrinsic.Control.Try
+
+V.Local.bAutomatedNumbering.Declare(Boolean, False)
+V.Local.bDoNotLeftPad.Declare(Boolean, False)
+V.Local.iLastCustomer.Declare(Long, 0)
+V.Local.sCustomer.Declare(String, "")
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sPrefix.Declare(String, "")
+V.Local.sSuffix.Declare(String)
+V.Local.bDone.Declare(Boolean, False)
+V.Local.sFilter.Declare(String)
+V.Local.iPadAmount.Declare(Long, 3)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'check options
+F.Global.General.ReadOption("400251", 0, False, V.Local.bAutomatedNumbering)
+F.Global.General.ReadOption("130002", 0, False, V.Local.bDoNotLeftPad)
+V.Global.bAutomatedNumbering.Set(V.Local.bAutomatedNumbering)
+F.Intrinsic.Control.If(V.Local.bAutomatedNumbering)
+	
+	'depending on this option, it is stored as text or a long
+	F.Intrinsic.Control.If(V.Local.bDoNotLeftPad)
+		F.Global.General.ReadOption("401084", 1, -1, V.Local.iLastCustomer)
+	F.Intrinsic.Control.Else
+		F.Global.General.ReadOption("401084", 3, -1, V.Local.iLastCustomer)
+	F.Intrinsic.Control.EndIf
+	
+	'last customer number is saved in more than one place
+	'It is stored in RAOPT, with the System = ARMISC
+	'we access it through the LAST_PO table, in the last 6 characters of the LAST_PO_NUM field where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'
+	'always left padded with 0s
+	
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RIGHT(LAST_PO_NUM, 6) from LAST_PO where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'")
+	F.ODBC.Connection!Con.ExecuteAndReturn("select RIGHT(LAST_PO_NUM, 6) from LAST_PO where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'", V.Local.sRet)
+	F.Intrinsic.Control.If(V.Local.sRet.Long, >, V.Local.iLastCustomer)
+		V.Local.iLastCustomer.Set(V.Local.sRet.Long)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Math.Add(V.Local.iLastCustomer, 1, V.Local.iLastCustomer)
+	
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.StripCharacters(V.Args.CUSTOMER_NAME.Trim, V.Local.sCustomer)
+	F.Intrinsic.String.RPad(V.Local.sCustomer, "0", 3, V.Local.sCustomer)
+	V.Local.sPrefix.Set(V.Local.sCustomer.Left3)
+F.Intrinsic.Control.EndIf
+
+'make sure no duplicates
+F.Data.DataView.Create("6013", "dvCustomerNumberCheck", 22)
+F.Intrinsic.Control.DoUntil(V.Local.bDone)
+	'generate customer number
+	F.Intrinsic.Control.If(V.Local.bAutomatedNumbering)
+		F.Intrinsic.Control.If(V.Local.bDoNotLeftPad)
+			V.Local.sCustomer.Set(V.Local.iLastCustomer)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.LPad(V.Local.iLastCustomer, "0", 6, V.Local.sCustomer)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.If(V.Local.iLastCustomer, >, 999, "AND", V.Local.sPrefix.Length, =, 3)
+			V.Local.sPrefix.Set(V.Local.sPrefix.Left2)
+			V.Local.iLastCustomer.Set(0)
+			V.Local.iPadAmount.Set(4)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.LPad(V.Local.iLastCustomer, "0", V.Local.iPadAmount, V.Local.sSuffix)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sPrefix.UCase, V.Local.sSuffix, V.Local.sCustomer)
+	F.Intrinsic.Control.EndIf
+	
+	'test
+	F.Intrinsic.String.Build("select CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", V.Local.sCustomer, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		
+		'now test if there is already a prospect with this number
+		F.Intrinsic.String.Build("select PROSPECT from V_PROSPECT_MASTER where PROSPECT = '{0}'", V.Local.sCustomer, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			'now check if we've already used this number in this program
+			F.Intrinsic.String.Build("CustNum = '{0}'", V.Local.sCustomer, V.Local.sFilter)
+			F.Data.DataView.SetFilter("6013", "dvCustomerNumberCheck", V.Local.sFilter)
+			F.Intrinsic.Control.If(V.DataView.6013!dvCustomerNumberCheck.RowCount, =, 0)
+				V.Local.bDone.Set(True)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Math.Add(V.Local.iLastCustomer, 1, V.Local.iLastCustomer)
+F.Intrinsic.Control.Loop
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Data.DataView.Close("6013", "dvCustomerNumberCheck")
+
+'make sure we found a valid one
+F.Intrinsic.Control.If(V.Local.sCustomer.Length, >, 6)
+	V.Local.sCustomer.Set("***NO_VALID_CUSTOMER_NUMBER***")
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Variable.AddRV("CUSTOMER_NUMBER", V.Local.sCustomer)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetCustomerNumber.End
+
+Program.Sub.SaveLastCustomerNumber.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sCustomer.Declare(String)
+
+F.Global.General.SaveOption(401084, 0, "", "", V.Args.LAST_CUSTOMER.Long, "", "", "", V.Args.LAST_CUSTOMER.Long)
+F.Intrinsic.String.LPad(V.Args.LAST_CUSTOMER.Long, "0", 6, V.Local.sCustomer)
+
+'this is very bad but the last customer number is saved in more than one place
+'and it doesn't have it's own table. It is stored in RAOPT, with the System = ARMISC
+'we access it through the LAST_PO table, in the last 7 characters of the LAST_PO_NUM field where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'
+'the first character is Y/N for use auto numbering on customers or not
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select LEFT(LAST_PO_NUM, 1) from LAST_PO where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'")
+F.ODBC.Connection!Con.ExecuteAndReturn("select LEFT(LAST_PO_NUM, 1) from LAST_PO where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'", V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+	F.Intrinsic.String.Build("update LAST_PO set LAST_PO_NUM = '{0}{1}' where ASS_SYS = 'ARM' and ASS_SUB_SYS = 'ISC'", V.Local.sRet.Trim, V.Local.sCustomer, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveLastCustomerNumber.End
+
+Program.Sub.UploadStagedProspects.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedProspects.End
+
+Program.Sub.UpdateCustomers.Start
+F.Intrinsic.Control.Try
+
+'tables to update
+'CUSTOMER_MASTER
+'CUSTOMER_SHIPTO
+'CUSTOMER_WEB_ADDR
+'CUST_FORM_INFO
+'CUSTOMER_SALES
+
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.dDate.Declare(Date)
+V.Local.sExternalID.Declare(String)
+V.Local.sPhone.Declare(String)
+V.Local.sAreaCode.Declare(String)
+V.Local.sPhoneCountryCode.Declare(String)
+V.Local.iJCounter.Declare(Long)
+V.Local.sColumn.Declare(String)
+V.Local.bVat.Declare(Boolean, False)
+V.Local.iExemptType.Declare(Long)
+V.Local.iTaxInPrice.Declare(Long)
+V.Local.bTaxInPrice.Declare(Boolean, False)
+V.Local.sFax.Declare(String)
+
+'get values to update
+F.Data.DataView.ToDataTable("dtCustomers", "dvValid", "dtCustomersUpdate", True)
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtCustomersUpdate", "Field", "FINAL_CUSTOMER_NUMBER")
+
+'date formatting
+F.Data.DataTable.AddColumn("dtCustomersUpdate", "CUSTOMER_SINCE_STRING", "String", "")
+F.Data.DataTable.SetValueFormat("dtCustomersUpdate", -1, "CUSTOMER_SINCE", "CUSTOMER_SINCE_STRING", "YYMMDD")
+F.Data.DataTable.AddExpressionColumn("dtCustomersUpdate", "CUSTOMER_SINCE_FINAL", "String", "IIF(CUSTOMER_SINCE = '1900-01-01', '000000', CUSTOMER_SINCE_STRING)")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+'get tables to update
+'customer_Master
+F.Intrinsic.String.Build("select CUSTOMER, REC, NAME_CUSTOMER, ADDRESS1, ADDRESS2, CITY, STATE, ZIP, COUNTRY, COUNTY, ATTENTION, INTL_ADDR, TELEPHONE, CREDIT, SALESPERSON from V_CUSTOMER_MASTER where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerMasterUpdate", "Con", V.Local.sSQL)
+
+'customer_Shipto
+F.Intrinsic.String.Build("select CUSTOMER, REC, NAME_CUSTOMER_SHIP, ADDRESS1_SHIP, ADDRESS2_SHIP, CITY_SHIP, STATE_SHIP, CODE_ZIP_SHIP, COUNTRY_SHIP, COUNTY_SHIP, ATTENTION_SHIP, INTL_ADRS, T_COUNTRY, AREA, TELE, FAX, SHIP_VIA from V_CUSTOMER_SHIPTO where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerShipToUpdate", "Con", V.Local.sSQL)
+
+'customer_web_addr
+F.Intrinsic.String.Build("select CUST_ID, CUST_ADDR from V_CUST_WEB_ADDR where CUST_ID in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerWebAddressUpdate", "Con", V.Local.sSQL)
+
+'cust_form_info
+F.Intrinsic.String.Build("select CUSTOMER, REC, EXTERNAL_ID, SET_CRDT_HLD, SHP_HLD_OVRD, SET_SHP_HLD, CARRIER_CD, IVC_DELIVERY from V_CUST_FORM_INFO where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerFormInfoUpdate", "Con", V.Local.sSQL)
+
+'customer_sales
+F.Intrinsic.String.Build("select CUSTOMER, REC, ALPHA_SORT, C_SORT_1, FAX_NUMBER, EMAIL, CODE_SIC, PAYMENT_TERMS, PRICE_CLASS from V_CUSTOMER_SALES where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerSalesUpdate", "Con", V.Local.sSQL)
+F.Data.DataTable.AddColumn("dtCustomerSalesUpdate", "DATE_NEW_CUSTOMER", "String", "")
+
+'PPT_EINV_COPT
+F.Intrinsic.String.Build("select CUSTOMER_ID, ADDL_EMAILS from PPT_EINV_COPT where CUSTOMER_ID in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerEInvoicingUpdate", "Con", V.Local.sSQL)
+
+'customer international
+F.Intrinsic.String.Build("select CUSTOMER, REC, ORDER_CURR, CATALOG_CURR from V_CUSTOMER_INTL where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerInternationalUpdate", "Con", V.Local.sSQL)
+
+'customer order notes
+F.Intrinsic.String.Build("select CUSTOMER, TEXT from V_CUST_ORDER_NOTES where CUSTOMER in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerOrderNotesUpdate", "Con", V.Local.sSQL)
+
+'customer_tax
+F.Intrinsic.String.Build("select CUST, TAX_SALES_EX_NO from V_CUSTOMER_TAX where CUST in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerTaxUpdate", "Con", V.Local.sSQL)
+
+'customer_tax_auth
+F.Intrinsic.String.Build("select CUST, TAX_SEQ, TAX_AUTH from V_CUSTOMER_TAX_AUTH where CUST in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerTaxAuthUpdate", "Con", V.Local.sSQL)
+
+'customer_vat
+F.Intrinsic.String.Build("select CUST, RULE_ID, EXEMPT_TYPE, TAX_IN_PRC_FLG, NIT_NO, CNTRY_CD, REGSTR_NO, REGSTR_DTE, REGSTR_FLG, EC_FLG from V_CUSTOMER_VAT where CUST in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCustomerVatUpdate", "Con", V.Local.sSQL)
+
+'loop through and set values
+F.Data.DataView.Create("dtCustomerMasterUpdate", "dvCustomerMasterUpdate", 22)
+F.Data.DataView.Create("dtCustomerShipToUpdate", "dvCustomerShipToUpdate", 22)
+F.Data.DataView.Create("dtCustomerWebAddressUpdate", "dvCustomerWebAddressUpdate", 22)
+F.Data.DataView.Create("dtCustomerFormInfoUpdate", "dvCustomerFormInfoUpdate", 22)
+F.Data.DataView.Create("dtCustomerSalesUpdate", "dvCustomerSalesUpdate", 22)
+F.Data.DataView.Create("dtCustomerEInvoicingUpdate", "dvCustomerEInvoicingUpdate", 22)
+F.Data.DataView.Create("dtCustomerInternationalUpdate", "dvCustomerInternationalUpdate", 22)
+F.Data.DataView.Create("dtCustomerOrderNotesUpdate", "dvCustomerOrderNotesUpdate", 22)
+F.Data.DataView.Create("dtCustomerTaxUpdate", "dvCustomerTaxUpdate", 22)
+F.Data.DataView.Create("dtCustomerTaxAuthUpdate", "dvCustomerTaxAuthUpdate", 22)
+F.Data.DataView.Create("dtCustomerVatUpdate", "dvCustomerVatUpdate", 22)
+
+'grab external ID options
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtCustomersUpdate.RowCount--, 1)
+	F.Data.DataTable.SetValue("dtCustomersUpdate", V.Local.iCounter, "GSS_CUSTOMER_NUMBER", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim)
+	F.Data.DataView.SetValue("dtCustomers", "dvValid", V.Local.iCounter, "GSS_CUSTOMER_NUMBER", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim)
+	
+	'store the external ID
+	F.Intrinsic.Control.If(V.Args.UPLOAD_FIELD.Trim, !=, "***DONOTSTORE***")
+		'should we fail if the ID is too long?
+		V.Local.sExternalID.Set(V.DataTable.dtCustomersUpdate(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sExternalID.Length, >, V.Args.Size)
+			'add log?
+			F.Intrinsic.String.Build("External ID [{0}] is too long ({1}) for field [{2}] ({3}). ID will be truncated.", V.Local.sExternalID, V.Local.sExternalID.Length, V.Args.CORE_FIELD, V.Args.Size, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.String.Left(V.Local.sExternalID, V.Args.Size, V.Local.sExternalID)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataTable.SetValue("dtCustomersUpdate", V.Local.iCounter, V.Args.UPLOAD_FIELD, V.Local.sExternalID)
+	F.Intrinsic.Control.EndIf
+	
+	'check if the row exists
+	F.Intrinsic.String.Build("[CUSTOMER] = '{0}'", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerMasterUpdate", "dvCustomerMasterUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerShipToUpdate", "dvCustomerShipToUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerFormInfoUpdate", "dvCustomerFormInfoUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerSalesUpdate", "dvCustomerSalesUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerInternationalUpdate", "dvCustomerInternationalUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerOrderNotesUpdate", "dvCustomerOrderNotesUpdate", V.Local.sFilter)
+	
+	F.Intrinsic.String.Build("[CUST_ID] = '{0}'", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerWebAddressUpdate", "dvCustomerWebAddressUpdate", V.Local.sFilter)
+	
+	F.Intrinsic.String.Build("[CUSTOMER_ID] = '{0}'", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerEInvoicingUpdate", "dvCustomerEInvoicingUpdate", V.Local.sFilter)
+	
+	F.Intrinsic.String.Build("[CUST] = '{0}'", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerTaxUpdate", "dvCustomerTaxUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerTaxAuthUpdate", "dvCustomerTaxAuthUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtCustomerVatUpdate", "dvCustomerVatUpdate", V.Local.sFilter)
+	
+	'main customer table
+	F.Intrinsic.Control.If(V.DataView.dtCustomerMasterUpdate!dvCustomerMasterUpdate.RowCount, >, 0)
+		V.Local.sPhone.Set(V.DataTable.dtCustomersUpdate(V.Local.iCounter).PHONE!FieldValTrim)
+		F.Intrinsic.String.LPad(V.Local.sPhone, " ", 13, V.Local.sPhone)
+		F.Data.DataView.SetValue("dtCustomerMasterUpdate", "dvCustomerMasterUpdate", -1, "NAME_CUSTOMER", V.DataTable.dtCustomersUpdate(V.Local.iCounter).CUSTOMER_NAME!FieldValTrim, "ADDRESS1", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ADDRESS_1!FieldValTrim, "ADDRESS2", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ADDRESS_2!FieldValTrim, "CITY", V.DataTable.dtCustomersUpdate(V.Local.iCounter).CITY!FieldValTrim, "STATE", V.DataTable.dtCustomersUpdate(V.Local.iCounter).STATE!FieldValTrim, "ZIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ZIP!FieldValTrim, "COUNTRY", V.DataTable.dtCustomersUpdate(V.Local.iCounter).COUNTRY!FieldValTrim, "COUNTY", V.DataTable.dtCustomersUpdate(V.Local.iCounter).COUNTY!FieldValTrim, "ATTENTION", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ATTENTION!FieldValTrim, "INTL_ADDR", V.DataTable.dtCustomersUpdate(V.Local.iCounter).INTERNATIONAL_STRING!FieldValTrim, "TELEPHONE", V.Local.sPhone, "CREDIT", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CREDIT_LIMIT_CODE!FieldValTrim, "SALESPERSON", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SALESPERSON_CODE!FieldValTrim)
+		
+		'check ship to
+		F.Intrinsic.Control.If(v.DataView.dtCustomerShipToUpdate!dvCustomerShipToUpdate.RowCount, >, 0)
+			F.Intrinsic.String.LPad(V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_PHONE!FieldValTrim, " ", 13, V.Local.sPhone)
+			F.Intrinsic.String.Left(V.Local.sPhone, 3, V.Local.sPhoneCountryCode)
+			F.Intrinsic.String.Mid(V.Local.sPhone, 4, 3, V.Local.sAreaCode)
+			F.Intrinsic.String.Right(V.Local.sPhone, 7, V.Local.sPhone)
+			F.Intrinsic.String.LPad(V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_FAX!FieldValTrim, " ", 13, V.Local.sFax)
+			
+			F.Data.DataView.SetValue("dtCustomerShipToUpdate", "dvCustomerShipToUpdate", -1, "NAME_CUSTOMER_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SHIP_NAME!FieldValTrim, "ADDRESS1_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_ADDRESS_1!FieldValTrim, "ADDRESS2_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_ADDRESS_2!FieldValTrim, "CITY_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_CITY!FieldValTrim, "STATE_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_STATE!FieldValTrim, "CODE_ZIP_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_ZIP!FieldValTrim, "COUNTRY_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_COUNTRY!FieldValTrim, "COUNTY_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_COUNTY!FieldValTrim, "ATTENTION_SHIP", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_ATTENTION!FieldValTrim, "INTL_ADRS", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_INTERNATIONAL_STRING!FieldValTrim, "T_COUNTRY", V.Local.sPhoneCountryCode, "AREA", V.Local.sAreaCode, "TELE", V.Local.sPhone, "FAX", V.Local.sFax, "SHIP_VIA", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SHIP_VIA_CODE!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUSTOMER_SHIPTO table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'check web address
+		F.Intrinsic.Control.If(v.DataView.dtCustomerWebAddressUpdate!dvCustomerWebAddressUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomerWebAddressUpdate", "dvCustomerWebAddressUpdate", -1, "CUST_ADDR", V.DataTable.dtCustomersUpdate(V.Local.iCounter).WEB_ADDRESS!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.AddRow("dtCustomerWebAddressUpdate", "CUST_ID", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, "CUST_ADDR", V.DataTable.dtCustomersUpdate(V.Local.iCounter).WEB_ADDRESS!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(v.DataView.dtCustomerFormInfoUpdate!dvCustomerFormInfoUpdate.RowCount, >, 0)
+			F.Intrinsic.Control.If(V.Args.UPLOAD_FIELD, =, "EXTERNAL_CUSTOMER_ID")
+				F.Data.DataView.SetValue("dtCustomerFormInfoUpdate", "dvCustomerFormInfoUpdate", -1, "EXTERNAL_ID", V.DataTable.dtCustomersUpdate(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, "SET_CRDT_HLD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SET_CREDIT_HOLD!FieldValTrim, "SET_SHP_HLD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SHIPPING_HOLD!FieldValTrim, "SHP_HLD_OVRD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_ORDER_LEVEL_HOLD!FieldValTrim, "CARRIER_CD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CARRIER!FieldValTrim, "IVC_DELIVERY", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_INVOICE_DELIVERY!FieldValTrim)
+			F.Intrinsic.Control.Else
+				F.Data.DataView.SetValue("dtCustomerFormInfoUpdate", "dvCustomerFormInfoUpdate", -1, "SET_CRDT_HLD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SET_CREDIT_HOLD!FieldValTrim, "SET_SHP_HLD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_SHIPPING_HOLD!FieldValTrim, "SHP_HLD_OVRD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_ORDER_LEVEL_HOLD!FieldValTrim, "CARRIER_CD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CARRIER!FieldValTrim, "IVC_DELIVERY", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_INVOICE_DELIVERY!FieldValTrim)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUST_FORM_INFO table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'check sales
+		F.Intrinsic.Control.If(v.DataView.dtCustomerSalesUpdate!dvCustomerSalesUpdate.RowCount, >, 0)
+			F.Intrinsic.String.LPad(V.DataTable.dtCustomersUpdate(V.Local.iCounter).FAX!FieldValTrim, " ", 13, V.Local.sFax)
+			F.Data.DataView.SetValue("dtCustomerSalesUpdate", "dvCustomerSalesUpdate", -1, "ALPHA_SORT", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ALPHA_SORT!FieldValTrim, "C_SORT_1", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SORT!FieldValTrim, "FAX_NUMBER", V.Local.sFax, "EMAIL", V.DataTable.dtCustomersUpdate(V.Local.iCounter).EMAIL!FieldValTrim, "DATE_NEW_CUSTOMER", V.DataTable.dtCustomersUpdate(V.Local.iCounter).CUSTOMER_SINCE_FINAL!FieldValTrim, "CODE_SIC", V.DataTable.dtCustomersUpdate(V.Local.iCounter).SIC_CODE!FieldValTrim, "PAYMENT_TERMS", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_TERMS_CODE!FieldValTrim, "PRICE_CLASS", V.DataTable.dtCustomersUpdate(V.Local.iCounter).PRICE_CLASS!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUSTOMER_SALES table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'check e-invoicing table
+		F.Intrinsic.Control.If(v.DataView.dtCustomerEInvoicingUpdate!dvCustomerEInvoicingUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomerEInvoicingUpdate", "dvCustomerEInvoicingUpdate", -1, "ADDL_EMAILS", V.DataTable.dtCustomersUpdate(V.Local.iCounter).E_INVOICING_EMAILS!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.AddRow("dtCustomerEInvoicingUpdate", "CUSTOMER_ID", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, "ADDL_EMAILS", V.DataTable.dtCustomersUpdate(V.Local.iCounter).E_INVOICING_EMAILS!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+		
+		'check international
+		F.Intrinsic.Control.If(v.DataView.dtCustomerInternationalUpdate!dvCustomerInternationalUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomerInternationalUpdate", "dvCustomerInternationalUpdate", -1, "ORDER_CURR", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CURRENCY_CODE!FieldValTrim, "CATALOG_CURR", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_FINAL_CATALOG_CURRENCY_CODE!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUSTOMER_INTL table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+
+		'check order notes
+		F.Intrinsic.Control.If(v.DataView.dtCustomerOrderNotesUpdate!dvCustomerOrderNotesUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomerOrderNotesUpdate", "dvCustomerOrderNotesUpdate", -1, "TEXT", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ORDER_NOTES!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.AddRow("dtCustomerOrderNotesUpdate", "CUSTOMER", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, "TEXT", V.DataTable.dtCustomersUpdate(V.Local.iCounter).ORDER_NOTES!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+		
+		'check tax
+		F.Intrinsic.Control.If(v.DataView.dtCustomerTaxUpdate!dvCustomerTaxUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtCustomerTaxUpdate", "dvCustomerTaxUpdate", -1, "TAX_SALES_EX_NO", V.DataTable.dtCustomersUpdate(V.Local.iCounter).TAX_EXEMPT_NUMBER!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUSTOMER_TAX table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'check tax auth
+		F.Intrinsic.Control.For(V.Local.iJCounter, 1, 10, 1)
+			F.Intrinsic.Control.If(V.Local.iJCounter, =, 1)
+				F.Intrinsic.String.Build("FINAL_TAX_CODE_{0}", V.Local.iJCounter, V.Local.sColumn)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("TAX_CODE_{0}", V.Local.iJCounter, V.Local.sColumn)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.DataTable.dtCustomersUpdate(V.Local.iCounter).[V.Local.sColumn]!FieldValTrim, !=, "")	
+				F.Intrinsic.String.Build("CUST = '{0}' and TAX_SEQ = {1}", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.iJCounter, V.Local.sFilter)
+				F.Data.DataView.Create("dtCustomerTaxAuthUpdate", "dvTaxAuthCheck", 22, V.Local.sFilter, "")
+				F.Intrinsic.Control.If(V.DataView.dtCustomerTaxAuthUpdate!dvTaxAuthCheck.RowCount, >, 0)
+					F.Data.DataView.SetValue("dtCustomerTaxAuthUpdate", "dvTaxAuthCheck", -1, "TAX_AUTH", V.DataTable.dtCustomersUpdate(V.Local.iCounter).[V.Local.sColumn]!FieldValTrim)
+				F.Intrinsic.Control.Else
+					F.Data.DataTable.AddRow("dtCustomerTaxAuthUpdate", "CUST", V.DataView.dtCustomers!dvValid(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, "TAX_SEQ", V.Local.iJCounter, "TAX_AUTH", V.DataTable.dtCustomersUpdate(V.Local.iCounter).[V.Local.sColumn]!FieldValTrim)
+				F.Intrinsic.Control.EndIf
+				F.Data.DataView.Close("dtCustomerTaxAuthUpdate", "dvTaxAuthCheck")
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iJCounter)
+		
+		'check vat
+		F.Global.General.ReadOption("400078", 0, False, V.Local.bVAT)
+		F.Intrinsic.Control.If(V.Local.bVat)
+			F.Intrinsic.Control.If(V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_RULE!FieldValTrim, !=, 0)
+				'grab exempt type
+				F.Intrinsic.String.Build("select EXEMPT_TYPE from VAT_TAX_RULE where RULE_ID = {0}", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_RULE!FieldValTrim, V.Local.sSQL)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.iExemptType)
+				
+				'grab tax in price flag
+				F.Intrinsic.String.Build("select ACTION_CODE from VAT_TAX_RULE where RULE_ID = {0}", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_RULE!FieldValTrim, V.Local.sSQL)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.iTaxInPrice)
+				F.Intrinsic.Control.If(V.Local.iTaxInPrice, =, 1)
+					V.Local.bTaxInPrice.Set(True)
+				F.Intrinsic.Control.Else
+					V.Local.bTaxInPrice.Set(False)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				V.Local.iExemptType.Set(0)
+				V.Local.bTaxInPrice.Set(False)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.DataView.dtCustomerVatUpdate!dvCustomerVatUpdate.RowCount, >, 0)
+				'now update
+				F.Data.DataView.SetValue("dtCustomerVatUpdate", "dvCustomerVatUpdate", -1, "RULE_ID", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_RULE!FieldValLong, "EXEMPT_TYPE", V.Local.iExemptType, "TAX_IN_PRC_FLG", V.Local.bTaxInPrice, "NIT_NO", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_NIT_NUMBER!FieldValTrim, "CNTRY_CD", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_COUNTRY_CODE!FieldValTrim, "REGSTR_NO", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_NUMBER!FieldValTrim, "REGSTR_DTE", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_VAT_DATE!FieldVal, "REGSTR_FLG", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_REGISTERED!FieldVal, "EC_FLG", V.DataTable.dtCustomersUpdate(V.Local.iCounter).VAT_EC!FieldVal)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("Customer [{0}] failed to update certain fields because the customer was not found in the CUSTOMER_VAT table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Else
+		'well this isn't good
+		F.Intrinsic.String.Build("Customer [{0}] failed to update because the customer was not found in the CUSTOMER_MASTER table.", V.DataTable.dtCustomersUpdate(V.Local.iCounter).FINAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'technically these rows should match and exist
+		'but should probably filter to it
+		F.Data.DataView.SetValue("dtCustomers", "dvValid", V.Local.iCounter, "FEEDBACK", V.Local.sMessage, "FAILED", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtCustomerMasterUpdate", "dvCustomerMasterUpdate")
+F.Data.DataView.Close("dtCustomerShipToUpdate", "dvCustomerShipToUpdate")
+F.Data.DataView.Close("dtCustomerWebAddressUpdate", "dvCustomerWebAddressUpdate")
+F.Data.DataView.Close("dtCustomerFormInfoUpdate", "dvCustomerFormInfoUpdate")
+F.Data.DataView.Close("dtCustomerSalesUpdate", "dvCustomerSalesUpdate")
+F.Data.DataView.Close("dtCustomerEInvoicingUpdate", "dvCustomerEInvoicingUpdate")
+F.Data.DataView.Close("dtCustomerInternationalUpdate", "dvCustomerInternationalUpdate")
+F.Data.DataView.Close("dtCustomerOrderNotesUpdate", "dvCustomerOrderNotesUpdate")
+F.Data.DataView.Close("dtCustomerTaxUpdate", "dvCustomerTaxUpdate")
+F.Data.DataView.Close("dtCustomerTaxAuthUpdate", "dvCustomerTaxAuthUpdate")
+F.Data.DataView.Close("dtCustomerVatUpdate", "dvCustomerVatUpdate")
+
+'post back to the database
+F.Data.DataTable.SaveToDB("dtCustomerMasterUpdate", "Con", "CUSTOMER_MASTER", "CUSTOMER*!*REC", 256)
+F.Data.DataTable.SaveToDB("dtCustomerShipToUpdate", "Con", "CUSTOMER_SHIPTO", "CUSTOMER*!*REC", 256)
+F.Data.DataTable.SaveToDB("dtCustomerWebAddressUpdate", "Con", "CUST_WEB_ADDR", "CUST_ID", 256)
+F.Data.DataTable.SaveToDB("dtCustomerFormInfoUpdate", "Con", "CUST_FORM_INFO", "CUSTOMER*!*REC", 256)
+F.Data.DataTable.SaveToDB("dtCustomerSalesUpdate", "Con", "CUSTOMER_SALES", "CUSTOMER*!*REC", 256)
+F.Data.DataTable.SaveToDB("dtCustomerEInvoicingUpdate", "Con", "PPT_EINV_COPT", "CUSTOMER_ID", 256)
+F.Data.DataTable.SaveToDB("dtCustomerInternationalUpdate", "Con", "CUSTOMER_INTL", "CUSTOMER*!*REC", 256)
+F.Data.DataTable.SaveToDB("dtCustomerOrderNotesUpdate", "Con", "CUST_ORDER_NOTES", "CUSTOMER", 256)
+F.Data.DataTable.SaveToDB("dtCustomerTaxUpdate", "Con", "CUSTOMER_TAX", "CUST", 256)
+F.Data.DataTable.SaveToDB("dtCustomerTaxAuthUpdate", "Con", "CUSTOMER_TAX_AUTH", "CUST*!*TAX_SEQ", 256)
+F.Data.DataTable.SaveToDB("dtCustomerVatUpdate", "Con", "CUSTOMER_VAT", "CUST", 256)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataTable.Close("dtCustomerMasterUpdate")
+F.Data.DataTable.Close("dtCustomerShipToUpdate")
+F.Data.DataTable.Close("dtCustomerWebAddressUpdate")
+F.Data.DataTable.Close("dtCustomerFormInfoUpdate")
+F.Data.DataTable.Close("dtCustomerSalesUpdate")
+F.Data.DataTable.Close("dtCustomersUpdate")
+F.Data.DataTable.Close("dtCustomerEInvoicingUpdate")
+F.Data.DataTable.Close("dtCustomerInternationalUpdate")
+F.Data.DataTable.Close("dtCustomerOrderNotesUpdate")
+F.Data.DataTable.Close("dtCustomerTaxUpdate")
+F.Data.DataTable.Close("dtCustomerTaxAuthUpdate")
+F.Data.DataTable.Close("dtCustomerVatUpdate")
+
+V.Global.iUpdated.Set(V.DataView.dtCustomers!dvValid.RowCount)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UpdateCustomers.End
+
+Program.Sub.LogUploads.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sMessage.Declare(String)
+V.Local.sFeedback.Declare(String)
+
+'log all uploads, failed / passed
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtCustomers.RowCount--, 1)
+
+	F.Intrinsic.Control.If(V.DataTable.dtCustomers(V.Local.iCounter).FAILED!FieldVal)
+		F.Intrinsic.String.Build("Upload for external customer {0} failed with message: {1}", V.DataTable.dtCustomers(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, V.DataTable.dtCustomers(V.Local.iCounter).FEEDBACK!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.If(V.DataTable.dtCustomers(V.Local.iCounter).UPDATE_CUSTOMER!FieldVal)
+			F.Intrinsic.String.Build("External customer {0} / GSS customer {1} successfully updated.", V.DataTable.dtCustomers(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, V.DataTable.dtCustomers(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("External customer {0} successfully uploaded as GSS customer {1}.", V.DataTable.dtCustomers(V.Local.iCounter).EXTERNAL_CUSTOMER_ID!FieldValTrim, V.DataTable.dtCustomers(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.Datatable.SetValue("dtCustomers", V.Local.iCounter, "FEEDBACK", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'grab failed count
+F.Data.DataView.Create("dtCustomers", "dvFailed", 22, "Failed = True", "")
+V.Global.iFailed.Set(V.DataView.dtCustomers!dvFailed.RowCount)
+F.Data.DataView.Close("dtCustomers", "dvFailed")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LogUploads.End
+
+Program.Sub.SaveFeedback.Start
+'update staging table with feedback
+
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.AddColumn("dtCustomers", "PROCESSED_TIMESTAMP", "Date", V.Ambient.Now)
+F.Data.DataTable.SetValue("dtCustomers", -1, "Processed", True)
+F.Data.DataTable.AcceptChanges("dtCustomers")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.SaveToDB("dtCustomers", "Con", "GCG_5807_CUST_STAGE", "RECORD_ID", 256, "GSS_CUSTOMER_NUMBER@!@GSS_CUSTOMER_NUMBER*!*RECORD_ID@!@RECORD_ID*!*FEEDBACK@!@FEEDBACK*!*ALPHA_SORT@!@ALPHA_SORT*!*SORT@!@SORT*!*PROCESSED@!@PROCESSED*!*FAILED@!@FAILED*!*FINAL_SHIP_NAME@!@SHIP_NAME*!*FINAL_SHIP_ADDRESS_1@!@SHIP_ADDRESS_1*!*FINAL_SHIP_ADDRESS_2@!@SHIP_ADDRESS_2*!*FINAL_SHIP_ADDRESS_3@!@SHIP_ADDRESS_3*!*FINAL_SHIP_ADDRESS_4@!@SHIP_ADDRESS_4*!*FINAL_SHIP_ADDRESS_5@!@SHIP_ADDRESS_5*!*FINAL_SHIP_CITY@!@SHIP_CITY*!*FINAL_SHIP_STATE@!@SHIP_STATE*!*FINAL_SHIP_ZIP@!@SHIP_ZIP*!*FINAL_SHIP_COUNTRY@!@SHIP_COUNTRY*!*FINAL_SHIP_COUNTY@!@SHIP_COUNTY*!*FINAL_SHIP_ATTENTION@!@SHIP_ATTENTION*!*FINAL_SHIP_PHONE@!@SHIP_PHONE*!*FINAL_SHIP_FAX@!@SHIP_FAX*!*RECORD_TIMESTAMP@!@RECORD_TIMESTAMP*!*PROCESSED_TIMESTAMP@!@PROCESSED_TIMESTAMP*!*UPDATE_CUSTOMER@!@UPDATE_CUSTOMER")
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.SendIPMMessage.Start
+'return uploaded, updated, failed counts
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+'return counts to PID passed in switch
+F.Intrinsic.String.Build("CUSTOMERS{0}{1}{0}{2}{0}{3}", "!@@!", V.Global.iSuccessful, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+F.Intrinsic.IPM.SendMessage(V.Local.sMessage, V.Caller.Switches)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SendIPMMessage.End
+
+Program.Sub.Exit.Start
+'clean up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtCustomers.Exists)
+	F.Data.DataTable.Close("dtCustomers")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.CallSub(ScriptPIDClear, "PROJECT", V.Global.sProject)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240305141146506$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9lU7S7Ce0tcdvTI+x685gaKdBzk0bVTxzQ=
+Program.Sub.Comments.End
