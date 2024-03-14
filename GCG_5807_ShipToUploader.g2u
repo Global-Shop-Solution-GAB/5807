@@ -1,0 +1,286 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_UPLSHPTO.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Ship To Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_ShipToUploader.g2u
+'Trey S
+'December 11th, 2022
+'This program is part of the 5807 E-Commerce Uploader package
+'This script will upload new ship to IDs for customers from the GCG_5807_SHPTO_STAGE staging table
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'check for staged ship tos
+F.Intrinsic.Control.CallSub(LoadStagedShipTos)
+F.Intrinsic.Control.If(V.DataTable.dtShipTos.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(UploadStagedShipTos)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedShipTos.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String, "select RECORD_ID, RECORD_TIMESTAMP, FAILED, PROCESSED, PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_CUSTOMER) EXTERNAL_CUSTOMER, RTRIM(EXTERNAL_ID) EXTERNAL_ID, UPPER(RTRIM(GSS_CUSTOMER_NUMBER)) GSS_CUSTOMER_NUMBER, UPPER(RTRIM(SHIP_TO_ID)) SHIP_TO_ID, RTRIM(NAME) NAME, RTRIM(ADDRESS_1) ADDRESS_1, RTRIM(ADDRESS_2) ADDRESS_2, RTRIM(ADDRESS_3) ADDRESS_3, RTRIM(ADDRESS_4) ADDRESS_4, RTRIM(ADDRESS_5) ADDRESS_5, RTRIM(CITY) CITY, UPPER(RTRIM(STATE)) STATE, RTRIM(ZIP) ZIP, RTRIM(COUNTRY) COUNTRY, RTRIM(ATTENTION) ATTENTION, INTERNATIONAL, UPPER(RTRIM(SALESPERSON_CODE)) SALESPERSON_CODE, UPPER(RTRIM(SHIP_VIA_CODE)) SHIP_VIA_CODE, UPPER(RTRIM(AREA)) AREA, UPPER(RTRIM(BRANCH)) BRANCH, RTRIM(TAX_EXEMPT_NUMBER) TAX_EXEMPT_NUMBER, RTRIM(NORMAL_GL) NORMAL_GL, UPPER(RTRIM(TAX_STATE)) TAX_STATE, RTRIM(TAX_ZIP) TAX_ZIP, RTRIM(TAX_CODE_1) TAX_CODE_1, RTRIM(TAX_CODE_2) TAX_CODE_2, RTRIM(TAX_CODE_3) TAX_CODE_3, RTRIM(TAX_CODE_4) TAX_CODE_4, RTRIM(TAX_CODE_5) TAX_CODE_5, RTRIM(TAX_CODE_6) TAX_CODE_6, RTRIM(TAX_CODE_7) TAX_CODE_7, RTRIM(TAX_CODE_8) TAX_CODE_8, RTRIM(TAX_CODE_9) TAX_CODE_9, RTRIM(TAX_CODE_10) TAX_CODE_10, RTRIM(COMMISSION_TYPE) COMMISSION_TYPE, RTRIM(PRICE_CLASS_CODE) PRICE_CLASS_CODE, RTRIM(FREIGHT_ZONE) FREIGHT_ZONE, DISCOUNT_PERCENTAGE, RTRIM(PHONE_NUMBER) PHONE_NUMBER, RTRIM(FAX_NUMBER) FAX_NUMBER, RTRIM(CARRIER_CODE) CARRIER_CODE, RTRIM(FREIGHT_CUSTOMER) FREIGHT_CUSTOMER, RTRIM(UPS_ACCOUNT) UPS_ACCOUNT, RTRIM(FEDEX_ACCOUNT) FEDEX_ACCOUNT, SERVICE_TYPE, RTRIM(SIC_CODE) SIC_CODE, RTRIM(PRIMARY_GROUP) PRIMARY_GROUP, RTRIM(SECONDARY_GROUP) SECONDARY_GROUP, UPPER(RTRIM(LOCATION)) LOCATION, RTRIM(COUNTY) COUNTY from GCG_5807_SHPTO_STAGE where PROCESSED = 0 and FAILED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtShipTos", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedShipTos.End
+
+Program.Sub.UploadStagedShipTos.Start
+F.Intrinsic.Control.Try
+
+V.Local.bAllowUpdate.Declare(Boolean, False)
+V.Local.iCounter.Declare(Long)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.bSkip.Declare(Boolean, False)
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sMessage.Declare(String)
+
+'grab update option
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "SHIP_TO", "NAME", "ALLOW_UPDATE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bAllowUpdate.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+'grab customer external ID field
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+F.Intrinsic.String.Build("[{0}] ship to records found for processing...", V.DataTable.dtShipTos.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'go through and process each record
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtShipTos.RowCount--, 1)
+	V.Local.bFailed.Set(False)
+	V.Local.bSkip.Set(False)
+	
+	F.Intrinsic.String.Build("Processing ship to record with ID [{0}]...", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+	'first, check if the customer already exists
+	F.Intrinsic.Control.If(V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, !=, "")
+		F.Intrinsic.String.Build("select RTRIM(CUSTOMER) from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			'check and see if the record is pending upload in the staging table
+			F.Intrinsic.String.Build("select RTRIM(GSS_CUSTOMER_NUMBER) from GCG_5807_CUST_STAGE where GSS_CUSTOMER_NUMBER = '{0}' and PROCESSED = 0", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+				'the customer is pending upload, skip this record for now
+				V.Local.bSkip.Set(True)
+				F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] skipped because customer with GSS_CUSTOMER_NUMBER [{1}] is pending upload in staging table GCG_5807_CUST_STAGE.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.Else
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] failed because no customer with GSS_CUSTOMER_NUMBER [{1}] exists in GSS.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.If(V.DataTable.dtShipTos(V.Local.iCounter).EXTERNAL_CUSTOMER!FieldValTrim, !=, "")
+			'see if the customer exists based off the external ID
+			F.Intrinsic.String.Build("select RTRIM({0}) from {1} where {2} = '{3}'", V.Args.CORE_FIELD, V.Args.CORE_TABLE, V.Args.CORE_FIELD, V.DataTable.dtShipTos(V.Local.iCounter).EXTERNAL_CUSTOMER!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+				F.Data.DataTable.SetValue("dtShipTos", V.Local.iCounter, "GSS_CUSTOMER_NUMBER", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				'check and see if the record is pending upload in the staging table
+				F.Intrinsic.String.Build("select RTRIM(EXTERNAL_CUSTOMER_ID) from GCG_5807_CUST_STAGE where EXTERNAL_CUSTOMER_ID = '{0}' and PROCESSED = 0", V.DataTable.dtShipTos(V.Local.iCounter).EXTERNAL_CUSTOMER!FieldValTrim, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+				
+				F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+					'the customer is pending upload, skip this record for now
+					V.Local.bSkip.Set(True)
+					F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] skipped because customer with EXTERNAL_CUSTOMER [{1}] is pending upload in staging table GCG_5807_CUST_STAGE.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).EXTERNAL_CUSTOMER!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.Else
+					V.Local.bFailed.Set(True)
+					F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] failed because no customer with EXTERNAL_CUSTOMER [{1}] exists in GSS.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).EXTERNAL_CUSTOMER!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] failed because no GSS_CUSTOMER_NUMBER or EXTERNAL_CUSTOMER was passed.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'now check if the ship to ID already exists
+	F.Intrinsic.Control.If(V.Local.bFailed, =, False, "AND", V.Local.bSkip, =, False)
+		F.Intrinsic.String.Build("select RTRIM(SHIP_SEQ) from V_OE_MULTI_SHIP where CUSTOMER = '{0}' and SHIP_SEQ = '{1}'", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+			'this ship to ID already exists, check if updates are allowed
+			F.Intrinsic.Control.If(V.Local.bAllowUpdate)
+				'delete this record so we can reupload it
+				F.Intrinsic.String.Build("Update found for ship to record with ID [{0}]. Deleting SHIP_TO_ID [{1}] for GSS_CUSTOMER_NUMBER [{2}] for reupload...", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.String.Build("delete from OE_MULTI_SHIP where CUSTOMER = '{0}' and SHIP_SEQ = '{1}'", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				'fail
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] failed because SHIP_TO_ID [{1}] for GSS_CUSTOMER_NUMBER [{2}] already exists and the option to allow updates is turned off.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'now add to datatable for upload
+	F.Intrinsic.Control.If(V.Local.bFailed, =, False, "AND", V.Local.bSkip, =, False)
+		F.Data.DataTable.AddRow("dtUPLSHPTO", "CUSTOMER_NUMBER", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, "SHIP_TO_ID", V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, "NAME", V.DataTable.dtShipTos(V.Local.iCounter).NAME!FieldValTrim, "ADDRESS_1", V.DataTable.dtShipTos(V.Local.iCounter).ADDRESS_1!FieldValTrim, "ADDRESS_2", V.DataTable.dtShipTos(V.Local.iCounter).ADDRESS_2!FieldValTrim, "ADDRESS_3", V.DataTable.dtShipTos(V.Local.iCounter).ADDRESS_3!FieldValTrim, "ADDRESS_4", V.DataTable.dtShipTos(V.Local.iCounter).ADDRESS_4!FieldValTrim, "ADDRESS_5", V.DataTable.dtShipTos(V.Local.iCounter).ADDRESS_5!FieldValTrim, "CITY", V.DataTable.dtShipTos(V.Local.iCounter).CITY!FieldValTrim, "STATE", V.DataTable.dtShipTos(V.Local.iCounter).STATE!FieldValTrim, "ZIP", V.DataTable.dtShipTos(V.Local.iCounter).ZIP!FieldValTrim, "COUNTRY", V.DataTable.dtShipTos(V.Local.iCounter).COUNTRY!FieldValTrim, "ATTENTION", V.DataTable.dtShipTos(V.Local.iCounter).ATTENTION!FieldValTrim, "INTERNATIONAL", V.DataTable.dtShipTos(V.Local.iCounter).INTERNATIONAL!FieldValTrim, "SALESPERSON_CODE", V.DataTable.dtShipTos(V.Local.iCounter).SALESPERSON_CODE!FieldValTrim, "SHIP_VIA_CODE", V.DataTable.dtShipTos(V.Local.iCounter).SHIP_VIA_CODE!FieldValTrim, "AREA", V.DataTable.dtShipTos(V.Local.iCounter).AREA!FieldValTrim, "BRANCH", V.DataTable.dtShipTos(V.Local.iCounter).BRANCH!FieldValTrim, "SALES_TAX_EXEMPT_NUMBER", V.DataTable.dtShipTos(V.Local.iCounter).TAX_EXEMPT_NUMBER!FieldValTrim, "NORMAL_GL", V.DataTable.dtShipTos(V.Local.iCounter).NORMAL_GL!FieldValTrim, "TAX_STATE", V.DataTable.dtShipTos(V.Local.iCounter).TAX_STATE!FieldValTrim, "TAX_ZIP", V.DataTable.dtShipTos(V.Local.iCounter).TAX_ZIP!FieldValTrim, "TAX_CODE_1", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_1!FieldValTrim, "TAX_CODE_2", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_2!FieldValTrim, "TAX_CODE_3", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_3!FieldValTrim, "TAX_CODE_4", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_4!FieldValTrim, "TAX_CODE_5", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_5!FieldValTrim, "TAX_CODE_6", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_6!FieldValTrim, "TAX_CODE_7", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_7!FieldValTrim, "TAX_CODE_8", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_8!FieldValTrim, "TAX_CODE_9", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_9!FieldValTrim, "TAX_CODE_10", V.DataTable.dtShipTos(V.Local.iCounter).TAX_CODE_10!FieldValTrim, "COMMISSION_RATE_TYPE", V.DataTable.dtShipTos(V.Local.iCounter).COMMISSION_TYPE!FieldValTrim, "PRICE_CLASS_CODE", V.DataTable.dtShipTos(V.Local.iCounter).PRICE_CLASS_CODE!FieldValTrim, "FREIGHT_ZONE", V.DataTable.dtShipTos(V.Local.iCounter).FREIGHT_ZONE!FieldValTrim, "ORDER_DISCOUNT_PERCENTAGE", V.DataTable.dtShipTos(V.Local.iCounter).DISCOUNT_PERCENTAGE!FieldValFloat, "PHONE_NUMBER", V.DataTable.dtShipTos(V.Local.iCounter).PHONE_NUMBER!FieldValTrim, "FAX_NUMBER", V.DataTable.dtShipTos(V.Local.iCounter).FAX_NUMBER!FieldValTrim, "CARRIER_CODE", V.DataTable.dtShipTos(V.Local.iCounter).CARRIER_CODE!FieldValTrim, "THIRD_PARTY_FREIGHT_CUSTOMER", V.DataTable.dtShipTos(V.Local.iCounter).FREIGHT_CUSTOMER!FieldValTrim, "UPS_ACCOUNT", V.DataTable.dtShipTos(V.Local.iCounter).UPS_ACCOUNT!FieldValTrim, "FEDEX_ACCOUNT", V.DataTable.dtShipTos(V.Local.iCounter).FEDEX_ACCOUNT!FieldValTrim, "SERVICE_TYPE", V.DataTable.dtShipTos(V.Local.iCounter).SERVICE_TYPE!FieldValLong, "SIC_CODE", V.DataTable.dtShipTos(V.Local.iCounter).SIC_CODE!FieldValTrim, "PRIMARY_GROUP", V.DataTable.dtShipTos(V.Local.iCounter).PRIMARY_GROUP!FieldValTrim, "SECONDARY_GROUP", V.DataTable.dtShipTos(V.Local.iCounter).SECONDARY_GROUP!FieldValTrim, "LOCATION", V.DataTable.dtShipTos(V.Local.iCounter).LOCATION!FieldValTrim, "COUNTY", V.DataTable.dtShipTos(V.Local.iCounter).COUNTY!FieldValTrim)
+		
+		'now run the upload
+		F.Intrinsic.String.Build("Running ship to upload library [GCG_5807_UPLSHPTO.lib] for upload of ship to staging record with id [{0}]...", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		F.Intrinsic.Control.CallSub(UPLSHPTO)
+		
+		'back up file
+		F.Intrinsic.Control.CallSub(BackupFile, "Type", "Customer Ship To", "File", V.Global.sUPLSHPTOFile)
+		
+		F.Intrinsic.String.Build("Library [GCG_5807_UPLSHPTO.lib] processing for ship to staging record with id [{0}]. Library return [1].", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLSHPTOError, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'now check return
+		F.Intrinsic.Control.If(V.Global.sUPLSHPTOError.Trim, !=, "")
+			'there was an error
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] failed in library upload. Library error message: [{1}]", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLSHPTOError, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'now check if it uploaded
+		F.Intrinsic.Control.If(V.Local.bFailed.Not)
+			F.Intrinsic.String.Build("select RTRIM(SHIP_SEQ) from V_OE_MULTI_SHIP where CUSTOMER = '{0}' and SHIP_SEQ = '{1}'", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Upload of ship to record with ID [{0}] failed.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLSHPTOError, V.Local.sMessage)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("Processing for ship to record with ID [{0}] complete. Ship to record uploaded sucessfully.", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				
+				'fix extra fields
+				'for some reason tax zip isn't uploading from the file
+				F.Intrinsic.String.Build("update OE_MULTI_SHIP set SHIP_TAX_ZIP = '{2}' where CUSTOMER = '{0}' and SHIP_SEQ = '{1}'", V.DataTable.dtShipTos(V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, V.DataTable.dtShipTos(V.Local.iCounter).TAX_ZIP!FieldValTrim, V.Local.sSQL)
+				
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'now save feedback
+	F.Intrinsic.Control.If(V.Local.bSkip.Not)
+		F.Intrinsic.Control.CallSub(SaveFeedback, "RECORD_ID", V.DataTable.dtShipTos(V.Local.iCounter).RECORD_ID!FieldValLong, "FAILED", V.Local.bFailed, "FEEDBACK", V.Local.sMessage)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedShipTos.End
+
+Program.Sub.SaveFeedback.Start
+'pass RECORD_ID, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_SHPTO_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{2}' where RECORD_ID = {3} and FAILED = 0 and PROCESSED = 0;", V.Args.Failed.Long, V.Args.Feedback.PSQLFriendly, V.Local.sTimestamp, V.Args.Record_ID, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.Exit.Start
+'celan up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtShipTos.Exists)
+	F.Data.DataTable.Close("dtShipTos")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240214164339227$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4t7a4yhFVtZABtpk+8oG1nA=
+Program.Sub.Comments.End
