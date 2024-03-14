@@ -1,0 +1,2177 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormReviewDashboard..Create
+Gui.FormReviewDashboard..Caption("Order Uploader Review Dashboard [5807]")
+Gui.FormReviewDashboard..Size(15420,10305)
+Gui.FormReviewDashboard..MinX(5000)
+Gui.FormReviewDashboard..MinY(2000)
+Gui.FormReviewDashboard..Position(0,0)
+Gui.FormReviewDashboard..BackColor(-2147483633)
+Gui.FormReviewDashboard..MousePointer(0)
+Gui.FormReviewDashboard..Event(UnLoad,FormReviewDashboard_UnLoad)
+Gui.FormReviewDashboard.tabOrders.Create(Tab)
+Gui.FormReviewDashboard.tabOrders.Size(15360,9900)
+Gui.FormReviewDashboard.tabOrders.Position(0,105)
+Gui.FormReviewDashboard.tabOrders.Anchor(15)
+Gui.FormReviewDashboard.tabOrders.Tabs(2)
+Gui.FormReviewDashboard.tabOrders.SetTab(0)
+Gui.FormReviewDashboard.tabOrders.Caption("Pending Orders")
+Gui.FormReviewDashboard.tabOrders.SetTab(1)
+Gui.FormReviewDashboard.tabOrders.Caption("Failed")
+Gui.FormReviewDashboard.gsgcReview.Create(GsGridControl)
+Gui.FormReviewDashboard.gsgcReview.Size(15360,9000)
+Gui.FormReviewDashboard.gsgcReview.Position(0,480)
+Gui.FormReviewDashboard.gsgcReview.Parent("tabOrders",0)
+Gui.FormReviewDashboard.gsgcReview.Anchor(15)
+Gui.FormReviewDashboard.gsgcReview.Event(CellValueChanged,gsgcReview_CellValueChanged)
+Gui.FormReviewDashboard.gsgcReview.Event(RowCellClick,gsgcReview_RowCellClick)
+Gui.FormReviewDashboard.cmdSave.Create(Button)
+Gui.FormReviewDashboard.cmdSave.Size(855,375)
+Gui.FormReviewDashboard.cmdSave.Position(12345,45)
+Gui.FormReviewDashboard.cmdSave.Parent("tabOrders",0)
+Gui.FormReviewDashboard.cmdSave.Caption("Save")
+Gui.FormReviewDashboard.cmdSave.Event(Click,cmdSave_Click)
+Gui.FormReviewDashboard.cmdSave.Anchor(9)
+Gui.FormReviewDashboard.cmdUpload.Create(Button)
+Gui.FormReviewDashboard.cmdUpload.Size(1950,375)
+Gui.FormReviewDashboard.cmdUpload.Position(13245,45)
+Gui.FormReviewDashboard.cmdUpload.Parent("tabOrders",0)
+Gui.FormReviewDashboard.cmdUpload.Caption("Upload Selected Orders")
+Gui.FormReviewDashboard.cmdUpload.Event(Click,cmdUpload_Click)
+Gui.FormReviewDashboard.cmdUpload.Anchor(9)
+Gui.FormReviewDashboard.gsgcFailed.Create(GsGridControl)
+Gui.FormReviewDashboard.gsgcFailed.Size(15360,8955)
+Gui.FormReviewDashboard.gsgcFailed.Position(15,540)
+Gui.FormReviewDashboard.gsgcFailed.Parent("tabOrders",1)
+Gui.FormReviewDashboard.gsgcFailed.Anchor(15)
+Gui.FormReviewDashboard.gsgcFailed.Event(CellValueChanged,gsgcFailed_CellValueChanged)
+Gui.FormReviewDashboard.gsgcFailed.Event(RowCellClick,gsgcFailed_RowCellClick)
+Gui.FormReviewDashboard.cmdSaveFailed.Create(Button)
+Gui.FormReviewDashboard.cmdSaveFailed.Size(855,375)
+Gui.FormReviewDashboard.cmdSaveFailed.Position(12360,75)
+Gui.FormReviewDashboard.cmdSaveFailed.Parent("tabOrders",1)
+Gui.FormReviewDashboard.cmdSaveFailed.Anchor(9)
+Gui.FormReviewDashboard.cmdSaveFailed.Caption("Save")
+Gui.FormReviewDashboard.cmdSaveFailed.Event(Click,cmdSave_Click)
+Gui.FormReviewDashboard.cmdUploadFailed.Create(Button)
+Gui.FormReviewDashboard.cmdUploadFailed.Size(1950,375)
+Gui.FormReviewDashboard.cmdUploadFailed.Position(13260,75)
+Gui.FormReviewDashboard.cmdUploadFailed.Parent("tabOrders",1)
+Gui.FormReviewDashboard.cmdUploadFailed.Anchor(9)
+Gui.FormReviewDashboard.cmdUploadFailed.Caption("Retry Selected Orders")
+Gui.FormReviewDashboard.cmdUploadFailed.Event(Click,cmdUpload_Click)
+Gui.FormReviewDashboard.cmdRefresh.Create(Button)
+Gui.FormReviewDashboard.cmdRefresh.Size(855,375)
+Gui.FormReviewDashboard.cmdRefresh.Position(14385,45)
+Gui.FormReviewDashboard.cmdRefresh.Anchor(9)
+Gui.FormReviewDashboard.cmdRefresh.Caption("Refresh")
+Gui.FormReviewDashboard.cmdRefresh.Event(Click,cmdRefresh_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "FormReviewDashboard_Unload")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Review Dashboard")
+V.Global.bUnattended.Declare(Boolean, False)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_ReviewDashboard.g2u
+'Trey S
+'August 19th, 2020
+'Part of the 5807 SOAP Uploader program
+'This script is a dashboard where users can review / edit the staging table information before uploading it
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+F.Intrinsic.Control.CallSub(LoadGridViewDictionary)
+F.Intrinsic.Control.CallSub(LoadReviewContextMenu)
+F.Intrinsic.Control.CallSub(LoadFailedContextMenu)
+
+F.Intrinsic.Control.CallSub(LoadBlankReviewOrderHeaderDataTable)
+F.Intrinsic.Control.CallSub(LoadBlankReviewOrderLineDataTable)
+F.Intrinsic.Control.CallSub(SetReviewRelation)
+F.Intrinsic.Control.CallSub(LoadReviewHeaderGrid, "GridControl", "gsgcReview", "GridView", "gvOrders", "SHOW_FEEDBACK", False, "Editable", True, "DataTable", "dtReviewHeader")
+F.Intrinsic.Control.CallSub(LoadReviewLinesGrid, "GridControl", "gsgcReview", "GridView", "gvLines", "Editable", True, "DataTable", "dtReviewHeader$dtReviewLines")
+F.Intrinsic.Control.CallSub(LoadBlankFailedDataTables)
+F.Intrinsic.Control.CallSub(LoadReviewHeaderGrid, "GridControl", "gsgcFailed", "GridView", "gvFailedHeader", "SHOW_FEEDBACK", True, "Editable", True, "DataTable", "dtFailedHeader")
+F.Intrinsic.Control.CallSub(LoadReviewLinesGrid, "GridControl", "gsgcFailed", "GridView", "gvFailedLines", "Editable", True, "DataTable", "dtFailedHeader$dtFailedLines")
+F.Intrinsic.Control.CallSub(LoadGridDropDowns)
+
+
+F.Intrinsic.Control.CallSub(Deserialize, "Form", "FormReviewDashboard", "GridControl", "gsgcReview", "GridView", "gvOrders", "RegID", V.Global.sProject, "CHILD", "gvLines")
+F.Intrinsic.Control.CallSub(Deserialize, "Form", "FormReviewDashboard", "GridControl", "gsgcFailed", "GridView", "gvFailedHeader", "RegID", V.Global.sProject, "CHILD", "gvFailedLines")
+
+F.Intrinsic.Control.CallSub(cmdRefresh_Click)
+
+GUI.FormReviewDashboard.tabOrders.SetTab(0)
+GUI.FormReviewDashboard..Show
+GUI.FormReviewDashboard..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadBlankReviewOrderHeaderDataTable.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.Create("dtReviewHeader", True)
+F.Data.DataTable.AddColumn("dtReviewHeader", "EXTERNAL_ORDER_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "TRANSACTION_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "GSS_CUSTOMER_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "EXTERNAL_CUSTOMER_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_DUE_DATE", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_DATE", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_USER_FIELD_1", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_USER_FIELD_2", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_USER_FIELD_3", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_USER_FIELD_4", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_USER_FIELD_5", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_VIA", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "CARRIER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ID", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_INTERNATIONAL", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ADDRESS_1", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ADDRESS_2", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ADDRESS_3", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_CITY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_STATE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_COUNTRY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ATTENTION", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_CONTACT_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_CONTACT_EMAIL", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_CONTACT_PHONE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_INTERNATIONAL", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ADDRESS_1", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ADDRESS_2", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ADDRESS_3", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ADDRESS_4", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ADDRESS_5", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_CITY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_STATE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_COUNTRY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_ATTENTION", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_SORT", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_SORT_2", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "HEADER_COMMENTS", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "CUSTOMER_PO", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "UPDATE_ORDER", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "PROSPECT", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "PROCESSED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "FAILED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "FEEDBACK", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "ORDER_LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SALESPERSON_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "RECORD_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "PROCESSED_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "TERMS", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "MARK_SHIPMENT", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_HOLD", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "QUOTE_STATUS", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_RECORD_ID", "Long", -1)
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_RECORD_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_LAST_MODIFIED_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_LAST_MODIFIED_BY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_APPROVED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_APPROVED_TIMESTAMP", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader", "REVIEW_PROCESSED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "APPROVED_BY", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SELECTED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "MODIFIED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "COMMISSION_TYPE_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "DELETE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "FREIGHT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader", "BILL_TO_PHONE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ADDRESS_4", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_ADDRESS_5", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "FREIGHT_GL_ACCOUNT", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "DISCOUNT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader", "FOB_POINT", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "DELETE_ORDER", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "NO_OVERRIDE_FREIGHT", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader", "FINAL_CUSTOMER", "String", "")
+
+'check columns
+F.Data.DataTable.AddColumn("dtReviewHeader", "CUSTOMER_EXISTS", "Boolean", False)
+F.Data.DataTable.AddColumn("dtReviewHeader", "SHIP_TO_EXISTS", "Boolean", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadBlankReviewOrderHeaderDataTable.End
+
+Program.Sub.LoadBlankReviewOrderLineDataTable.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.CreateFromString("dtReviewHeader$dtReviewLines", "", "EXTERNAL_ORDER_NUMBER_LINE", "String", "***NO-INNER-DELIMITER***", "***NO-OUTER-DELIMITER***", True)
+F.Data.DataTable.DeleteRow("dtReviewHeader$dtReviewLines")
+F.Data.DataTable.AcceptChanges("dtReviewHeader$dtReviewLines")
+
+'F.Data.DataTable.Create("dtReviewHeader$dtReviewLines", True)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_USER_FIELD_1", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_USER_FIELD_2", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_USER_FIELD_3", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_USER_FIELD_4", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_USER_FIELD_5", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_COMMENTS", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_TAXES", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_NUMBER", "Long", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "GSS_PART_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "EXTERNAL_PART_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "QUANTITY", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_TOTAL_PRICE", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_UNIT_PRICE", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PRICE_BEFORE_DISCOUNT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "ORDER_DISCOUNT_PERCENTAGE", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PART_LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_ORDER_DATE", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_PROMISE_DATE", "Date")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PART_DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "RECORD_ID", "Long", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "LINE_UNIT_COST", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PART_UM", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "CUSTOMER_PART", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PRODUCT_LINE", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "QUANTITY_TO_PURCHASE", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "ORDER_DISCOUNT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PRICE_CLASS_DISCOUNT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PRODUCT_LINE_DISCOUNT", "Float", 0)
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "APPLY_DISCOUNT", "String", "")
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "CONFIGURATOR_PART", "Boolean", False)
+
+'check columns
+F.Data.DataTable.AddColumn("dtReviewHeader$dtReviewLines", "PART_EXISTS", "Boolean", False)
+
+F.Data.DataView.Create("dtReviewHeader$dtReviewLines", "dvGridView", 22)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadBlankReviewOrderLineDataTable.End
+
+Program.Sub.LoadBlankFailedDataTables.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.Clone("dtReviewHeader", "dtFailedHeader", True)
+F.Data.DataTable.Clone("dtReviewHeader$dtReviewLines", "dtFailedHeader$dtFailedLines", True)
+F.Data.DataView.Create("dtFailedHeader$dtFailedLines", "dvGridView", 22)
+F.Data.DataTable.AddRelation("dtFailedHeader", "EXTERNAL_ORDER_NUMBER", "dtFailedHeader$dtFailedLines", "EXTERNAL_ORDER_NUMBER_LINE")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadBlankFailedDataTables.End
+
+Program.Sub.SetReviewRelation.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.AddRelation("dtReviewHeader", "EXTERNAL_ORDER_NUMBER", "dtReviewHeader$dtReviewLines", "EXTERNAL_ORDER_NUMBER_LINE")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetReviewRelation.End
+
+Program.Sub.LoadOrders.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.iDataViewCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Data.DataTable.CreateFromSQL("dtReviewHeaderTemp", "Con", "select RTRIM(Order_No_External) EXTERNAL_ORDER_NUMBER, RTRIM(IsNull(TransactionCode, 'O')) TRANSACTION_CODE, RTRIM(GSS_CustomerNo) GSS_CUSTOMER_NUMBER, RTRIM(Ext_CustomerNo) EXTERNAL_CUSTOMER_NUMBER, RTRIM(OrderNumber) ORDER_NUMBER, RTRIM(OrderType) ORDER_TYPE, IsNull(OrderDueDate, CURDATE()) ORDER_DUE_DATE, IsNull(OrderDate, CURDATE()) ORDER_DATE, RTRIM(UserField1Head) HEADER_USER_FIELD_1, RTRIM(UserField2Head) HEADER_USER_FIELD_2, RTRIM(UserField3Head) HEADER_USER_FIELD_3, RTRIM(UserField4Head) HEADER_USER_FIELD_4, RTRIM(UserField5Head) HEADER_USER_FIELD_5, RTRIM(ShipVia) SHIP_VIA, RTRIM(Carrier) CARRIER, RTRIM(ShipToID) SHIP_TO_ID, SHipToIntlFlag SHIP_TO_INTERNATIONAL, RTRIM(ShipToName) SHIP_TO_NAME, RTRIM(ShipToAddress1) SHIP_TO_ADDRESS_1, RTRIM(ShipToAddress2) SHIP_TO_ADDRESS_2, RTRIM(ShipToAddress3) SHIP_TO_ADDRESS_3, RTRIM(ShipToCity) SHIP_TO_CITY, RTRIM(ShipToState) SHIP_TO_STATE, RTRIM(IsNull(ShipToZip, '')) SHIP_TO_ZIP, RTRIM(ShipToCountry) SHIP_TO_COUNTRY, RTRIM(ShipToAttention) SHIP_TO_ATTENTION, RTRIM(ShipToContactName) SHIP_TO_CONTACT_NAME, RTRIM(ShipToContactEmail) SHIP_TO_CONTACT_EMAIL, RTRIM(ShipToContactPhone) SHIP_TO_CONTACT_PHONE, BillToIntlFlag BILL_TO_INTERNATIONAL, RTRIM(BillToName) BILL_TO_NAME, RTRIM(BillToAddress1) BILL_TO_ADDRESS_1, RTRIM(BillToAddress2) BILL_TO_ADDRESS_2, RTRIM(BillToAddress3) BILL_TO_ADDRESS_3, RTRIM(BillToAddress4) BILL_TO_ADDRESS_4, RTRIM(BillToAddress5) BILL_TO_ADDRESS_5, RTRIM(BillToCity) BILL_TO_CITY, RTRIM(BillToState) BILL_TO_STATE, RTRIM(BillToZip) BILL_TO_ZIP, RTRIM(BillToCountry) BILL_TO_COUNTRY, RTRIM(BillToAttention) BILL_TO_ATTENTION, RTRIM(OrderSort) ORDER_SORT, RTRIM(OrderSort2) ORDER_SORT_2, RTRIM(AddlCommentsHead) HEADER_COMMENTS, RTRIM(CustomerPO) CUSTOMER_PO, A.PROCESSED, FAILED, RTRIM(FeedBack) FEEDBACK, UPDATE_ORDER, PROSPECT, RTRIM(OrderLocation) ORDER_LOCATION, RTRIM(SalesPersonCode) SALESPERSON_CODE, A.RECORD_TIMESTAMP, RTRIM(Terms) TERMS, RTRIM(MarkShipment) MARK_SHIPMENT, SHIPHOLD SHIP_HOLD, RTRIM(QUOTE_STATUS) QUOTE_STATUS, LineNumber LINE_NUMBER, B.RECORD_ID REVIEW_RECORD_ID, B.RECORD_TIMESTAMP REVIEW_RECORD_TIMESTAMP, B.LAST_MODIFIED REVIEW_LAST_MODIFIED_TIMESTAMP, RTRIM(B.MODIFIED_BY) REVIEW_LAST_MODIFIED_BY, B.APPROVED REVIEW_APPROVED, B.APPROVED_TIMESTAMP REVIEW_APPROVED_TIMESTAMP, RTRIM(B.APPROVED_BY) APPROVED_BY, B.PROCESSED REVIEW_PROCESSED, RTRIM(A.COMMISSION_TYPE_CODE) COMMISSION_TYPE_CODE, A.FREIGHT, A.PROCESSED_TIMESTAMP PROCESSED_TIMESTAMP, A.BILLTOPHONE BILL_TO_PHONE, RTRIM(ShipToAddress4) SHIP_TO_ADDRESS_4, RTRIM(SHIPTOADDRESS5) SHIP_TO_ADDRESS_5, RTRIM(FREIGHT_GL_ACCOUNT) FREIGHT_GL_ACCOUNT, DISCOUNT, RTRIM(FOB_POINT) FOB_POINT, DELETE_ORDER, NO_OVERRIDE_FREIGHT from GCG_5807_ORDER_STAGE A left join GCG_5807_REVIEW B on A.ORDER_NO_EXTERNAL = B.EXTERNAL_ORDER and A.PROCESSED = B.PROCESSED where A.PROCESSED = 0 or FAILED = 1 order by A.RECORD_TIMESTAMP", True)
+
+'need to make sure this is distinct
+F.Data.DataView.Create("dtReviewHeaderTemp", "dvReviewHeaderTemp", 22, "", "LINE_NUMBER")
+F.Data.DataView.ToDataTableDistinct("dtReviewHeaderTemp", "dvReviewHeaderTemp", "dtOrdersDistinct", "EXTERNAL_ORDER_NUMBER")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtOrdersDistinct.RowCount--, 1)
+	F.Intrinsic.String.Build("EXTERNAL_ORDER_NUMBER = '{0}'", V.DataTable.dtOrdersDistinct(V.Local.iCounter).EXTERNAL_ORDER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtReviewHeaderTemp", "dvReviewHeaderTemp", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtReviewHeaderTemp!dvReviewHeaderTemp.RowCount, >, 1)
+		F.Intrinsic.Control.For(V.Local.iDataViewCounter, V.DataView.dtReviewHeaderTemp!dvReviewHeaderTemp.RowCount--, 1, -1)
+			F.Data.DataView.DeleteRow("dtReviewHeaderTemp", "dvReviewHeaderTemp", V.Local.iDataViewCounter)
+		F.Intrinsic.Control.Next(V.Local.iDataViewCounter)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataTable.AcceptChanges("dtReviewHeaderTemp")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Data.DataView.SetFilter("dtReviewHeaderTemp", "dvReviewHeaderTemp", "FAILED = False")
+F.Data.DataView.ToDataTable("dtReviewHeaderTemp", "dvReviewHeaderTemp", "dtReviewTemp")
+F.Data.DataView.SetFilter("dtReviewHeaderTemp", "dvReviewHeaderTemp", "FAILED = True")
+F.Data.DataView.ToDataTable("dtReviewHeaderTemp", "dvReviewHeaderTemp", "dtFailedTemp")
+F.Data.DataView.Close("dtReviewHeaderTemp", "dvReviewHeaderTemp")
+F.Data.DataTable.Close("dtReviewHeaderTemp")
+
+F.Data.DataTable.DeleteRow("dtReviewHeader")
+F.Data.DataTable.Merge("dtReviewTemp", "dtReviewHeader", False, 2)
+F.Data.DataTable.AcceptChanges("dtReviewHeader")
+F.Data.DataTable.Close("dtReviewTemp")
+
+F.Data.DataTable.DeleteRow("dtFailedHeader")
+F.Data.DataTable.Merge("dtFailedTemp", "dtFailedHeader", False, 2)
+F.Data.DataTable.AcceptChanges("dtFailedHeader")
+F.Data.DataTable.Close("dtFailedTemp")
+
+'run checks
+F.Intrinsic.Control.CallSub(CheckCustomers, "DataTable", "dtFailedHeader")
+F.Intrinsic.Control.CallSub(CheckShipTos, "DataTable", "dtFailedHeader")
+F.Intrinsic.Control.CallSub(CheckCustomers, "DataTable", "dtReviewHeader")
+F.Intrinsic.Control.CallSub(CheckShipTos, "DataTable", "dtReviewHeader")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadOrders.End
+
+Program.Sub.CheckCustomers.Start
+F.Intrinsic.Control.Try
+
+'pass DATATABLE
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sCustomer.Declare(String)
+
+'first load customer from external IDs
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", V.Args.DataTable, "Field", "EXTERNAL_CUSTOMER_NUMBER")
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+F.Intrinsic.Control.If(V.Args.Core_Field, !=, "***DONOTSTORE***")
+	F.Intrinsic.String.Build("select RTRIM({0}) CUSTOMER_ID, RTRIM(CUSTOMER) CUSTOMER from {1} where {0} in ('{2}') and {0} <> ''", V.Args.Core_Field, V.Args.Core_Table, V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("select RTRIM(EXTERNAL_CUSTOMER_ID) CUSTOMER_ID, RTRIM(GSS_CUSTOMER_NUMBER) CUSTOMER from GCG_5807_CUST_STAGE where EXTERNAL_CUSTOMER_ID in ('{0}') and GSS_CUSTOMER_NUMBER <> ''", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.[V.Args.DataTable].RowCount--, 1)
+	'look up customer based on external ID
+	F.Intrinsic.String.Build("[CUSTOMER_ID] = '{0}'", V.DataTable.[V.Args.DataTable](V.Local.iCounter).EXTERNAL_CUSTOMER_NUMBER!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+		F.Data.DataTable.SetValue(V.Args.DataTable, V.Local.iCounter, "GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER", V.DataView.dtIDs!dvIDs(0).CUSTOMER!FieldValTrim)
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.SetValue(V.Args.DataTable, V.Local.iCounter, "GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER", "")
+	F.Intrinsic.Control.EndIf
+	
+	'also set final customer
+	F.Intrinsic.Control.If(V.DataTable.[V.Args.DataTable](V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim, !=, "")
+		V.Local.sCustomer.Set(V.DataTable.[V.Args.DataTable](V.Local.iCounter).GSS_CUSTOMER_NUMBER!FieldValTrim)
+	F.Intrinsic.Control.Else
+		V.Local.sCustomer.Set(V.DataTable.[V.Args.DataTable](V.Local.iCounter).GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER!FieldValTrim)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataTable.SetValue(V.Args.DataTable, V.Local.iCounter, "FINAL_CUSTOMER", V.Local.sCustomer)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtIDs", "dvIDs")
+F.Data.DataTable.Close("dtIDs")
+
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(CUSTOMER), Cast(1 as BIT) from V_CUSTOMER_MASTER")
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.FillFromDictionary(V.Args.DataTable, "dictTemp", "FINAL_CUSTOMER", "CUSTOMER_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckCustomers.End
+
+Program.Sub.CheckShipTos.Start
+F.Intrinsic.Control.Try
+
+'pass DATATABLE
+
+F.Data.DataTable.AddExpressionColumn(V.Args.DataTable, "SHIP_TO_KEY", "String", "ISNULL(FINAL_CUSTOMER, '') + ISNULL(SHIP_TO_ID, '')")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(CUSTOMER) + RTRIM(SHIP_SEQ), Cast(1 as BIT) from V_OE_MULTI_SHIP union select RTRIM(CUSTOMER), Cast(1 as BIT) from V_CUSTOMER_MASTER")
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.FillFromDictionary(V.Args.DataTable, "dictTemp", "SHIP_TO_KEY", "SHIP_TO_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.RemoveColumn(V.Args.DataTable, "SHIP_TO_KEY")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckShipTos.End
+
+Program.Sub.LoadLines.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtReviewHeader", "Field", "EXTERNAL_ORDER_NUMBER")
+
+F.Intrinsic.String.Build("select RTRIM(Order_No_External) EXTERNAL_ORDER_NUMBER_LINE, LineNumber LINE_NUMBER, RTRIM(IsNull(LineType, 'S')) LINE_TYPE, RTRIM(GSS_PartNumber) GSS_PART_NUMBER, RTRIM(Ext_PartNumber) EXTERNAL_PART_NUMBER, QtyOrdered QUANTITY, LineTotalPrice LINE_TOTAL_PRICE, LineUnitPrice LINE_UNIT_PRICE, PriceBeforeDiscount PRICE_BEFORE_DISCOUNT, OrderDiscPercentage ORDER_DISCOUNT_PERCENTAGE, RTRIM(PartLoc) PART_LOCATION, IsNull(LineOrderDate, '1900-01-01') LINE_ORDER_DATE, IsNull(LinePromiseDate, '1900-01-01') LINE_PROMISE_DATE, RTRIM(UserField1Line) LINE_USER_FIELD_1, RTRIM(UserField2Line) LINE_USER_FIELD_2, RTRIM(UserField3Line) LINE_USER_FIELD_3, RTRIM(UserField4Line) LINE_USER_FIELD_4, RTRIM(UserField5Line) LINE_USER_FIELD_5, RTRIM(AddlCommentsLine) LINE_COMMENTS, LineTaxes LINE_TAXES, RecordID RECORD_ID, LineUnitCost LINE_UNIT_COST, RTRIM(PartDescription) PART_DESCRIPTION, RTRIM(PART_UM) PART_UM, RTRIM(CUSTOMER_PART) CUSTOMER_PART, CONFIGURATOR_PART, RTRIM(PRODUCT_LINE) PRODUCT_LINE, QUANTITY_TO_PURCHASE, ORDER_DISCOUNT, PRICE_CLASS_DISCOUNT, PRODUCT_LINE_DISCOUNT, RTRIM(APPLY_DISCOUNT) APPLY_DISCOUNT from GCG_5807_ORDER_STAGE where PROCESSED = 0 and Order_No_External in ('{0}') order by EXTERNAL_ORDER_NUMBER_LINE, LINE_NUMBER", V.Args.Filter, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+F.Data.DataTable.CreateFromSQL("dtLinesTemp", "Con", V.Local.sSQL)
+
+'check columns
+F.Data.DataTable.DeleteRow("dtReviewHeader$dtReviewLines")
+F.Data.DataTable.Merge("dtLinesTemp", "dtReviewHeader$dtReviewLines", False, 2)
+F.Data.DataTable.AcceptChanges("dtReviewHeader$dtReviewLines")
+F.Data.DataTable.Close("dtLinesTemp")
+
+'get failed records
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtFailedHeader", "Field", "EXTERNAL_ORDER_NUMBER")
+
+F.Intrinsic.String.Build("select RTRIM(Order_No_External) EXTERNAL_ORDER_NUMBER_LINE, LineNumber LINE_NUMBER, RTRIM(IsNull(LineType, 'S')) LINE_TYPE, RTRIM(GSS_PartNumber) GSS_PART_NUMBER, RTRIM(Ext_PartNumber) EXTERNAL_PART_NUMBER, QtyOrdered QUANTITY, LineTotalPrice LINE_TOTAL_PRICE, LineUnitPrice LINE_UNIT_PRICE, PriceBeforeDiscount PRICE_BEFORE_DISCOUNT, OrderDiscPercentage ORDER_DISCOUNT_PERCENTAGE, RTRIM(PartLoc) PART_LOCATION, IsNull(LineOrderDate, '1900-01-01') LINE_ORDER_DATE, IsNull(LinePromiseDate, '1900-01-01') LINE_PROMISE_DATE, RTRIM(UserField1Line) LINE_USER_FIELD_1, RTRIM(UserField2Line) LINE_USER_FIELD_2, RTRIM(UserField3Line) LINE_USER_FIELD_3, RTRIM(UserField4Line) LINE_USER_FIELD_4, RTRIM(UserField5Line) LINE_USER_FIELD_5, RTRIM(AddlCommentsLine) LINE_COMMENTS, LineTaxes LINE_TAXES, RecordID RECORD_ID, LineUnitCost LINE_UNIT_COST, RTRIM(PartDescription) PART_DESCRIPTION, RTRIM(PART_UM) PART_UM, RTRIM(CUSTOMER_PART) CUSTOMER_PART, CONFIGURATOR_PART, RTRIM(PRODUCT_LINE) PRODUCT_LINE, QUANTITY_TO_PURCHASE, ORDER_DISCOUNT, PRICE_CLASS_DISCOUNT, PRODUCT_LINE_DISCOUNT, RTRIM(APPLY_DISCOUNT) APPLY_DISCOUNT from GCG_5807_ORDER_STAGE where FAILED = 1 and Order_No_External in ('{0}') order by EXTERNAL_ORDER_NUMBER_LINE, LINE_NUMBER", V.Args.Filter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtFailedLinesTemp", "Con", V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Data.DataTable.DeleteRow("dtFailedHeader$dtFailedLines")
+F.Data.DataTable.Merge("dtFailedLinesTemp", "dtFailedHeader$dtFailedLines", False, 2)
+F.Data.DataTable.AcceptChanges("dtFailedHeader$dtFailedLines")
+F.Data.DataTable.Close("dtFailedLinesTemp")
+
+'run checks
+F.Intrinsic.Control.CallSub(CheckParts, "DataTable", "dtReviewHeader$dtReviewLines")
+F.Intrinsic.Control.CallSub(CheckParts, "DataTable", "dtFailedHeader$dtFailedLines")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadLines.End
+
+Program.Sub.CheckParts.Start
+F.Intrinsic.Control.Try
+
+'pass DATATABLE
+
+F.Data.DataTable.AddExpressionColumn(V.Args.DataTable, "PART_KEY", "String", "ISNULL(GSS_PART_NUMBER, '') + ISNULL(PART_LOCATION, '')")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", "select RTRIM(PART) + RTRIM(LOCATION), Cast(1 as BIT) from V_INVENTORY_MSTR ")
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.FillFromDictionary(V.Args.DataTable, "dictTemp", "PART_KEY", "PART_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.RemoveColumn(V.Args.DataTable, "PART_KEY")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckParts.End
+
+Program.Sub.AddTrueFalseFormatting.Start
+'pass GRIDCONTROL, GRIDVIEW, COLUMN, CHECK
+
+F.Intrinsic.Control.Try
+
+V.Local.sExpression.Declare(String)
+V.Static.iRule.Declare(Long, -1)
+
+F.Intrinsic.Math.Add(V.Static.iRule, 1, V.Static.iRule)
+F.Intrinsic.String.Build("{0} = 0", V.Args.Check, V.Local.sExpression)
+GUI.FormReviewDashboard.[V.Args.GridControl].AddStyleFormatCondition(V.Args.GridView, V.Args.Column, V.Static.iRule, "Expression", V.Local.sExpression)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetStyleFormatConditionProperty(V.Args.GridView, V.Args.Column, V.Static.iRule, "BackColor", "LightCoral")
+
+F.Intrinsic.Math.Add(V.Static.iRule, 1, V.Static.iRule)
+F.Intrinsic.String.Build("{0} = 1", V.Args.Check, V.Local.sExpression)
+GUI.FormReviewDashboard.[V.Args.GridControl].AddStyleFormatCondition(V.Args.GridView, V.Args.Column, V.Static.iRule, "Expression", V.Local.sExpression)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetStyleFormatConditionProperty(V.Args.GridView, V.Args.Column, V.Static.iRule, "BackColor", "PaleGreen")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddTrueFalseFormatting.End
+
+Program.Sub.LoadReviewHeaderGrid.Start
+'pass EDITABLE
+'pass GRIDVIEW
+'pass GRIDCONTROL
+'pass SHOW_FEEDBACK
+'pass DATATABLE
+
+F.Intrinsic.Control.Try
+
+V.Local.iIndex.Declare(Long, -1)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].AddGridviewFromDataTable(V.Args.GridView, V.Args.DataTable)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetGridviewProperty(V.Args.GridView, "ShowConditionalFormattingItem", True)
+
+'conditional formatting
+F.Intrinsic.Control.CallSub(AddTrueFalseFormatting, "GridControl", V.Args.GridControl, "GridView", V.Args.GridView, "Column", "FINAL_CUSTOMER", "Check", "CUSTOMER_EXISTS")
+F.Intrinsic.Control.CallSub(AddTrueFalseFormatting, "GridControl", V.Args.GridControl, "GridView", V.Args.GridView, "Column", "SHIP_TO_ID", "Check", "SHIP_TO_EXISTS")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetGridviewProperty(V.Args.GridView, "EnableAppearanceOddRow", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetGridviewProperty(V.Args.GridView, "OptionsViewColumnAutoWidth", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "HeaderFontBold", True)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "Caption", "External ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "Caption", "Transaction Code")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "Caption", "Customer Number")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "Caption", "External Customer")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "Caption", "Order")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "Caption", "Order Type")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "Caption", "Due Date")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "Caption", "Order Date")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "Caption", "User 1")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "Caption", "User 2")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "Caption", "User 3")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "Caption", "User 4")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "Caption", "User 5")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "Caption", "Ship Via")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "Caption", "Carrier")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "Caption", "Ship To ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "Caption", "Ship International")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "Caption", "Ship Name")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "Caption", "Ship Address 1")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "Caption", "Ship Address 2")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "Caption", "Ship Address 3")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "Caption", "Ship City")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "Caption", "Ship State")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "Caption", "Ship Zip")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "Caption", "Ship Country")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "Caption", "Ship Attention")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "Caption", "Contact")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "Caption", "Contact Email")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "Caption", "Contact Phone")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "Caption", "Bill International")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "Caption", "Bill To Name")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "Caption", "Bill Address 1")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "Caption", "Bill Address 2")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "Caption", "Bill Address 3")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "Caption", "Bill Address 4")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "Caption", "Bill Address 5")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "Caption", "Bill City")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "Caption", "Bill State")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "Caption", "Bill Zip")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "Caption", "Bill Country")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "Caption", "Bill Attention")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "Caption", "Order Sort")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "Caption", "Order Sort 2")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "Caption", "Comments")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "Caption", "Customer PO")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "Caption", "Update")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "Caption", "Prospect")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "Caption", "Processed")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "Caption", "Failed")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "Caption", "Feedback")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "Caption", "Location")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "Caption", "Salesperson")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "Caption", "Created At")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "Caption", "Processed At")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "Caption", "Terms")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "Caption", "Mark Shipment")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "Caption", "Ship Hold")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "Caption", "Quote Status")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "Caption", "Review ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "Caption", "Review Timestamp")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "Caption", "Last Modified At")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "Caption", "Last Modified By")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "Caption", "Approved")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "Caption", "Approved At")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "Caption", "Approved By")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "Caption", "Selected")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "Caption", "Review Processed")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "Caption", "Modified")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "Caption", "Commission Type Code")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "Caption", "Freight")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "Caption", "Bill To Phone")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "Caption", "Ship Address 4")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "Caption", "Ship Address 5")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "Caption", "Freight GL")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "Caption", "Discount")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "Caption", "FOB")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "Caption", "Delete")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "Caption", "No Override Freight")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "Caption", "Final GSS Customer")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE", "ShowCaption", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "AllowEdit", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "ReadOnly", True)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "MinWidth", 100)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "MinWidth", 120)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "MinWidth", 130)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "MinWidth", 120)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "MinWidth", 80)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "MinWidth", 80)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "MinWidth", 130)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "MinWidth", 350)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "MinWidth", 140)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "MinWidth", 130)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "MinWidth", 130)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "MinWidth", 80)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE", "MinWidth", 50)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "MinWidth", 60)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "MinWidth", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "MinWidth", 50)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "MinWidth", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "MinWidth", 50)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "MinWidth", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "MinWidth", 40)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "DisplayCustomDateTime", "d")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "DisplayCustomDateTime", "d")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "DisplayCustomDateTime", "G")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "DisplayCustomDateTime", "G")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "DisplayCustomDateTime", "G")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "DisplayCustomDateTime", "G")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "DisplayCustomDateTime", "G")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "DisplayCustomNumeric", "$#,##0.00")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].ColumnEdit(V.Args.GridView, "DELETE", "EditorButton", "Delete")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROSPECT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "Visible", True)
+
+F.Intrinsic.Control.If(V.Args.SHOW_FEEDBACK)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "Visible", True)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "Visible", True)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "Visible", True)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "Visible", True)
+F.Intrinsic.Control.Else
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "Visible", False)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "Visible", False)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "Visible", False)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "Visible", False)
+F.Intrinsic.Control.EndIf
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_ID", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_RECORD_TIMESTAMP", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_APPROVED_TIMESTAMP", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_PROCESSED", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MODIFIED", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE_ORDER", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "NO_OVERRIDE_FREIGHT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_EXISTS", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_EXISTS", "Visible", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_FROM_EXTERNAL_CUSTOMER", "AllowShowHide", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_EXISTS", "AllowShowHide", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_EXISTS", "AllowShowHide", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "MaxLength", 1)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "MaxLength", 6)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "MaxLength", 7)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "MaxLength", 1)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "MaxLength", 6)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "MaxLength", 6)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "MaxLength", 25)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "MaxLength", 13)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "MaxLength", 3)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "MaxLength", 100)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "MaxLength", 25)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "MaxLength", 13)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "MaxLength", 25)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "MaxLength", 40)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "MaxLength", 300)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "MaxLength", 15)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "MaxLength", 3)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "MaxLength", 10)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "MaxLength", 10)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "MaxLength", 9)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPROVED_BY", "MaxLength", 8)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "MaxLength", 3)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_PHONE", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_4", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_5", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT_GL_ACCOUNT", "MaxLength", 15)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FOB_POINT", "MaxLength", 14)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SELECTED", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_TIMESTAMP", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+
+F.Intrinsic.Control.If(V.Args.SHOW_FEEDBACK)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED", "VisibleIndex", V.Local.iIndex.++)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FAILED", "VisibleIndex", V.Local.iIndex.++)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FEEDBACK", "VisibleIndex", V.Local.iIndex.++)
+	GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PROCESSED_TIMESTAMP", "VisibleIndex", V.Local.iIndex.++)
+F.Intrinsic.Control.EndIf
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TRANSACTION_CODE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_CUSTOMER_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_CUSTOMER_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FINAL_CUSTOMER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_TYPE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DUE_DATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CARRIER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_VIA", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "FREIGHT", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ID", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_INTERNATIONAL", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_NAME", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_1", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_2", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ADDRESS_3", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CITY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_STATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ZIP", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_COUNTRY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_ATTENTION", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_NAME", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_EMAIL", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_TO_CONTACT_PHONE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_INTERNATIONAL", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_NAME", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_1", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_2", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_3", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_4", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ADDRESS_5", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_CITY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_STATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ZIP", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_COUNTRY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "BILL_TO_ATTENTION", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_1", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_2", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_3", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_4", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_USER_FIELD_5", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_SORT_2", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "HEADER_COMMENTS", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PO", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_LOCATION", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SALESPERSON_CODE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "COMMISSION_TYPE_CODE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "TERMS", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "MARK_SHIPMENT", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "SHIP_HOLD", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUOTE_STATUS", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "UPDATE_ORDER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_TIMESTAMP", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "REVIEW_LAST_MODIFIED_BY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "DELETE", "VisibleIndex", V.Local.iIndex.++)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].MainView(V.Args.GridView)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadReviewHeaderGrid.End
+
+Program.Sub.LoadReviewLinesGrid.Start
+'pass EDITABLE
+'pass GRIDVIEW
+'pass GRIDCONTROL
+'pass DATATABLE
+
+F.Intrinsic.Control.Try
+
+V.Local.iIndex.Declare(Long, -1)
+V.Local.sDataTable.Declare(String)
+
+F.Intrinsic.String.Split(V.Args.DataTable, "$", V.Local.sDataTable)
+GUI.FormReviewDashboard.[V.Args.GridControl].AddGridviewFromDataView(V.Args.GridView, V.Local.sDataTable(0), "dvGridView")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetGridviewProperty(V.Args.GridView, "EnableAppearanceOddRow", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetGridviewProperty(V.Args.GridView, "OptionsViewColumnAutoWidth", False)
+
+'conditional formatting
+F.Intrinsic.Control.CallSub(AddTrueFalseFormatting, "GridControl", V.Args.GridControl, "GridView", V.Args.GridView, "Column", "GSS_PART_NUMBER", "Check", "PART_EXISTS")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "HeaderFontBold", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "HeaderFontBold", True)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "Caption", "External ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "Caption", "User 1")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "Caption", "User 2")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "Caption", "User 3")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "Caption", "User 4")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "Caption", "User 5")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "Caption", "Comments")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "Caption", "Taxes")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "Caption", "UM")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "Caption", "Line")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "Caption", "Line Type")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "Caption", "Part")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "Caption", "External Part ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "Caption", "Quantity")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "Caption", "Extension")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "Caption", "Unit Price")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "Caption", "Price Before Discount")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "Caption", "Discount %")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "Caption", "Location")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "Caption", "Line Date")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "Caption", "Due Date")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "Caption", "Description")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "Caption", "Record ID")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "Caption", "Unit Cost")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "Caption", "Customer Part")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "Caption", "Configured Part")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "Caption", "PL")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "Caption", "Quantity to Purchase")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "Caption", "Order Discount")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "Caption", "Price Class Discount")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "Caption", "Product Line Discount")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "Caption", "Apply Discount")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "AllowEdit", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "AllowEdit", V.Args.Editable)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "AllowEdit", V.Args.Editable)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "ReadOnly", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "ReadOnly", V.Args.Editable.Not)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "MinWidth", 110)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "MinWidth", 150)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "MinWidth", 90)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "MinWidth", 70)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "MinWidth", 70)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "DisplayCustomNumeric", "#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "DisplayCustomNumeric", "0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "DisplayCustomNumeric", "#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "DisplayCustomNumeric", "$#,##0.00")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "DisplayCustomNumeric", "$#,##0.00")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "DisplayCustomDateTime", "d")
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "DisplayCustomDateTime", "d")
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "MaxLength", 300)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "MaxLength", 1)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "MaxLength", 20)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "MaxLength", 50)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "MaxLength", 30)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "MaxLength", 2)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "MaxLength", 30)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_ORDER_NUMBER_LINE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TOTAL_PRICE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_BEFORE_DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT_PERCENTAGE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "RECORD_ID", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "Visible", True)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CUSTOMER_PART", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "CONFIGURATOR_PART", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY_TO_PURCHASE", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "ORDER_DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRICE_CLASS_DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PRODUCT_LINE_DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "APPLY_DISCOUNT", "Visible", False)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_EXISTS", "Visible", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_EXISTS", "AllowShowHide", False)
+
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TYPE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "GSS_PART_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_LOCATION", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "EXTERNAL_PART_NUMBER", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_UM", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "PART_DESCRIPTION", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "QUANTITY", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_PRICE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_UNIT_COST", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_ORDER_DATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_PROMISE_DATE", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_1", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_2", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_3", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_4", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_USER_FIELD_5", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_COMMENTS", "VisibleIndex", V.Local.iIndex.++)
+GUI.FormReviewDashboard.[V.Args.GridControl].SetColumnProperty(V.Args.GridView, "LINE_TAXES", "VisibleIndex", V.Local.iIndex.++)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadReviewLinesGrid.End
+
+Program.Sub.LoadGridDropDowns.Start
+F.Intrinsic.Control.Try
+
+'maybe set user field labels
+
+V.Local.sRet.Declare(String)
+V.Local.sFlag.Declare(String, "H*!*L")
+V.Local.sField.Declare(String, "1*!*2*!*3*!*4*!*5")
+V.Local.iCounter.Declare(Long)
+V.Local.iJ.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sGridView.Declare(String)
+V.Local.sColumn.Declare(String)
+
+F.Intrinsic.String.Split(V.Local.sFlag, "*!*", V.Local.sFlag)
+F.Intrinsic.String.Split(V.Local.sField, "*!*", V.Local.sField)
+
+'for user fields (and maybe other fields in the future), load a drop down of validated values
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sFlag.UBound, 1)
+	F.Intrinsic.Control.For(V.Local.iJ, 0, V.Local.sField.UBound, 1)
+		F.Intrinsic.String.Build("select RTRIM(KEY_VALUE) from V_OE_USER_VALUES where HDR_FLAG = '{0}' and USER_NO = '{1}' and CUST = '' and SHIPTO = '' and PART = '' and LOCN = ''", V.Local.sFlag(V.Local.iCounter), V.Local.sField(V.Local.iJ), V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+			F.Intrinsic.String.Replace(V.Local.sRet, "#$#", "*!*", V.Local.sRet)
+			F.Intrinsic.String.Build("*!*{0}", V.Local.sRet, V.Local.sRet)
+			
+			F.Intrinsic.Control.If(V.Local.sFlag.Trim, =, "H")
+				F.Intrinsic.String.Build("HEADER_USER_FIELD_{0}", V.Local.sField(V.Local.iJ), V.Local.sColumn)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("LINE_USER_FIELD_{0}", V.Local.sField(V.Local.iJ), V.Local.sColumn)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.Local.sFlag.Trim, =, "H")
+				GUI.FormReviewDashboard.gsgcReview.ColumnEdit("gvOrders", V.Local.sColumn, "DropDownList", V.Local.sRet)
+				GUI.FormReviewDashboard.gsgcFailed.ColumnEdit("gvFailedHeader", V.Local.sColumn, "DropDownList", V.Local.sRet)
+			F.Intrinsic.Control.Else
+				GUI.FormReviewDashboard.gsgcReview.ColumnEdit("gvLines", V.Local.sColumn, "DropDownList", V.Local.sRet)
+				GUI.FormReviewDashboard.gsgcFailed.ColumnEdit("gvFailedLines", V.Local.sColumn, "DropDownList", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iJ)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+V.Local.sField.Redim(0, 0)
+V.Local.sFlag.Redim(0, 0)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadGridDropDowns.End
+
+Program.Sub.LoadGridViewDictionary.Start
+F.Intrinsic.Control.Try
+
+F.Data.Dictionary.Create("dictColumns")
+F.Data.Dictionary.AddItem("dictColumns", "EXTERNAL_ORDER_NUMBER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "TRANSACTION_CODE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "GSS_CUSTOMER_NUMBER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "EXTERNAL_CUSTOMER_NUMBER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_NUMBER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_TYPE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_DUE_DATE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_DATE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_USER_FIELD_1", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_USER_FIELD_2", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_USER_FIELD_3", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_USER_FIELD_4", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_USER_FIELD_5", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_VIA", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "CARRIER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ID", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_INTERNATIONAL", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_NAME", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ADDRESS_1", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ADDRESS_2", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ADDRESS_3", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_CITY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_STATE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ZIP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_COUNTRY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ATTENTION", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_CONTACT_NAME", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_CONTACT_EMAIL", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_CONTACT_PHONE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_INTERNATIONAL", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_NAME", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ADDRESS_1", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ADDRESS_2", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ADDRESS_3", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ADDRESS_4", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ADDRESS_5", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_CITY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_STATE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ZIP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_COUNTRY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_ATTENTION", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_SORT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_SORT_2", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "HEADER_COMMENTS", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "CUSTOMER_PO", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "UPDATE_ORDER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "PROSPECT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "PROCESSED", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "FAILED", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "FEEDBACK", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_LOCATION", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SALESPERSON_CODE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "RECORD_TIMESTAMP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "PROCESSED_TIMESTAMP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "TERMS", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "MARK_SHIPMENT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_HOLD", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "QUOTE_STATUS", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_RECORD_ID", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_RECORD_TIMESTAMP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_LAST_MODIFIED_TIMESTAMP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_LAST_MODIFIED_BY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_APPROVED", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_APPROVED_TIMESTAMP", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "APPROVED_BY", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SELECTED", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "REVIEW_PROCESSED", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "DELETE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "EXTERNAL_ORDER_NUMBER_LINE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_USER_FIELD_1", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_USER_FIELD_2", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_USER_FIELD_3", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_USER_FIELD_4", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_USER_FIELD_5", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_COMMENTS", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_TAXES", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PART_UM", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_NUMBER", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_TYPE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "GSS_PART_NUMBER", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "EXTERNAL_PART_NUMBER", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "QUANTITY", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_TOTAL_PRICE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_UNIT_PRICE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PRICE_BEFORE_DISCOUNT", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_DISCOUNT_PERCENTAGE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PART_LOCATION", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_ORDER_DATE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_PROMISE_DATE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "FREIGHT", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PART_DESCRIPTION", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "RECORD_ID", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "LINE_UNIT_COST", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "BILL_TO_PHONE", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ADDRESS_4", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "SHIP_TO_ADDRESS_5", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "FREIGHT_GL_ACCOUNT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "DISCOUNT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "FOB_POINT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "DELETE_ORDER", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "NO_OVERRIDE_FREIGHT", "gvOrders")
+F.Data.Dictionary.AddItem("dictColumns", "CUSTOMER_PART", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "CONFIGURATOR_PART", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PRODUCT_LINE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "QUANTITY_TO_PURCHASE", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "ORDER_DISCOUNT", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PRICE_CLASS_DISCOUNT", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "PRODUCT_LINE_DISCOUNT", "gvLines")
+F.Data.Dictionary.AddItem("dictColumns", "APPLY_DISCOUNT", "gvLines")
+F.Data.Dictionary.SetDefaultReturn("dictColumns", "")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadGridViewDictionary.End
+
+Program.Sub.FormReviewDashboard_UnLoad.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Serialize, "Form", "FormReviewDashboard", "GridControl", "gsgcReview", "GridView", "gvOrders", "RegID", V.Global.sProject, "CHILD", "gvLines")
+F.Intrinsic.Control.CallSub(Serialize, "Form", "FormReviewDashboard", "GridControl", "gsgcFailed", "GridView", "gvFailedHeader", "RegID", V.Global.sProject, "CHILD", "gvFailedLines")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormReviewDashboard_UnLoad.End
+
+Program.Sub.cmdRefresh_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.UI.InvokeWaitDialog("Loading staging data...")
+GUI.FormReviewDashboard.gsgcReview.Visible(False)
+GUI.FormReviewDashboard.gsgcReview.SuspendLayout
+F.Intrinsic.Control.CallSub(LoadOrders)
+F.Intrinsic.Control.CallSub(LoadLines)
+GUI.FormReviewDashboard.gsgcReview.ResumeLayout
+GUI.FormReviewDashboard.gsgcReview.Visible(True)
+F.Intrinsic.UI.CloseWaitDialog
+GUI.FormReviewDashboard..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.gsgcReview_CellValueChanged.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFilter.Declare(String)
+V.Local.sGridView.Declare(String)
+V.Local.sExternalOrderColumn.Declare(String)
+V.Local.sExternalOrder.Declare(String)
+
+V.Local.sGridView.Set(V.Dictionary.dictColumns![V.Args.Column])
+F.Intrinsic.Control.If(V.Local.sGridView, =, "gvOrders")
+	V.Local.sExternalOrderColumn.Set("EXTERNAL_ORDER_NUMBER")
+F.Intrinsic.Control.Else
+	V.Local.sExternalOrderColumn.Set("EXTERNAL_ORDER_NUMBER_LINE")
+F.Intrinsic.Control.EndIf
+
+GUI.FormReviewDashboard.gsgcReview.GetCellValueByColumnName(V.Local.sGridView, V.Local.sExternalOrderColumn, V.Args.RowIndex, V.Local.sExternalOrder)
+
+F.Intrinsic.String.Build("EXTERNAL_ORDER_NUMBER = '{0}'", V.Local.sExternalOrder, V.Local.sFilter)
+F.Data.DataView.Create("dtReviewHeader", "dvModify", 22, V.Local.sFilter, "")
+F.Data.DataView.SetValue("dtReviewHeader", "dvModify", -1, "REVIEW_LAST_MODIFIED_BY", V.Caller.User, "REVIEW_LAST_MODIFIED_TIMESTAMP", V.Ambient.Now, "MODIFIED", True)
+F.Data.DataView.Close("dtReviewHeader", "dvModify")
+
+F.Intrinsic.Control.If(V.Args.Column, =, "GSS_CUSTOMER_NUMBER", OR, V.Args.Column, =, "EXTERNAL_CUSTOMER_NUMBER", V.Args.Column, =, "SHIP_TO_ID")
+	F.Intrinsic.Control.CallSub(CheckCustomers, "DataTable", "dtReviewHeader")
+	F.Intrinsic.Control.CallSub(CheckShipTos, "DataTable", "dtReviewHeader")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.Column, =, "GSS_PART_NUMBER")
+	F.Intrinsic.Control.CallSub(CheckParts, "DataTable", "dtReviewHeader$dtReviewLines")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgcReview_CellValueChanged.End
+
+Program.Sub.gsgcFailed_CellValueChanged.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFilter.Declare(String)
+V.Local.sGridView.Declare(String)
+V.Local.sExternalOrderColumn.Declare(String)
+V.Local.sExternalOrder.Declare(String)
+
+V.Local.sGridView.Set(V.Dictionary.dictColumns![V.Args.Column])
+F.Intrinsic.Control.If(V.Local.sGridView, =, "gvOrders")
+	V.Local.sExternalOrderColumn.Set("EXTERNAL_ORDER_NUMBER")
+F.Intrinsic.Control.Else
+	V.Local.sExternalOrderColumn.Set("EXTERNAL_ORDER_NUMBER_LINE")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sGridView.UCase, =, "GVORDERS")
+	V.Local.sGridView.Set("gvFailedHeader")
+F.Intrinsic.Control.ElseIf(V.Local.sGridView.UCase, =, "GVLINES")
+	V.Local.sGridView.Set("gvFailedLines")
+F.Intrinsic.Control.EndIf
+
+GUI.FormReviewDashboard.gsgcFailed.GetCellValueByColumnName(V.Local.sGridView, V.Local.sExternalOrderColumn, V.Args.RowIndex, V.Local.sExternalOrder)
+
+F.Intrinsic.String.Build("EXTERNAL_ORDER_NUMBER = '{0}'", V.Local.sExternalOrder, V.Local.sFilter)
+F.Data.DataView.Create("dtFailedHeader", "dvModify", 22, V.Local.sFilter, "")
+F.Data.DataView.SetValue("dtFailedHeader", "dvModify", -1, "REVIEW_LAST_MODIFIED_BY", V.Caller.User, "REVIEW_LAST_MODIFIED_TIMESTAMP", V.Ambient.Now, "MODIFIED", True)
+F.Data.DataView.Close("dtFailedHeader", "dvModify")
+
+F.Intrinsic.Control.If(V.Args.Column, =, "GSS_CUSTOMER_NUMBER", OR, V.Args.Column, =, "EXTERNAL_CUSTOMER_NUMBER", V.Args.Column, =, "SHIP_TO_ID")
+	F.Intrinsic.Control.CallSub(CheckCustomers, "DataTable", "dtFailedHeader")
+	F.Intrinsic.Control.CallSub(CheckShipTos, "DataTable", "dtFailedHeader")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.Column, =, "GSS_PART_NUMBER")
+	F.Intrinsic.Control.CallSub(CheckParts, "DataTable", "dtFailedHeader$dtFailedLines")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgcFailed_CellValueChanged.End
+
+Program.Sub.cmdUpload_Click.Start
+F.Intrinsic.Control.Try
+
+V.Local.iRet.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.sPath.Declare(String)
+V.Local.bFailed.Declare(Boolean)
+V.Local.sDataTable.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.iFailed.Declare(Long)
+V.Local.iSuccess.Declare(Long)
+V.Local.sFeedback.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sType.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.ControlName.UCase, =, "CMDUPLOAD")
+	V.Local.bFailed.Set(False)
+	V.Local.sDataTable.Set("dtReviewHeader")
+F.Intrinsic.Control.Else
+	V.Local.bFailed.Set(True)
+	V.Local.sDataTable.Set("dtFailedHeader")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.Create(V.Local.sDataTable, "dvUpload", 22, "[SELECTED] = True", "")
+F.Intrinsic.Control.If(V.DataView.[V.Local.sDataTable]!dvUpload.RowCount, >, 0)
+	F.Intrinsic.UI.Msgbox("Mark the selected orders as approved and upload?", "Upload", 4, V.Local.iRet)
+	F.Intrinsic.Control.If(V.Local.iRet, =, V.Ambient.MsgBoxYes)
+		F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", False)
+		
+		F.Intrinsic.Control.CallSub(cmdSave_Click)
+		
+		F.Intrinsic.UI.InvokeWaitDialog("Preparing for upload....")
+		
+		F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+		
+		F.Data.DataView.ToString(V.Local.sDataTable, "dvUpload", "EXTERNAL_ORDER_NUMBER", "***NO-INNER-DELIMITER***", "*!*", V.Local.sFilter)
+		
+		'should not be any duplicates, but it never hurts to check
+		F.Intrinsic.String.Split(V.Local.sFilter, "*!*", V.Local.sFilter)
+		F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sFilter, V.Local.sFilter)
+		F.Intrinsic.String.Join(V.Local.sFilter, "','", V.Local.sFilter)
+		V.Local.sFilter.RedimPreserve(0, 0)
+		
+		'mark records as approved, ready for upload
+		F.Intrinsic.Control.If(V.Local.bFailed)
+			F.Intrinsic.String.Build("update GCG_5807_ORDER_STAGE set APPROVED = 1, PROCESSED = 0, Feedback = 'DASHBOARD-UPLOAD', FAILED = 0 where ORDER_NO_EXTERNAL in ('{0}') and PROCESSED = 1", V.Local.sFilter, V.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("update GCG_5807_ORDER_STAGE set APPROVED = 1, Feedback = 'DASHBOARD-UPLOAD' where ORDER_NO_EXTERNAL in ('{0}') and PROCESSED = 0", V.Local.sFilter, V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		
+		'also update approved table
+		F.Intrinsic.Control.If(V.Local.bFailed)
+			F.Intrinsic.String.Build("select * from GCG_5807_REVIEW where EXTERNAL_ORDER in ('{0}') and PROCESSED = 1", V.Local.sFilter, V.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("select * from GCG_5807_REVIEW where EXTERNAL_ORDER in ('{0}') and PROCESSED = 0", V.Local.sFilter, V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		F.Data.DataTable.CreateFromSQL("dtApprovedSave", "Con", V.Local.sSQL)
+		F.Data.DataTable.SetValue("dtApprovedSave", -1, "APPROVED", True, "APPROVED_TIMESTAMP", V.Ambient.Now, "APPROVED_BY", V.Caller.User)
+		F.Data.DataTable.SaveToDB("dtApprovedSave", "Con", "GCG_5807_REVIEW", "RECORD_ID", 256)
+		F.Data.DataTable.Close("dtApprovedSave")
+		
+		'now run the uploader
+		'F.Intrinsic.UI.ChangeWaitStatus("Running uploader....")
+		F.Intrinsic.UI.CloseWaitDialog
+		F.Intrinsic.String.Build("{0}\GCG_5807_OrderUploader.g2u", V.Ambient.ScriptPath, V.Local.sPath)
+		F.Global.General.CallSyncGAS(V.Local.sPath, V.Caller.Switches)
+		
+		'fix any orders left queued if there was a crash
+		F.ODBC.Connection!Con.Execute("update GCG_5807_ORDER_STAGE set FEEDBACK = REPLACE(FEEDBACK, 'DASHBOARD-UPLOAD', '') where PROCESSED = 0;")
+		
+		'clear lock file, in case the program crashed before clearing it
+		F.Intrinsic.Control.CallSub(ClearUploaderLock, "Dashboard", True)
+		
+		'F.Intrinsic.UI.CloseWaitDialog
+		
+		'check orders
+		F.Intrinsic.String.Build("select count(distinct ORDER_NO_EXTERNAL) from GCG_5807_ORDER_STAGE where ORDER_NO_EXTERNAL in ('{0}') and PROCESSED = 1 and FAILED = 0 and PROCESSED_TIMESTAMP > DATEADD(MINUTE, -30, NOW())", V.Local.sFilter, V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			V.Local.iSuccess.Set(0)
+		F.Intrinsic.Control.Else
+			V.Local.iSuccess.Set(V.Local.sRet.Long)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Build("select count(distinct ORDER_NO_EXTERNAL) from GCG_5807_ORDER_STAGE where ORDER_NO_EXTERNAL in ('{0}') and PROCESSED = 1 and FAILED = 1 and PROCESSED_TIMESTAMP > DATEADD(MINUTE, -30, NOW())", V.Local.sFilter, V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			V.Local.iFailed.Set(0)
+		F.Intrinsic.Control.Else
+			V.Local.iFailed.Set(V.Local.sRet.Long)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(V.Local.iSuccess, =, 0, "AND", V.Local.iFailed, =, 0)
+			V.Local.sMessage.Set("The order uploader failed during the upload process. Some orders may have still been uploaded. Please refresh the dashboard to check which orders failed and which are still waiting to be uploaded.")
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Upload process complete. {0} order(s) uploaded, {1} order(s) failed.", V.Local.iSuccess, V.Local.iFailed, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Build("select distinct ORDER_NO_EXTERNAL, FAILED, FEEDBACK, ORDERNUMBER, TRANSACTIONCODE from GCG_5807_ORDER_STAGE where ORDER_NO_EXTERNAL in ('{0}') and PROCESSED = 1 and PROCESSED_TIMESTAMP > DATEADD(MINUTE, -30, NOW()) order by FAILED, ORDERNUMBER", V.Local.sFilter, V.Local.sSQL)
+		F.Data.DataTable.CreateFromSQL("dtFeedback", "Con", V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+		
+		F.Intrinsic.StringBuilder.Create("FeedbackString")
+		F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtFeedback.RowCount--, 1)
+			F.Intrinsic.Control.If(V.DataTable.dtFeedback(V.Local.iCounter).TRANSACTIONCODE!FieldValTrim, =, Q)
+				V.Local.sType.Set("Quote")
+			F.Intrinsic.Control.Else
+				V.Local.sType.Set("Order")
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.DataTable.dtFeedback(V.Local.iCounter).FAILED!FieldVal)
+				F.Intrinsic.String.Build("{0} with external ID {1} failed to upload.", V.Local.sType, V.DataTable.dtFeedback(V.Local.iCounter).ORDER_NO_EXTERNAL!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0} with external ID {1} uploaded successfully as {2} {3}.", V.Local.sType, V.DataTable.dtFeedback(V.Local.iCounter).ORDER_NO_EXTERNAL!FieldValTrim, V.Local.sType.LCase, V.DataTable.dtFeedback(V.Local.iCounter).ORDERNUMBER!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.StringBuilder.AppendLine("FeedbackString", V.Local.sFeedback)
+		F.Intrinsic.Control.Next(V.Local.iCounter)
+		F.Intrinsic.StringBuilder.ToString("FeedbackString", V.Local.sFeedback)
+		F.Intrinsic.StringBuilder.Dispose("FeedbackString")
+		F.Data.DataTable.Close("dtFeedback")
+		
+		F.Intrinsic.String.Build("{0}{1}{1}{2}", V.Local.sMessage, V.Ambient.NewLine, V.Local.sFeedback, V.Local.sMessage)
+		F.Intrinsic.UI.Msgbox(V.Local.sMessage, "5807 Review Dashboard")
+		
+		F.Intrinsic.Control.CallSub(cmdRefresh_Click)
+		F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("No records selected for upload.")
+F.Intrinsic.Control.EndIf
+F.Data.DataView.Close(V.Local.sDataTable, "dvUpload")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdUpload_Click.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.Try
+
+V.Local.sMap.Declare(String)
+
+F.Intrinsic.UI.InvokeWaitDialog("Saving...")
+F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", False)
+
+F.Data.DataTable.AcceptChanges("dtReviewHeader")
+F.Data.DataTable.AcceptChanges("dtReviewHeader$dtReviewLines")
+F.Data.DataTable.AcceptChanges("dtFailedHeader")
+F.Data.DataTable.AcceptChanges("dtFailedHeader$dtFailedLines")
+
+F.Data.Linq.Join("LeftJoin", "DataTable", "dtReviewHeader*!*A", "DataTable", "dtReviewHeader$dtReviewLines*!*B", "A.EXTERNAL_ORDER_NUMBER = B.EXTERNAL_ORDER_NUMBER_LINE", "*", "", "", "", "dtSaveTemp", True)
+F.Data.Linq.Join("LeftJoin", "DataTable", "dtFailedHeader*!*A", "DataTable", "dtFailedHeader$dtFailedLines*!*B", "A.EXTERNAL_ORDER_NUMBER = B.EXTERNAL_ORDER_NUMBER_LINE", "*", "", "", "", "dtSaveTempFailed", True)
+F.Data.DataTable.Merge("dtSaveTempFailed", "dtSaveTemp", False, 2)
+F.Data.DataTable.Close("dtSaveTempFailed")
+
+F.Data.DataView.Create("dtSaveTemp", "dvSaveTemp", 22, "[MODIFIED] = True", "")
+F.Intrinsic.Control.If(V.DataView.dtSaveTemp!dvSaveTemp.RowCount, >, 0)
+	F.Data.DataView.ToDataTable("dtSaveTemp", "dvSaveTemp", "dtSave")
+	
+	F.Data.DataTable.RemoveColumn("dtSave", "DELETE")
+	
+	F.Data.DataView.Create("dtSave", "dvSave", 22, "REVIEW_RECORD_TIMESTAMP is null", "")
+	F.Data.DataView.SetValue("dtSave", "dvSave", -1, "REVIEW_RECORD_TIMESTAMP", V.Ambient.Now)
+	
+	F.Data.DataView.SetFilter("dtSave", "dvSave", "REVIEW_APPROVED is null")
+	F.Data.DataView.SetValue("dtSave", "dvSave", -1, "REVIEW_APPROVED", False)
+	
+	F.Data.DataView.SetFilter("dtSave", "dvSave", "")
+	F.Data.DataView.ToDataTableDistinct("dtSave", "dvSave", "dtSaveReview", "EXTERNAL_ORDER_NUMBER*!*REVIEW_RECORD_ID*!*REVIEW_RECORD_TIMESTAMP*!*REVIEW_LAST_MODIFIED_TIMESTAMP*!*REVIEW_LAST_MODIFIED_BY*!*REVIEW_APPROVED*!*REVIEW_APPROVED_TIMESTAMP*!*APPROVED_BY")
+	F.Data.DataView.Close("dtSave", "dvSave")
+	
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_RECORD_ID")
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_RECORD_TIMESTAMP")
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_LAST_MODIFIED_TIMESTAMP")
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_LAST_MODIFIED_BY")
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_APPROVED")
+	F.Data.DataTable.RemoveColumn("dtSave", "REVIEW_APPROVED_TIMESTAMP")
+	F.Data.DataTable.RemoveColumn("dtSave", "APPROVED_BY")
+	
+	V.Local.sMap.Set("EXTERNAL_ORDER_NUMBER@!@ORDER_NO_EXTERNAL*!*TRANSACTION_CODE@!@TRANSACTIONCODE*!*GSS_CUSTOMER_NUMBER@!@GSS_CUSTOMERNO*!*EXTERNAL_CUSTOMER_NUMBER@!@EXT_CUSTOMERNO*!*ORDER_NUMBER@!@ORDERNUMBER*!*ORDER_TYPE@!@ORDERTYPE*!*ORDER_DUE_DATE@!@ORDERDUEDATE*!*ORDER_DATE@!@ORDERDATE*!*HEADER_USER_FIELD_1@!@USERFIELD1HEAD*!*HEADER_USER_FIELD_2@!@USERFIELD2HEAD*!*HEADER_USER_FIELD_3@!@USERFIELD3HEAD*!*HEADER_USER_FIELD_4@!@USERFIELD4HEAD*!*HEADER_USER_FIELD_5@!@USERFIELD5HEAD*!*SHIP_VIA@!@SHIPVIA*!*CARRIER@!@CARRIER*!*SHIP_TO_ID@!@SHIPTOID*!*SHIP_TO_INTERNATIONAL@!@SHIPTOINTLFLAG*!*SHIP_TO_NAME@!@SHIPTONAME*!*SHIP_TO_ADDRESS_1@!@SHIPTOADDRESS1*!*SHIP_TO_ADDRESS_2@!@SHIPTOADDRESS2*!*SHIP_TO_ADDRESS_3@!@SHIPTOADDRESS3*!*SHIP_TO_CITY@!@SHIPTOCITY*!*SHIP_TO_STATE@!@SHIPTOSTATE*!*SHIP_TO_ZIP@!@SHIPTOZIP*!*SHIP_TO_COUNTRY@!@SHIPTOCOUNTRY*!*SHIP_TO_ATTENTION@!@SHIPTOATTENTION*!*SHIP_TO_CONTACT_NAME@!@SHIPTOCONTACTNAME*!*SHIP_TO_CONTACT_EMAIL@!@SHIPTOCONTACTEMAIL*!*SHIP_TO_CONTACT_PHONE@!@SHIPTOCONTACTPHONE*!*BILL_TO_INTERNATIONAL@!@BILLTOINTLFLAG*!*BILL_TO_NAME@!@BILLTONAME*!*BILL_TO_ADDRESS_1@!@BILLTOADDRESS1*!*BILL_TO_ADDRESS_2@!@BILLTOADDRESS2*!*BILL_TO_ADDRESS_3@!@BILLTOADDRESS3*!*BILL_TO_ADDRESS_4@!@BILLTOADDRESS4*!*BILL_TO_ADDRESS_5@!@BILLTOADDRESS5*!*BILL_TO_CITY@!@BILLTOCITY*!*BILL_TO_STATE@!@BILLTOSTATE*!*BILL_TO_ZIP@!@BILLTOZIP*!*BILL_TO_COUNTRY@!@BILLTOCOUNTRY*!*BILL_TO_ATTENTION@!@BILLTOATTENTION*!*ORDER_SORT@!@ORDERSORT*!*ORDER_SORT_2@!@ORDERSORT2*!*HEADER_COMMENTS@!@ADDLCOMMENTSHEAD*!*CUSTOMER_PO@!@CUSTOMERPO*!*UPDATE_ORDER@!@UPDATE_ORDER*!*PROSPECT@!@PROSPECT*!*ORDER_LOCATION@!@ORDERLOCATION*!*SALESPERSON_CODE@!@SALESPERSONCODE*!*TERMS@!@TERMS*!*MARK_SHIPMENT@!@MARKSHIPMENT*!*SHIP_HOLD@!@SHIPHOLD*!*QUOTE_STATUS@!@QUOTE_STATUS*!*LINE_USER_FIELD_1@!@UserField1Line*!*LINE_USER_FIELD_2@!@USERFIELD2LINE*!*LINE_USER_FIELD_3@!@USERFIELD3LINE*!*LINE_USER_FIELD_4@!@USERFIELD4LINE*!*LINE_USER_FIELD_5@!@USERFIELD5LINE*!*LINE_COMMENTS@!@ADDLCOMMENTSLINE*!*LINE_TAXES@!@LINETAXES*!*PART_UM@!@PART_UM*!*LINE_NUMBER@!@LINENUMBER*!*LINE_TYPE@!@LINETYPE*!*GSS_PART_NUMBER@!@GSS_PARTNUMBER*!*EXTERNAL_PART_NUMBER@!@EXT_PARTNUMBER*!*QUANTITY@!@QTYORDERED*!*LINE_TOTAL_PRICE@!@LINETOTALPRICE*!*LINE_UNIT_PRICE@!@LINEUNITPRICE*!*PRICE_BEFORE_DISCOUNT@!@PRICEBEFOREDISCOUNT*!*ORDER_DISCOUNT_PERCENTAGE@!@ORDERDISCPERCENTAGE*!*PART_LOCATION@!@PARTLOC*!*LINE_ORDER_DATE@!@LINEORDERDATE*!*LINE_PROMISE_DATE@!@LINEPROMISEDATE*!*FREIGHT@!@FREIGHT*!*PART_DESCRIPTION@!@PARTDESCRIPTION*!*RECORD_ID@!@RECORDID*!*LINE_UNIT_COST@!@LINEUNITCOST*!*COMMISSION_TYPE_CODE@!@COMMISSION_TYPE_CODE*!*BILL_TO_PHONE@!@BILLTOPHONE*!*SHIP_TO_ADDRESS_4@!@SHIPTOADDRESS4*!*SHIP_TO_ADDRESS_5@!@SHIPTOADDRESS5*!*FREIGHT_GL_ACCOUNT@!@FREIGHT_GL_ACCOUNT*!*DISCOUNT@!@DISCOUNT*!*FOB_POINT@!@FOB_POINT*!*DELETE_ORDER@!@DELETE_ORDER*!*NO_OVERRIDE_FREIGHT@!@NO_OVERRIDE_FREIGHT*!*CUSTOMER_PART@!@CUSTOMER_PART*!*CONFIGURATOR_PART@!@CONFIGURATOR_PART*!*PRODUCT_LINE@!@PRODUCT_LINE*!*QUANTITY_TO_PURCHASE@!@QUANTITY_TO_PURCHASE*!*ORDER_DISCOUNT@!@ORDER_DISCOUNT*!*PRICE_CLASS_DISCOUNT@!@PRICE_CLASS_DISCOUNT*!*PRODUCT_LINE_DISCOUNT@!@PRODUCT_LINE_DISCOUNT*!*APPLY_DISCOUNT@!@APPLY_DISCOUNT")
+	
+	F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+	F.Data.DataTable.SaveToDB("dtSave", "Con", "GCG_5807_ORDER_STAGE", "RECORD_ID", 256, V.Local.sMap)
+	
+	'V.Local.sMap.Set("EXTERNAL_ORDER_NUMBER@!@EXTERNAL_ORDER*!*REVIEW_RECORD_ID@!@RECORD_ID*!*REVIEW_RECORD_TIMESTAMP@!@RECORD_TIMESTAMP*!*REVIEW_LAST_MODIFIED_TIMESTAMP@!@LAST_MODIFIED*!*REVIEW_LAST_MODIFIED_BY@!@MODIFIED_BY*!*REVIEW_APPROVED@!@APPROVED*!*REVIEW_APPROVED_TIMESTAMP@!@APPROVED_TIMESTAMP*!*APPROVED_BY@!@APPROVED_BY")
+	V.Local.sMap.Set("EXTERNAL_ORDER_NUMBER@!@EXTERNAL_ORDER*!*REVIEW_RECORD_TIMESTAMP@!@RECORD_TIMESTAMP*!*REVIEW_LAST_MODIFIED_TIMESTAMP@!@LAST_MODIFIED*!*REVIEW_LAST_MODIFIED_BY@!@MODIFIED_BY*!*REVIEW_APPROVED@!@APPROVED*!*REVIEW_APPROVED_TIMESTAMP@!@APPROVED_TIMESTAMP*!*APPROVED_BY@!@APPROVED_BY")
+	F.Data.DataTable.SaveToDB("dtSaveReview", "Con", "GCG_5807_REVIEW", "EXTERNAL_ORDER_NUMBER", 256, V.Local.sMap)
+	
+	F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+	
+	F.Data.DataTable.Close("dtSaveReview")
+F.Intrinsic.Control.EndIf
+F.Data.DataView.Close("dtSaveTemp", "dvSaveTemp")
+F.Data.DataTable.Close("dtSaveTemp")
+
+F.Intrinsic.UI.CloseWaitDialog
+F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", True)
+GUI.FormReviewDashboard..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.ToggleScreenEnabled.Start
+'this sub enables/disables the screen based on a passed variable
+'but is meant to leave the disabled if it was already by a previous process
+'pass boolean ENABLED
+
+F.Intrinsic.Control.Try
+
+V.Static.iDisabledCount.Declare(Long)
+
+F.Intrinsic.Control.If(V.Args.ENABLED)
+	F.Intrinsic.Control.If(V.Static.iDisabledCount, >, 0)
+		F.Intrinsic.Math.Sub(V.Static.iDisabledCount, 1, V.Static.iDisabledCount)
+		
+		F.Intrinsic.Control.If(V.Static.iDisabledCount, =, 0)
+			GUI.FormReviewDashboard..Enabled(True)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Static.iDisabledCount, =, 0)
+		GUI.FormReviewDashboard..Enabled(False)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Math.Add(V.Static.iDisabledCount, 1, V.Static.iDisabledCount)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ToggleScreenEnabled.End
+
+Program.Sub.LoadReviewContextMenu.Start
+F.Intrinsic.Control.Try
+
+GUI.FormReviewDashboard..ContextMenuCreate("ctxReview")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxReview", "Export", 0, "Export")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxReview", "Export", "ctxExport_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxReview", "Reset", 0, "Reset Formatting")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxReview", "Reset", "ctxReset_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxReview", "SelectAll", 0, "Select All")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxReview", "SelectAll", "ctxSelectAll_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxReview", "DeselectAll", 0, "Deselect All")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxReview", "DeselectAll", "ctxDeselectAll_Click")
+
+GUi.FormReviewDashboard.gsgcReview.ContextMenuAttach("ctxReview")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadReviewContextMenu.End
+
+Program.Sub.LoadFailedContextMenu.Start
+F.Intrinsic.Control.Try
+
+GUI.FormReviewDashboard..ContextMenuCreate("ctxFailed")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxFailed", "Export", 0, "Export")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxFailed", "Export", "ctxExport_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxFailed", "Reset", 0, "Reset Formatting")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxFailed", "Reset", "ctxReset_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxFailed", "SelectAll", 0, "Select All")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxFailed", "SelectAll", "ctxSelectAll_Click")
+
+GUI.FormReviewDashboard..ContextMenuAddItem("ctxFailed", "DeselectAll", 0, "Deselect All")
+GUI.FormReviewDashboard..ContextMenuSetItemEventHandler("ctxFailed", "DeselectAll", "ctxDeselectAll_Click")
+
+GUi.FormReviewDashboard.gsgcFailed.ContextMenuAttach("ctxFailed")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadFailedContextMenu.End
+
+Program.Sub.ctxSelectAll_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Args.MenuName.UCase, =, "CTXREVIEW")
+	F.Data.DataTable.SetValue("dtReviewHeader", -1, "SELECTED", True)
+F.Intrinsic.Control.ElseIf(V.Args.MenuName.UCase, =, "CTXFAILED")
+	F.Data.DataTable.SetValue("dtFailedHeader", -1, "SELECTED", True)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ctxSelectAll_Click.End
+
+Program.Sub.ctxDeselectAll_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Args.MenuName.UCase, =, "CTXREVIEW")
+	F.Data.DataTable.SetValue("dtReviewHeader", -1, "SELECTED", False)
+F.Intrinsic.Control.ElseIf(V.Args.MenuName.UCase, =, "CTXFAILED")
+	F.Data.DataTable.SetValue("dtFailedHeader", -1, "SELECTED", False)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ctxDeselectAll_Click.End
+
+Program.Sub.ctxExport_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Args.MenuName.UCase, =, "CTXREVIEW")
+	F.Intrinsic.Control.CallSub(Export, "Form", "FormReviewDashboard", "GridControl", "gsgcReview", "FileName", "GCG_5807_ReviewDashboard_ReviewGrid")
+F.Intrinsic.Control.ElseIf(V.Args.MenuName.UCase, =, "CTXFAILED")
+	F.Intrinsic.Control.CallSub(Export, "Form", "FormReviewDashboard", "GridControl", "gsgcFailed", "FileName", "GCG_5807_ReviewDashboard_FailedGrid")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ctxExport_Click.End
+
+Program.Sub.ctxReset_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.UI.InvokeWaitDialog("Reloading formatting...")
+
+F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", False)
+
+GUI.FormReviewDashboard.gsgcReview.Visible(False)
+GUI.FormReviewDashboard.gsgcReview.SuspendLayout
+GUI.FormReviewDashboard.gsgcFailed.Visible(False)
+GUI.FormReviewDashboard.gsgcFailed.SuspendLayout
+
+F.Intrinsic.Control.CallSub(ResetSerialization, "GridView", "gvOrders", "RegID", 5807)
+F.Intrinsic.Control.CallSub(ResetSerialization, "GridView", "gvLines", "RegID", 5807)
+F.Intrinsic.Control.CallSub(ResetSerialization, "GridView", "gvFailedHeader", "RegID", 5807)
+F.Intrinsic.Control.CallSub(ResetSerialization, "GridView", "gvFailedLines", "RegID", 5807)
+
+F.Intrinsic.Control.CallSub(LoadReviewHeaderGrid, "GridControl", "gsgcReview", "GridView", "gvOrders", "SHOW_FEEDBACK", False, "Editable", True, "DataTable", "dtReviewHeader")
+F.Intrinsic.Control.CallSub(LoadReviewLinesGrid, "GridControl", "gsgcReview", "GridView", "gvLines", "Editable", True, "DataTable", "dtReviewHeader$dtReviewLines")
+F.Intrinsic.Control.CallSub(LoadReviewHeaderGrid, "GridControl", "gsgcFailed", "GridView", "gvFailedHeader", "SHOW_FEEDBACK", True, "Editable", True, "DataTable", "dtFailedHeader")
+F.Intrinsic.Control.CallSub(LoadReviewLinesGrid, "GridControl", "gsgcFailed", "GridView", "gvFailedLines", "Editable", True, "DataTable", "dtFailedHeader$dtFailedLines")
+
+F.Intrinsic.UI.CloseWaitDialog
+
+GUI.FormReviewDashboard.gsgcFailed.ResumeLayout
+GUI.FormReviewDashboard.gsgcFailed.Visible(True)
+GUI.FormReviewDashboard.gsgcReview.ResumeLayout
+GUI.FormReviewDashboard.gsgcReview.Visible(True)
+
+F.Intrinsic.Control.CallSub(ToggleScreenEnabled, "Enabled", True)
+GUI.FormReviewDashboard..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ctxReset_Click.End
+
+Program.Sub.gsgcFailed_RowCellClick.Start
+'user clicked on the delete button on the failed tab
+
+F.Intrinsic.Control.Try
+
+V.Local.iRet.Declare(Long)
+V.Local.sMessage.Declare(String)
+
+'check if they want to delete it
+F.Intrinsic.Control.If(V.Args.Column.UCase, =, "DELETE")
+	F.Intrinsic.String.Build("Are you sure you want to delete external order {0}?", V.DataTable.dtFailedHeader(V.Args.RowIndex).EXTERNAL_ORDER_NUMBER!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.UI.Msgbox(V.Local.sMessage, "Delete Order", 4, V.Local.iRet)
+	F.Intrinsic.Control.If(V.Local.iRet, =, V.Ambient.MsgBoxYes)
+		F.Intrinsic.Control.CallSub(DeleteOrder, "Failed", True, "External_Order", V.DataTable.dtFailedHeader(V.Args.RowIndex).EXTERNAL_ORDER_NUMBER!FieldValTrim)
+		F.Data.DataTable.DeleteRow("dtFailedHeader", V.Args.RowIndex)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgcFailed_RowCellClick.End
+
+Program.Sub.gsgcReview_RowCellClick.Start
+'user clicked on the delete button on the pending tab
+
+F.Intrinsic.Control.Try
+
+V.Local.iRet.Declare(Long)
+V.Local.sMessage.Declare(String)
+
+'check if they want to delete it
+F.Intrinsic.Control.If(V.Args.Column.UCase, =, "DELETE")
+	F.Intrinsic.String.Build("Are you sure you want to delete external order {0}?", V.DataTable.dtReviewHeader(V.Args.RowIndex).EXTERNAL_ORDER_NUMBER!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.UI.Msgbox(V.Local.sMessage, "Delete Order", 4, V.Local.iRet)
+	F.Intrinsic.Control.If(V.Local.iRet, =, V.Ambient.MsgBoxYes)
+		F.Intrinsic.Control.CallSub(DeleteOrder, "Failed", False, "External_Order", V.DataTable.dtReviewHeader(V.Args.RowIndex).EXTERNAL_ORDER_NUMBER!FieldValTrim)
+		F.Data.DataTable.DeleteRow("dtReviewHeader", V.Args.RowIndex)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.gsgcReview_RowCellClick.End
+
+Program.Sub.DeleteOrder.Start
+'deletes an order from the order staging table
+'pass EXTERNAL_ORDER, pass FAILED
+
+F.Intrinsic.Control.Try
+
+V.Local.sFilter.Declare(String)
+V.Local.sSQL.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.sFilter.Set("and PROCESSED = 1 and FAILED = 1")
+F.Intrinsic.Control.Else
+	V.Local.sFilter.Set("and PROCESSED = 0 and FAILED = 0")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("delete from GCG_5807_ORDER_STAGE where ORDER_NO_EXTERNAL = '{0}' {1}", V.Args.External_Order, V.Local.sFilter, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.DeleteOrder.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240302231720837$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9lXem84r92HwoL6UPy2NY5hFlFBjApvfks=
+Program.Sub.Comments.End
