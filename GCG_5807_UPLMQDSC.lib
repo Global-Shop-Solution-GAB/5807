@@ -1,0 +1,161 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLMQDSCError.Declare(String, "")
+V.Global.sUPLMQDSCFile.Declare(String, "")
+
+F.Data.DataTable.Create("dtUPLMQDSC", True)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_1", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_1", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_2", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_2", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_3", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_3", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_4", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_4", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_5", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_5", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_6", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_6", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_7", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_7", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_8", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_8", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_9", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_9", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "QUANTITY_10", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "PRICE_10", "Float", 0)
+Program.Sub.Preflight.End
+
+'Program.Sub.Main.Start
+''for testing
+'F.Data.DataTable.AddRow("dtUPLMQDSC", "PART", "210900", "QUANTITY_1", 1, "PRICE_1", 10)
+''This was using the core upload, but since that upload doesn't have a screenless mode, removing this and doing it manually
+''F.Intrinsic.Control.CallSub(UPLMQDSC_CORE)
+'F.Intrinsic.Control.CallSub(UPLMQDSC)
+'Program.Sub.Main.End
+
+Program.Sub.UPLMQDSC.Start
+'this is a library for help with using the UPLMQDSC oneshot to upload discount pricing
+'add data to the dtUPLMQDSC datatable and then call the UPLMQDSC subroutine to run the upload
+'quantities need to be in order from smallest to largest
+
+V.Local.iCounter.Declare(Long)
+V.Local.iJ.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sQuantity.Declare(String)
+V.Local.sPrice.Declare(String)
+V.Local.iSequence.Declare(Long)
+
+F.Intrinsic.Control.Try
+
+'maybe fix quantities
+'this is a bit weird. The high value is what you enter in the screen, but the low value is what's stored.
+
+V.Global.sUPLMQDSCError.Set("")
+F.ODBC.Connection!Con_UPLMQDSC.OpenCompanyConnection
+
+'there are two tables for this, we need to insert into both
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLMQDSC.RowCount--, 1)
+	'clear old data from MAT_QTY_DISCNT
+	F.Intrinsic.String.Build("delete from MAT_QTY_DISCNT where PART = '{0}' and FUNCT = 'RS' and TYPE = 'QD'", V.DataTable.dtUPLMQDSC(V.Local.iCounter).PART!FieldValTrim, V.Local.sSQL)
+	F.ODBC.Connection!Con_UPLMQDSC.Execute(V.Local.sSQL)
+	
+	'insert data into MAT_QTY_DISCNT
+	F.Intrinsic.String.Build("insert into MAT_QTY_DISCNT (PART, MINIMUM1, DISCOUNT1, MINIMUM2, DISCOUNT2, MINIMUM3, DISCOUNT3, MINIMUM4, DISCOUNT4, MINIMUM5, DISCOUNT5, MINIMUM6, DISCOUNT6, MINIMUM7, DISCOUNT7, MINIMUM8, DISCOUNT8, MINIMUM9, DISCOUNT9, MINIMUM10, DISCOUNT10, FUNCT, TYPE) values ('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}, {13}, {14}, {15}, {16}, {17}, {18}, {19}, {20}, 'RS', 'QD')", V.DataTable.dtUPLMQDSC(V.Local.iCounter).PART!FieldValTrim, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_1!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_1!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_2!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_2!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_3!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_3!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_4!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_4!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_5!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_5!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_6!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_6!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_7!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_7!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_8!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_8!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_9!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_9!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).QUANTITY_10!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).PRICE_10!FieldValFloat, V.Local.sSQL)
+	F.ODBC.Connection!Con_UPLMQDSC.Execute(V.Local.sSQL)
+	
+	'now fill MAT_QTY_DISCNTS table
+	F.Intrinsic.String.Build("delete from MAT_QTY_DISCNTS where PART = '{0}'", V.DataTable.dtUPLMQDSC(V.Local.iCounter).PART!FieldValTrim, V.Local.sSQL)
+	F.ODBC.Connection!Con_UPLMQDSC.Execute(V.Local.sSQL)
+	
+	F.Intrinsic.Control.For(V.Local.iJ, 1, 10, 1)
+		'this table is vertical instead of horizontal, so we build it here
+		F.Intrinsic.Math.Sub(V.Local.iJ, 1, V.Local.iSequence)
+		
+		'build field names
+		F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iJ, V.Local.sQuantity)
+		F.Intrinsic.String.Build("PRICE_{0}", V.Local.iJ, V.Local.sPrice)
+		
+		'build final SQL
+		F.Intrinsic.String.Build("insert into MAT_QTY_DISCNTS (PART, SEQ, MINIMUM, DISCOUNT, CHG_DATE, CHG_TIME, CHG_BY, CHG_PGM) values ('{0}', {1}, {2}, {3}, '{4}', '{5}', '{6}', 'OCTSRS')", V.DataTable.dtUPLMQDSC(V.Local.iCounter).PART!FieldValTrim, V.Local.iSequence, V.DataTable.dtUPLMQDSC(V.Local.iCounter).[V.Local.sQuantity]!FieldValFloat, V.DataTable.dtUPLMQDSC(V.Local.iCounter).[V.Local.sPrice]!FieldValFloat, V.Ambient.Date.PervasiveDate, V.Ambient.Time.FormatHH:NN:SS, V.Caller.User, V.Local.sSQL)
+		F.ODBC.Connection!Con_UPLMQDSC.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.Next(V.Local.iJ)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.ODBC.Connection!Con_UPLMQDSC.Close
+
+'clean up datatable
+F.Data.DataTable.DeleteRow("dtUPLMQDSC")
+F.Data.DataTable.AcceptChanges("dtUPLMQDSC")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLMQDSCError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLMQDSC.End
+
+Program.Sub.UPLMQDSC_CORE.Start
+'this is a library for help with using the UPLMQDSC oneshot to upload discount pricing
+'add data to the dtUPLMQDSC datatable and then call the UPLMQDSC subroutine to run the upload
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFields.Declare(String, "PART*!*QUANTITY_1*!*PRICE_1*!*QUANTITY_2*!*PRICE_2*!*QUANTITY_3*!*PRICE_3*!*QUANTITY_4*!*PRICE_4*!*QUANTITY_5*!*PRICE_5*!*QUANTITY_6*!*PRICE_6*!*QUANTITY_7*!*PRICE_7*!*QUANTITY_8*!*PRICE_8*!*QUANTITY_9*!*PRICE_9*!*QUANTITY_10*!*PRICE_10")
+V.Local.sLengths.Declare(String, "20*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12*!*12")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLMQDSC", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLMQDSC", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLMQDSC", "dvUPLMQDSCFile", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("strbUPLMQDSC")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLMQDSC.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLMQDSC", "dvUPLMQDSCFile", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLMQDSC", "dvUPLMQDSCFile", V.Local.sFields, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("strbUPLMQDSC", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("strbUPLMQDSC", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("strbUPLMQDSC")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLMQDSC", "dvUPLMQDSCFile")
+
+'clean up main DT
+F.Data.DataTable.DeleteRow("dtUPLMQDSC")
+F.Data.DataTable.AcceptChanges("dtUPLMQDSC")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\MQTYDISC.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLMQDSCFile.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLMQDSC")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLMQDSCError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLMQDSC_CORE.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$rseddon$}$20220502163918470$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRboEqFlNuFJotd6hrWlE//w1PMz5LfT4tULy+q6BJ802g=
+Program.Sub.Comments.End
