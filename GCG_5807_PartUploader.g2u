@@ -1,0 +1,614 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_UPLINVT2.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Part Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_PartUploader.g2u
+'Trey S
+'September 9th, 2021
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload parts from the GCG_5807_PART_STAGE staging table
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check for staged 'routers
+F.Intrinsic.Control.CallSub(LoadStagedParts)
+F.Intrinsic.Control.If(V.DataTable.dtParts.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(UploadStagedParts)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedParts.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String, "select RECORD_ID, RECORD_TIMESTAMP, FAILED, PROCESSED, PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_PARTNUMBER) EXTERNAL_PARTNUMBER, UPPER(RTRIM(PARTNUMBER)) PARTNUMBER, UPPER(RTRIM(REVISION)) REVISION, UPPER(RTRIM(ISNULL(LOCATION, ''))) LOCATION, UPPER(RTRIM(PRODUCT_LINE)) PRODUCT_LINE, RTRIM(DESCRIPTION) DESCRIPTION, UPPER(RTRIM(UNIT_OF_MEASURE)) UNIT_OF_MEASURE, UPPER(RTRIM(SOURCE)) SOURCE, RTRIM(DEFAULT_BIN) DEFAULT_BIN, PRICE, COST, ALTERNATE_COST, RTRIM(ABC_CODE) ABC_CODE, RTRIM(PURCHASING_UM) PURCHASING_UM, LEAD_TIME, SAFETY_STOCK, ORDER_QUANTITY, RTRIM(SORT_CODE) SORT_CODE, RTRIM(VENDOR_SORT) VENDOR_SORT, RTRIM(USER_FIELD_1) USER_FIELD_1, RTRIM(USER_FIELD_2) USER_FIELD_2, MAXIMUM, REORDER_POINT, LENGTH, WIDTH, THICKNESS, DENSITY, WEIGHT, RTRIM(ALT_DESCRIPTION_1) ALT_DESCRIPTION_1, RTRIM(ALT_DESCRIPTION_2) ALT_DESCRIPTION_2, RTRIM(EXTRA_DESCRIPTION) EXTRA_DESCRIPTION, INACTIVE, REQUIRES_INSPECTION, RTRIM(UPPER(BOM)) BOM, ALTERNATE_PRICE_1, ALTERNATE_PRICE_2, ALTERNATE_PRICE_3, ALTERNATE_PRICE_4, ALTERNATE_PRICE_5, ALTERNATE_PRICE_6, ALTERNATE_PRICE_7, ALTERNATE_PRICE_8, ALTERNATE_PRICE_9, ALTERNATE_PRICE_10, ALTERNATE_PRICE_11, ALTERNATE_PRICE_12, ALTERNATE_PRICE_13, ALTERNATE_PRICE_14, DO_NOT_CALCULATE_ABC, USE_ZERO_LEAD, STANDARD_HOURS, TOTAL_CONTROL_FLAG, DISCOUNT, DROP_FLAG, PURCHASING_CONVERSION_FACTOR, CONSUMPTION_CONVERSION_FACTOR, RTRIM(PROJECT_GROUP) PROJECT_GROUP, SHELF_LIFE, USE_ITEM_MASTER, RTRIM(STOCKING_BIN) STOCKING_BIN, SERIALIZE, ALLOW_DUPLICATE_SERIALS, WARRANTY, RTRIM(WARRANTY_TERM) WARRANTY_TERM, RTRIM(SHAPE) SHAPE, WEIGHT_PER_FOOT, COST_DATE, STANDARD_COST_QUANTITY, RTRIM(BACK_ORDER) BACK_ORDER, CUTTING_CHARGE, RTRIM(SHAPE_CODE) SHAPE_CODE, PRIMARY_DIMENSION, SECONDARY_DIMENSION, RTRIM(ISSUE_UM) ISSUE_UM, LABEL_REPORT_ID, CONSUMPTION_PERCENT, RTRIM(VAT_PRODUCT_TYPE) VAT_PRODUCT_TYPE, RTRIM(PART_PRICE_CODE) PART_PRICE_CODE, RTRIM(TAX_CATEGORY) TAX_CATEGORY, REQUIRES_TESTING, REQUIRES_LOT_TO_LOT_TRACKING, AUTO_NUMBER_LOTS, TRIGGER_PART, OBSOLETE, DROP_SHIP, ROLL, DO_NOT_BACKFLUSH, HAZARDOUS, TEMPORARILY_PURCHASE, EXCLUDE_MULTI_PART, REFERENCE, PRICE_CATEGORY, DO_NOT_DISCOUNT, INCLUDE_SLIDING_DISCOUNTS, SALES_TAX_EXEMPT, RTRIM(PACKAGING_TYPE) PACKAGING_TYPE, PALLET, PACKAGED_WEIGHT, PIECES_PER_CARTON, RTRIM(DEFAULT_CARTON) DEFAULT_CARTON, RTRIM(DEFAULT_PALLET) DEFAULT_PALLET, CARTONS_PER_PALLET, BAG_QUANTITY, RTRIM(COMMODITY_DESCRIPTION) COMMODITY_DESCRIPTION, RTRIM(NMFC) NMFC, RTRIM(NMFC_SUB) NMFC_SUB, RTRIM(FREIGHT_CLASS) FREIGHT_CLASS, PACKAGED_COMPONENTS, RTRIM(HARMONIZED_CODE) HARMONIZED_CODE, RTRIM(COUNTRY_OF_ORIGIN) COUNTRY_OF_ORIGIN, RTRIM(INTERCOMPANY_VENDOR) INTERCOMPANY_VENDOR, MOBILE_CRM from GCG_5807_PART_STAGE where PROCESSED = 0 and FAILED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtParts", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+'formatting columns
+F.Data.DataTable.AddExpressionColumn("dtParts", "PART_FULL", "String", "IIF(Trim(IsNull([REVISION], '')) = '', TRIM([PARTNUMBER]), SUBSTRING([PARTNUMBER] + '                 ', 1, 17) + [REVISION])")
+F.Data.DataTable.AddExpressionColumn("dtParts", "SOURCE_FORMAT", "String", "IIF(SOURCE = '', 'J', IIF(SOURCE = 'P' or SOURCE = 'J' or SOURCE = 'M' or SOURCE = 'F' or SOURCE = 'C' or SOURCE = 'G', SOURCE, 'J'))")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DO_NOT_CALCULATE_ABC_FORMAT", "String", "IIF(DO_NOT_CALCULATE_ABC, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "INACTIVE_FORMAT", "String", "IIF(INACTIVE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "REQUIRES_INSPECTION_FORMAT", "String", "IIF(REQUIRES_INSPECTION, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "BOM_FORMAT", "String", "IIF(BOM = 'B' or BOM = 'C' or BOM = '', BOM, '')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "USE_ZERO_LEAD_FORMAT", "String", "IIF(USE_ZERO_LEAD, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "TOTAL_CONTROL_FLAG_FORMAT", "String", "IIF(TOTAL_CONTROL_FLAG, 'X', '')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DISCOUNT_FORMAT", "String", "IIF(DISCOUNT, 'D', '')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DROP_FLAG_FORMAT", "String", "IIF(DROP_FLAG, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "SHELF_LIFE_FORMAT", "String", "IIF(SHELF_LIFE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "USE_ITEM_MASTER_FORMAT", "String", "IIF(USE_ITEM_MASTER, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "SERIALIZE_FORMAT", "String", "IIF(SERIALIZE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "WARRANTY_FORMAT", "String", "IIF(WARRANTY, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "SHAPE_FORMAT", "String", "IIF(SHAPE = 'R' or SHAPE = 'S', SHAPE, '')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "CUTTING_CHARGE_FORMAT", "String", "IIF(CUTTING_CHARGE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "REQUIRES_TESTING_FORMAT", "String", "IIF(REQUIRES_TESTING, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "REQUIRES_LOT_TO_LOT_TRACKING_FORMAT", "String", "IIF(REQUIRES_LOT_TO_LOT_TRACKING, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "AUTO_NUMBER_LOTS_FORMAT", "String", "IIF(AUTO_NUMBER_LOTS, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "TRIGGER_PART_FORMAT", "String", "IIF(TRIGGER_PART, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "OBSOLETE_FORMAT", "String", "IIF(OBSOLETE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DROP_SHIP_FORMAT", "String", "IIF(DROP_SHIP, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "ROLL_FORMAT", "String", "IIF(ROLL, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DO_NOT_BACKFLUSH_FORMAT", "String", "IIF(DO_NOT_BACKFLUSH, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "HAZARDOUS_FORMAT", "String", "IIF(HAZARDOUS, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "TEMPORARILY_PURCHASE_FORMAT", "String", "IIF(TEMPORARILY_PURCHASE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "EXCLUDE_MULTI_PART_FORMAT", "String", "IIF(EXCLUDE_MULTI_PART, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "REFERENCE_FORMAT", "String", "IIF(REFERENCE, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "DO_NOT_DISCOUNT_FORMAT", "String", "IIF(DO_NOT_DISCOUNT, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "INCLUDE_SLIDING_DISCOUNTS_FORMAT", "String", "IIF(INCLUDE_SLIDING_DISCOUNTS, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "SALES_TAX_EXEMPT_FORMAT", "String", "IIF(SALES_TAX_EXEMPT, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "PALLET_FORMAT", "String", "IIF(PALLET, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "PACKAGED_COMPONENTS_FORMAT", "String", "IIF(PACKAGED_COMPONENTS, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "MOBILE_CRM_FORMAT", "String", "IIF(MOBILE_CRM, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "PRICE_CATEGORY_FORMAT", "String", "IIF(PRICE_CATEGORY, 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtParts", "LABEL_REPORT_ID_FORMAT", "String", "SUBSTRING('000000' + IsNull(CONVERT(LABEL_REPORT_ID, System.String), ''), LEN(IsNull(CONVERT(LABEL_REPORT_ID, System.String), '')) + 1, 6)")
+F.Data.DataTable.AddExpressionColumn("dtParts", "PACKAGING_TYPE_FORMAT", "String", "IIF(PACKAGING_TYPE = 'SINGLE', 'S', IIF(PACKAGING_TYPE = 'MULTIPLE', 'M', ''))")
+
+'cost date
+F.Data.DataTable.AddColumn("dtParts", "COST_DATE_FORMAT", "String", "")
+F.Data.DataTable.SetValueFormat("dtParts", -1, "COST_DATE", "COST_DATE_FORMAT", "YYYYMMDD")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedParts.End
+
+Program.Sub.UploadStagedParts.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sMessage.Declare(String)
+V.Local.bUpdate.Declare(Boolean, False)
+V.Local.bAllowUpdate.Declare(Boolean, False)
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.sFeedback.Declare(String)
+V.Local.sDescription.Declare(String)
+V.Local.sDescription2.Declare(String)
+V.Local.bInches.Declare(Boolean, False)
+V.Local.sPart.Declare(String)
+V.Local.sFilter.Declare(String)
+
+'grab update option
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "PART", "NAME", "UPDATE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bAllowUpdate.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+'grab dimension storage option
+F.Global.General.ReadOption(400369, 0, False, V.Local.bInches)
+
+F.Intrinsic.String.Build("[{0}] part records found for processing...", V.DataTable.dtParts.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtParts.RowCount--, 1)
+	V.Local.bFailed.Set(False)
+	F.Intrinsic.String.Build("Processing part [{0}]...", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'check if part already exists
+	F.Intrinsic.String.Build("select PART from V_INVENTORY_MSTR where PART = '{0}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+	
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+		F.Intrinsic.Control.If(V.Local.bAllowUpdate)
+			V.Local.bUpdate.Set(True)
+		F.Intrinsic.Control.Else
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Part [{0}] failed to update because the option to allow updates is turned off.", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sFeedback)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		V.Local.bUpdate.Set(False)
+	F.Intrinsic.Control.EndIf
+	
+	'run through field validation
+	F.Intrinsic.Control.If(V.Local.bFailed.Not)
+		F.Intrinsic.Control.CallSub(ValidateFields, "Index", V.Local.iCounter)
+		V.Local.bFailed.Set(V.Args.Fail)
+		F.Intrinsic.Control.If(V.Local.bFailed)
+			V.Local.sFeedback.Set(V.Args.Fail_Message)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.bFailed.Not)
+		F.Intrinsic.Control.If(V.Local.bUpdate)
+			'update main fields
+			'description, product line, source, alt description 1, alt description 2, price
+			
+			'update inventory_mstr
+			V.Local.sDescription.Set(V.DataTable.dtParts(V.Local.iCounter).DESCRIPTION!FieldValTrim)
+			F.Intrinsic.String.Build("update INVENTORY_MSTR set DESCRIPTION = '{0}', PRODUCT_LINE = '{1}', AMT_PRICE = {2}, UM_INVENTORY = '{5}' where PART = '{3}' and LOCATION = '{4}'", V.Local.sDescription.PSQLFriendly, V.DataTable.dtParts(V.Local.iCounter).PRODUCT_LINE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRICE!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).UNIT_OF_MEASURE!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update inventory_mst2
+			V.Local.sDescription.Set(V.DataTable.dtParts(V.Local.iCounter).ALT_DESCRIPTION_1!FieldValTrim)
+			V.Local.sDescription2.Set(V.DataTable.dtParts(V.Local.iCounter).ALT_DESCRIPTION_2!FieldValTrim)
+			F.Intrinsic.String.Build("update INVENTORY_MST2 set CODE_SOURCE = '{0}', DESCRIPTION_2 = '{1}', DESCRIPTION_3 = '{2}' where PART = '{3}' and LOCATION = '{4}'", V.DataTable.dtParts(V.Local.iCounter).SOURCE_FORMAT!FieldValTrim, V.Local.sDescription.PSQLFriendly, V.Local.sDescription2.PSQLFriendly, V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+		F.Intrinsic.Control.Else
+			'upload part
+			F.Intrinsic.String.Build("Uploading part [{0}] with Global.Inventory.CreatePart function...", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			F.Global.Inventory.CreatePart(V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).UNIT_OF_MEASURE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DESCRIPTION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRODUCT_LINE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SOURCE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ALT_DESCRIPTION_1!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ALT_DESCRIPTION_2!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRICE!FieldValFloat, "UPLOADED")
+		F.Intrinsic.Control.EndIf
+		
+		'check result
+		F.Intrinsic.String.Build("select PART from V_INVENTORY_MSTR where RTRIM(PART) = '{0}' and LOCATION = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+		
+			'update inventory_mstr
+			F.Intrinsic.String.Build("update INVENTORY_MSTR set CODE_ABC = '{2}', BIN = '{3}', UM_PURCHASING = '{4}', QTY_ORDER = {5}, QTY_SAFETY = {6}, CODE_SORT = '{7}', TIME_MATERIAL_LEAD = {8}, AMT_ALT_COST = {9}, QTY_REORDER = {10}, DENSITY_RAW_MATL = {11}, KEY_SOURCE = '{12}', FLAG_INACTIVE = '{13}', PRODUCT_LINE = '{14}', CODE_BOM = '{15}', USE_ZERO_LEAD = '{16}', CODE_TOTAL = '{17}', CODE_DISCOUNT = '{18}', FLAG_DROP = '{19}', FACTOR_CONVERSION = {20}, FLAG_LOT = '{21}', FLAG_SERIALIZE = '{22}', FLAG_WARRANTY = '{23}', CODE_RM_SHAPE = '{24}', CTR_BACK_ORDER = '{25}', PRIM_DIM = {26}, SEC_DIM = {27}, OBSOLETE_FLAG = '{28}' where PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ABC_CODE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DEFAULT_BIN!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PURCHASING_UM!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ORDER_QUANTITY!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).SAFETY_STOCK!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).SORT_CODE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LEAD_TIME!FieldValLong, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_COST!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).REORDER_POINT!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).DENSITY!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).SOURCE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).INACTIVE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRODUCT_LINE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).BOM_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).USE_ZERO_LEAD_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).TOTAL_CONTROL_FLAG_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DISCOUNT_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DROP_FLAG_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PURCHASING_CONVERSION_FACTOR!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).USE_ITEM_MASTER_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SERIALIZE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).WARRANTY_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SHAPE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).BACK_ORDER!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRIMARY_DIMENSION!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).SECONDARY_DIMENSION!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).OBSOLETE_FORMAT!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update cost
+			F.Intrinsic.Control.If(V.Local.bUpdate.Not)
+				F.Intrinsic.Control.If(V.DataTable.dtParts(V.Local.iCounter).COST!FieldValFloat, !=, 0)
+					F.Intrinsic.String.Build("update INVENTORY_MSTR set AMT_COST = {0} where PART = '{1}' and LOCATION = '{2}'", V.DataTable.dtParts(V.Local.iCounter).COST!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+			
+			'update inventory_mst2
+			V.Local.sDescription.Set(V.DataTable.dtParts(V.Local.iCounter).USER_FIELD_1!FieldValTrim)
+			V.Local.sDescription2.Set(V.DataTable.dtParts(V.Local.iCounter).USER_FIELD_2!FieldValTrim)
+			F.Intrinsic.String.Build("update INVENTORY_MST2 set QTY_MAXIMUM = {2}, LBS = {3}, NAME_VENDOR = '{4}', TEXT_INFO1 = '{5}', TEXT_INFO2 = '{6}', CODE_SOURCE = '{7}', REQUIRES_INSP = '{8}', HRS_STANDARD = {9}, WARRANTY_TYPE = '{10}', WT_PER_FOOT = {11}, CUTTING_CHARGE = '{12}', PROP_CODE = '{13}', ISSUE_UM = '{14}', PART_PRICE_CODE = '{15}', PRICE_CATG = '{16}' where PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).MAXIMUM!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).WEIGHT!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).VENDOR_SORT!FieldValTrim, V.Local.sDescription.PSQLFriendly, V.Local.sDescription2.PSQLFriendly,  V.DataTable.dtParts(V.Local.iCounter).SOURCE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).REQUIRES_INSPECTION_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).STANDARD_HOURS!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).WARRANTY_TERM!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).WEIGHT_PER_FOOT!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).CUTTING_CHARGE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SHAPE_CODE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ISSUE_UM!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PART_PRICE_CODE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PRICE_CATEGORY!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update inventory_mst3
+			F.Intrinsic.String.Build("update INVENTORY_MST3 set THICKNESS = {2}, DO_NOT_CALC_ABC = '{3}', CONSUMP_CONV = {4}, PROJECT_GROUP = '{5}', SHELF_LIFE = '{6}', STOCK_BIN = '{7}', ALLOW_DUPL_SERIALS = {8}, COST_DATE = '{9}', STANDARD_COST_QTY = {10}, LABEL_RPT_ID = '{11}', CONSUMPTION_PERCENT = {12}, VAT_PRODUCT_TYP = '{13}', REQUIRES_TESTING = '{14}', LOT_TO_LOT = '{15}', AUTO_LOT_NUM = '{16}', TRIGGER_PART = '{17}', DROP_SHIP = '{18}', ROLL = '{19}', DO_NOT_BACKFLUSH = '{20}', HM_FLAG = '{21}', TEMP_PURCH = '{22}', EXCL_MULTI_PART_WO = '{23}', BOM_REF = '{24}', NO_DISC = '{25}', INCL_SPCD = '{26}', TAX_EXEMPT_FLG = '{27}', PKGD_BY = '{28}', PALLET_FLAG = '{29}', PKGD_WEIGHT = {30}, PCS_PER_CNTNR = {31}, DFLT_CARTON_CD = '{32}', DFLT_PALLET_CD = '{33}', CNTNRS_PER_PALLET = {34}, CARTON_BAG_QTY = {35}, COMM_DESCR = '{36}', NMFC_NO = '{37}', NMFC_SUB_NO = '{38}', FRT_CLASS = '{39}', PKG_COMPONENTS = '{40}', HARMONIZE_CODE = '{41}', ORIGIN_COUNTRY = '{42}', IC_VENDOR = '{43}', BIZ_WEB_PART_FLG = '{44}' where PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).THICKNESS!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).DO_NOT_CALCULATE_ABC_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).CONSUMPTION_CONVERSION_FACTOR!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PROJECT_GROUP!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SHELF_LIFE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).STOCKING_BIN!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ALLOW_DUPLICATE_SERIALS!FieldValLong, V.DataTable.dtParts(V.Local.iCounter).COST_DATE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).STANDARD_COST_QUANTITY!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).LABEL_REPORT_ID_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).CONSUMPTION_PERCENT!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).VAT_PRODUCT_TYPE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).REQUIRES_TESTING_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).REQUIRES_LOT_TO_LOT_TRACKING_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).AUTO_NUMBER_LOTS!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).TRIGGER_PART_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DROP_SHIP_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).ROLL_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DO_NOT_BACKFLUSH_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).HAZARDOUS_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).TEMPORARILY_PURCHASE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).EXCLUDE_MULTI_PART_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).REFERENCE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DO_NOT_DISCOUNT_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).INCLUDE_SLIDING_DISCOUNTS_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).SALES_TAX_EXEMPT_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PACKAGING_TYPE_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PALLET_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PACKAGED_WEIGHT!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PIECES_PER_CARTON!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).DEFAULT_CARTON!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).DEFAULT_PALLET!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).CARTONS_PER_PALLET!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).BAG_QUANTITY!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).COMMODITY_DESCRIPTION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).NMFC!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).NMFC_SUB!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).FREIGHT_CLASS!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).PACKAGED_COMPONENTS_FORMAT!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).HARMONIZED_CODE!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).COUNTRY_OF_ORIGIN!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).INTERCOMPANY_VENDOR!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).MOBILE_CRM_FORMAT!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update inventory_cost
+			F.Intrinsic.Control.If(V.Local.bUpdate.Not)
+				F.Intrinsic.String.Build("update INVENTORY_COST set COST = '{2}' where PART = '{0}' and LOCN = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).COST!FieldValFloat, V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Control.If(V.DataTable.dtParts(V.Local.iCounter).COST!FieldValFloat, !=, 0)
+					F.Intrinsic.String.Build("update INVENTORY_COST set COST = '{2}' where PART = '{0}' and LOCN = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).COST!FieldValFloat, V.Local.sSQL)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update INV_ALT_PRICE
+			F.Intrinsic.String.Build("update INV_ALT_PRICE set DATE_LAST_CHG = '{2}', TIME_LAST_CHG = '{3}', LAST_CHG_BY = '{4}', LAST_CHG_PGM = '{5}', ALT_PRICE_1 = {6}, ALT_PRICE_2 = {7}, ALT_PRICE_3 = {8}, ALT_PRICE_4 = {9}, ALT_PRICE_5 = {10}, ALT_PRICE_6 = {11}, ALT_PRICE_7 = {12}, ALT_PRICE_8 = {13}, ALT_PRICE_9 = {13}, ALT_PRICE_10 = {14}, ALT_PRICE_11 = {15}, ALT_PRICE_12 = {16}, ALT_PRICE_13 = {17}, ALT_PRICE_14 = {18} where PART = '{0}' and LOCN = '{1}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Ambient.Date.FormatYYYYMMDD, V.Ambient.Time.FormatHHNNSS00, V.Caller.User, V.Global.sProject, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_1!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_2!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_3!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_4!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_5!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_6!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_7!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_8!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_9!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_10!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_11!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_12!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_13!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).ALTERNATE_PRICE_14!FieldValFloat, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'update TAX_CATEGORY_IDX
+			F.Intrinsic.Control.If(V.DataTable.dtParts(V.Local.iCounter).TAX_CATEGORY!FieldValTrim, !=, "")
+				'get part record
+				F.Intrinsic.String.Build("RECORD_ID = {0}", V.DataTable.dtParts(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sFilter)
+				F.Data.DataView.Create("dtParts", "dvTaxCategory", 22, V.Local.sFilter, "")
+				F.Data.DataView.ToDataTableDistinct("dtParts", "dvTaxCategory", "dtTaxCategory", "PART_FULL*!*LOCATION*!*TAX_CATEGORY")
+				F.Data.DataView.Close("dtParts", "dvTaxCategory")
+				
+				'push to TAX_CATEGORY_IDX
+				F.Data.DataTable.SaveToDB("dtTaxCategory", "Con", "TAX_CATEGORY_IDX", "PART_FULL*!*LOCATION", 256, "PART_FULL@!@PART_NUMBER*!*LOCATION@!@LOCN*!*TAX_CATEGORY@!@TAX_CATG")
+				F.Data.DataTable.Close("dtTaxCategory")
+			F.Intrinsic.Control.EndIf
+			
+			'update dimensions
+			F.Intrinsic.Control.If(V.Local.bInches)
+				F.Intrinsic.String.Build("update INVENTORY_MST2 set LENGTH = {0}, WIDTH = {1} where PART = '{2}' and LOCATION = '{3}'", V.DataTable.dtParts(V.Local.iCounter).LENGTH!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).WIDTH!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("update INVENTORY_MSTR set LENGTH_RAW_MATL = {0}, WIDTH_RAW_MATL = {1} where PART = '{2}' and LOCATION = '{3}'", V.DataTable.dtParts(V.Local.iCounter).LENGTH!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).WIDTH!FieldValFloat, V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'extra description
+			F.Intrinsic.String.Build("delete from INV_EXTRA_TEXT where PART = '{0}'", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			F.Intrinsic.Control.If(V.DataTable.dtParts(V.Local.iCounter).EXTRA_DESCRIPTION!FieldValTrim, !=, "")
+				F.Data.DataTable.AddRow("dtUPLINVT2", "PART", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, "EXTRA_DESCRIPTION", V.DataTable.dtParts(V.Local.iCounter).EXTRA_DESCRIPTION!FieldValTrim)
+				F.Intrinsic.String.Build("Running UPLINVT2 1Shot to upload additional description for part [{0}]...", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(UPLINVT2)
+				
+				F.Intrinsic.Control.CallSub(BackupFile, "Type", "Part Extra Description", "File", V.Global.sUPLINVT2File)
+				
+				'for some reason this upload needs to break the description into 30 character lines, but that's not an actual requirement of the field
+				'so here we overwrite it, just use the callwrapper to add the record
+				V.Local.sPart.Set(V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim)
+				V.Local.sDescription.Set(V.DataTable.dtParts(V.Local.iCounter).EXTRA_DESCRIPTION!FieldValTrim)
+				
+				'issues with newlines coming from paperless parts, so we're using this as an escape character
+				F.Intrinsic.String.Replace(V.Local.sDescription, "***N***", V.Ambient.NewLine, V.Local.sDescription)
+				F.Intrinsic.String.Build("update INV_EXTRA_TEXT set TEXT = '{0}' where PART = '{1}'", V.Local.sDescription.PSQLFriendly, V.Local.sPart.PSQLFriendly, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.Local.bUpdate)
+				F.Intrinsic.Math.Add(V.Global.iUpdated, 1, V.Global.iUpdated)
+				F.Intrinsic.String.Build("Part [{0}] updated successfully.", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+				F.Intrinsic.String.Build("Part [{0}] uploaded successfully.", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.EndIf
+			
+		F.Intrinsic.Control.Else
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Part [{0}] failed to upload.", V.DataTable.dtParts(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sFeedback)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'save feedback
+	F.Intrinsic.Control.CallSub(SaveFeedback, "PART", V.DataTable.dtParts(V.Local.iCounter).PARTNUMBER!FieldValTrim, "PART_REVISION", V.DataTable.dtParts(V.Local.iCounter).REVISION!FieldValTrim, "FAILED", V.Local.bFailed, "FEEDBACK", V.Local.sFeedback)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Part processing complete.")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedParts.End
+
+Program.Sub.ValidateFields.Start
+'pass INDEX - index of the dtParts record being processed
+
+'options:
+'400363 - Multiple locations
+'400363-0002 - Validate Locations
+'400363-0003 - Disallow blank locations
+'400384 - Validate product line
+'400385 - Validate UM
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.sMessage.Declare(String, "")
+V.Local.bOption.Declare(Boolean, False)
+V.Local.sOverride.Declare(String, "")
+
+'check if locations are used
+F.Global.General.ReadOption(400363, 0, False, V.Local.bOption)
+F.Intrinsic.Control.If(V.Local.bOption)
+	'check if locations are validated
+	F.Global.General.ReadOption(400363, 0, False, 2, V.Local.bOption)
+	F.Intrinsic.Control.If(V.Local.bOption)
+		F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).LOCATION!FieldValTrim, =, "")
+			'check if blank location is disallowed
+			F.Global.General.ReadOption(400363, 0, False, 3, V.Local.bOption)
+			F.Intrinsic.Control.If(V.Local.bOption)
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Part upload/update failed for part [{0}] because the LOCATION field was not passed and the GSS option to prohibit blank locations is on.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			'check the passed location
+			F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).LOCATION!FieldValTrim, "Table", "V_LOCATIONS", "Field", "LOCATION", "Filter", "")
+			F.Intrinsic.Control.If(V.Args.Valid.Not)
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Part upload/update failed for part [{0}] because the GSS option to validate locations is on and the passed LOCATION [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).LOCATION!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check product line
+'product line is a required field in the table, do not need to check if it's empty
+F.Intrinsic.Control.If(V.Local.bFailed.Not)
+	F.Global.General.ReadOption(400384, 0, False, V.Local.bOption)
+	F.Intrinsic.Control.If(V.Local.bOption)
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PRODUCT_LINE!FieldValTrim, "Table", "V_PRODUCT_LINE", "Field", "PRODUCT_LINE", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Part upload/update failed for part [{0}] because the GSS option to validate product lines is on and the passed PRODUCT_LINE [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).PRODUCT_LINE!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check UMs
+'UM is a required field in the table, do not need to check if it's empty
+F.Intrinsic.Control.If(V.Local.bFailed.Not)
+	F.Global.General.ReadOption(400385, 0, False, V.Local.bOption)
+	F.Intrinsic.Control.If(V.Local.bOption)
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).UNIT_OF_MEASURE!FieldValTrim, "Table", "V_UM_CODES", "Field", "CODE", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Part upload/update failed for part [{0}] because the GSS option to validate UMs is on and the passed UNIT_OF_MEASURE [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).UNIT_OF_MEASURE!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		'check other non-critical UM fields
+		F.Intrinsic.Control.If(V.Local.bFailed.Not)
+			F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).PURCHASING_UM!FieldValTrim, !=, "")
+				F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PURCHASING_UM!FieldValTrim, "Table", "V_UM_CODES", "Field", "CODE", "Filter", "")
+				F.Intrinsic.Control.If(V.Args.Valid.Not)
+					F.Intrinsic.String.Build("Overriding PURCHASING_UM on part [{0}] because the GSS option to validate UMs is on and the passed PURCHASING_UM [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).PURCHASING_UM!FieldValTrim, V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+					F.Data.DataTable.SetValue("dtParts", V.Args.Index, "PURCHASING_UM", "")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).ISSUE_UM!FieldValTrim, !=, "")
+				F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).ISSUE_UM!FieldValTrim, "Table", "V_UM_CODES", "Field", "CODE", "Filter", "")
+				F.Intrinsic.Control.If(V.Args.Valid.Not)
+					F.Intrinsic.String.Build("Overriding ISSUE_UM on part [{0}] because the GSS option to validate UMs is on and the passed ISSUE_UM [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).ISSUE_UM!FieldValTrim, V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+					F.Data.DataTable.SetValue("dtParts", V.Args.Index, "ISSUE_UM", "")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'check other fields, non-critical
+F.Intrinsic.Control.If(V.Local.bFailed.Not)
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).DEFAULT_BIN!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).DEFAULT_BIN!FieldValTrim, "Table", "V_BIN_MASTER", "Field", "BIN", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding DEFAULT_BIN on part [{0}] because the passed DEFAULT_BIN [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).DEFAULT_BIN!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "DEFAULT_BIN", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).PROJECT_GROUP!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PROJECT_GROUP!FieldValTrim, "Table", "V_PROJECT_GROUP", "Field", "F_GROUP", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding PROJECT_GROUP on part [{0}] because the passed PROJECT_GROUP [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).PROJECT_GROUP!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "PROJECT_GROUP", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).WARRANTY_TERM!FieldValTrim, !=, "")
+		F.Intrinsic.String.LPad(V.DataTable.dtParts(V.Args.Index).WARRANTY_TERM!FieldValTrim, "0", 2, V.Local.sOverride)
+		F.Data.DataTable.SetValue("dtParts", V.Args.Index, "WARRANTY_TERM", V.Local.sOverride)
+		
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).WARRANTY_TERM!FieldValTrim, "Table", "RJCT_SCRP_CODES", "Field", "SUBSTRING(FILLER10, 9, 2)", "Filter", "SYS = 'WAR' AND SUB_SYS = 'RAN' AND SCRAP_CODE = 'TY'")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding WARRANTY_TERM on part [{0}] because the passed WARRANTY_TERM [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).WARRANTY_TERM!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "WARRANTY_TERM", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'just need to check the padding here
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).BACK_ORDER!FieldValTrim, !=, "")
+		V.Local.sOverride.Set(V.DataTable.dtParts(V.Args.Index).BACK_ORDER!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sOverride.IsNumeric)
+			F.Intrinsic.String.LPad(V.DataTable.dtParts(V.Args.Index).BACK_ORDER!FieldValTrim, "0", 2, V.Local.sOverride)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "BACK_ORDER", V.Local.sOverride)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Overriding BACK_ORDER on part [{0}] because the passed BACK_ORDER [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).BACK_ORDER!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "BACK_ORDER", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).PART_PRICE_CODE!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PART_PRICE_CODE!FieldValTrim, "Table", "V_PART_PRICE_CODE", "Field", "CODE", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding PART_PRICE_CODE on part [{0}] because the passed PART_PRICE_CODE [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).PART_PRICE_CODE!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "PART_PRICE_CODE", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).TAX_CATEGORY!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).TAX_CATEGORY!FieldValTrim, "Table", "V_TAX_CATEGORY", "Field", "TAX_CATG", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding TAX_CATEGORY on part [{0}] because the passed TAX_CATEGORY [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).TAX_CATEGORY!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "TAX_CATEGORY", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).DEFAULT_CARTON!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).DEFAULT_CARTON!FieldValTrim, "Table", "V_BOL_CONTAINERS", "Field", "CNTNR_CODE", "Filter", "PALLET_FLAG ='N")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding DEFAULT_CARTON on part [{0}] because the passed DEFAULT_CARTON [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).DEFAULT_CARTON!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "DEFAULT_CARTON", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).DEFAULT_PALLET!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).DEFAULT_PALLET!FieldValTrim, "Table", "V_BOL_CONTAINERS", "Field", "CNTNR_CODE", "Filter", "PALLET_FLAG ='Y'")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding DEFAULT_PALLET on part [{0}] because the passed DEFAULT_PALLET [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).DEFAULT_PALLET!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "DEFAULT_PALLET", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtParts(V.Args.Index).COUNTRY_OF_ORIGIN!FieldValTrim, !=, "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).COUNTRY_OF_ORIGIN!FieldValTrim, "Table", "V_ISO_COUNTRY_CODE", "Field", "ISO_CODE", "Filter", "")
+		F.Intrinsic.Control.If(V.Args.Valid.Not)
+			F.Intrinsic.String.Build("Overriding COUNTRY_OF_ORIGIN on part [{0}] because the passed COUNTRY_OF_ORIGIN [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).TAX_CATEGORY!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Data.DataTable.SetValue("dtParts", V.Args.Index, "COUNTRY_OF_ORIGIN", "")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+'return FAIL, FAIL_MESSAGE
+F.Intrinsic.Variable.AddRV("FAIL", V.Local.bFailed)
+F.Intrinsic.Variable.AddRV("FAIL_MESSAGE", V.Local.sMessage)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ValidateFields.End
+
+Program.Sub.CheckValidatedField.Start
+'pass VALUE, TABLE, FIELD, FILTER
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.bValid.Declare(Boolean, False)
+
+F.Intrinsic.String.Build("select RTRIM({0}) from {1} where {0} = '{2}'", V.Args.Field, V.Args.Table, V.Args.Value.PSQLFriendly, V.Local.sSQL)
+F.Intrinsic.Control.If(V.Args.Filter.Trim, !=, "")
+	F.Intrinsic.String.Build("{0} and {1}", V.Local.sSQL, V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+	V.Local.bValid.Set(True)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("Valid", V.Local.bValid)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckValidatedField.End
+
+Program.Sub.Exit.Start
+'clean up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtParts.Exists)
+	F.Data.DataTable.Close("dtParts")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.SaveFeedback.Start
+'pass PART, PART_REVISION, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+	F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_PART_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{4}', PARTNUMBER = '{2}', REVISION = '{3}' where UPPER(PARTNUMBER) = '{2}' and UPPER(IsNull(REVISION, '')) = '{3}' and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Args.Part, V.Args.Part_Revision, V.Local.sTimestamp, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.SendIPMMessage.Start
+'return uploaded, updated, failed counts
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+'return counts to PID passed in switch
+F.Intrinsic.String.Build("PARTS{0}{1}{0}{2}{0}{3}", "!@@!", V.Global.iSuccessful, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+F.Intrinsic.IPM.SendMessage(V.Local.sMessage, V.Caller.Switches)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SendIPMMessage.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240229234039796$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QTxAaoKifQrbiEMjYEI5VJcBE+JKisAQg=
+Program.Sub.Comments.End
