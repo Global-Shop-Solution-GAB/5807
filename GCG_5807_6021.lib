@@ -1,0 +1,493 @@
+﻿'This is the Router Master Upload. This library assists with the usage of the 6021 call wrapper. To use it, add a row to the 6021 datatable for each line in the file to be uploaded. 
+'Each parameter that is filled out will be padded to it's individual size according to the grid below for you. If a field is not used then you can ignore it. The global variable 
+'s6021Mode can be used to set which mode the callwrapper will be called in. V.Global.s6021Mode defaults to "1". Once all data is added to the datatable and V.Global.s6021Mode is set 
+'from the default if needed call either 6021Sync or 6021Async according to how you want the call wrapper called.
+
+'If an error occurs V.Global.s6021Error will be set in the format ("{0}*!*{1}*!*{2}", Sub error originated from, Error number, Error description).
+
+'Documentation can be found at: http://www.gss-updates.com/site/GShelp/2015/000/INDEX.asp?addl_ref_data_conv_router_master.asp
+'NOTE: *Parameter* denotes a required field for each row.
+'The datatable is structed as follows:
+'Column							=	Parameter								=	Format					=	Field Size
+'=========================================================================================================================
+'*RouterNum*					=	Router Number							=							=	20
+'RouterDesc						=	Router Description						=							=	30
+'*Seq*							=	Sequence								=							=	6
+'LineType						=	Line Item Type							=	"L" - Labor				=	1
+'																			=	"M" - Material
+'																			=	"O" - Outside
+'																			=	"C" - Comment
+'PartNum						=	Part Number								=	Note1					=	20
+'WC								=	Work Center								=	Note2					=	4
+'PartStepDesc					=	Part/Step Description					=							=	30
+'SetupQty						=	Setup Quantity							=	8.4						=	16
+'RunTimeMatlQty					=	Run Time / Material Quantity			=	8.4 or 8.6				=	16
+'CustID							=	Customer ID								=							=	6
+'OriginalDate					=	Original Date							=	MMDDYY					=	6
+'OperationCodeVend				=	Operation Code/Vendor					=							=	6
+'RateUC							=	Rate / Unit Cost						=	8.4						=	16
+'UM								=	Unit of Measure							=							=	2
+'ExtraDesc1						=	Extra Description 1						=							=	71
+'ExtraDesc2						=	Extra Description 2						=							=	71
+'ExtraDesc3						=	Extra Description 3						=							=	71
+'Qty1							=	Quantity 1								=	8.0						=	16
+'Qty2							=	Quantity 2								=	8.0						=	16
+'Qty3							=	Quantity 3								=	8.0						=	16
+'Qty4							=	Quantity 4								=	8.0						=	16
+'PurgeFlag						=	Purge Flag								=	Y/N						=	1
+'Freq							=	Frequency								=	6.0*					=	16
+'Machine						=	Machine									=	6.0*					=	16
+'Overlap						=	Overlap									=	2.0*					=	16
+'WCFactor						=	Work Center Factor						=	2.0*					=	16
+'MinFlag						=	Minimum Flag							=	Y/N						=	1
+'MinOutside						=	Minimum Outside							=	Note3					=	16
+'CrewSize						=	Crew Size								=	4.4*					=	16
+'LeadTime						=	Lead Time								=	4.0**					=	16
+'PartLoc						=	Part Location							=							=	2
+'ToolingFlag					=	Tooling Flag							=	Y/N						=	1
+'SortCode						=	Sort Code								=							=	20
+'DrawingNum						=	Drawing Number							=							=	20
+'PostFloat						=	Post Float								=	+-3.2					=	16
+'SubSetup						=	Subsequent Setup						=	+-8.4					=	16
+'NonContiguousFlag				=	Non-Contiguous Flag						=	Y/N						=	1
+'MinRunQty						=	Minimum Run Quantity					=	+-8.4					=	16
+'MaxRunQty						=	Maximum Run Quantity					=	+-8.4					=	16
+'MultipleOfRunQty				=	Multiple of Run Quantity				=	+-8.4					=	16
+'ReSetupNonContiguous			=	Re-setup Non-Contiguous					=	"0" - No Setup			=	1
+'																			=	"1" - Initial Setup
+'																			=	"2" - Subsequent Setup
+'PercMachineUtil				=	Percent Machine Utilization				=	+-1.2					=	16
+'SchedulingPercMod				=	Scheduling Percent Modifier				=	+-1.2					=	16
+'MachineAttrib 1-26 Flag		=	Machine Attribute Flag (26 total)		=	Y/N						=	1 each (26 total)
+'EmpLaborConstraintOnSetup		=	Employee Labor Constraint on Setup		=	Y/N						=	1
+'EmpsRequiredOnSetup			=	Employees Required on Setup				=	3.0						=	16
+'EmpLaborConstraintOnRuntime	=	Employee Labor Constraint on Runtime	=	Y/N						=	1
+'EmpsRequiredOnRuntime			=	Employees Required on Runtime			=	3.0						=	16
+'UnattendedSetupFlag			=	Unattended Setup Flag					=	Y/N						=	1
+'UnattendedSetupHours			=	Unattended Setup Hours					=	+-2.3					=	16
+'UnattendedRuntimeFlag			=	Unattended Runtime Flag					=	Y/N						=	1
+'UnattendedRuntimeHours			=	Unattended Runtime Hours				=	+-2.3					=	16
+'SetupLaborAttrib 1-26			=	Setup Labor Attribute (26 total)		=	Y/N						=	1 each (26 total)
+'RunLaborAttrib 1-26			=	Run Labor Attribute (26 total)			=	Y/N						=	1 each (26 total)
+'Scrap							=	Scrap									=	0.4						=	16
+'CustPartNum					=	Customer Part Number					=							=	20
+'User1							=	User Field 1							=							=	20
+'User2							=	User Field 2							=							=	20
+'Commission						=	Commission								=	3.4						=	16
+'Qty5							=	Quantity 5								=	8.0						=	16
+'Qty6							=	Quantity 6								=	8.0						=	16
+'Qty7							=	Quantity 7								=	8.0						=	16
+'Qty8							=	Quantity 8								=	8.0						=	16
+'Qty9							=	Quantity 9								=	8.0						=	16
+'Qty10							=	Quantity 10								=	8.0						=	16
+'SignoffGroupUser				=	Signoff Group / User					=							=	8
+'SignoffType					=	Signoff Type							=	"U" - User				=	1
+'																			=	"G" - Group
+'PL								=	Product Line							=							=	2
+'OmitFromRouterRepricingFlag	=	Omit from Router Repricing Flag			=	Y/N						=	1
+'RouterYieldPerc				=	Router Yield Percent					=	1.5 - Note4				=	16
+'MainCommentFlag				=	Main Comment Flag						=	Y/N - Note5				=	1
+'=========================================================================================================================
+'*Labor Sequences Only
+'**Material and Outside Sequences Only
+'Note1: If the Line Type is O - Outside, this field will represent the Outside Code.
+'Note2: Use work center for labor steps only. Must match an entry in the work center master table or the work group table.
+'Note3: Minimum Flag must be Y to enter a minimum amount charged by a vendor for outside processing.
+'Note4: This field is only visible on a Labor or Outside sequence if the Advanced Estimating/Routing Option 'Use Router Yield' is active.
+'Note5: The sequence must be divisible by the Operations Sequence Multiple found in Manufacturing Standard Company Options.
+Program.Sub.Preflight.Start
+V.Global.s6021Error.Declare(String)
+V.Global.s6021Mode.Declare(String,"1")
+F.Data.DataTable.Create("6021",True)
+F.Data.DataTable.AddColumn("6021","RouterNum","String","                    ")
+F.Data.DataTable.AddColumn("6021","RouterDesc","String","                              ")
+F.Data.DataTable.AddColumn("6021","Seq","String","      ")
+F.Data.DataTable.AddColumn("6021","LineType","String"," ")
+F.Data.DataTable.AddColumn("6021","PartNum","String","                    ")
+F.Data.DataTable.AddColumn("6021","WC","String","    ")
+F.Data.DataTable.AddColumn("6021","PartStepDesc","String","                              ")
+F.Data.DataTable.AddColumn("6021","SetupQty","String","                ")
+F.Data.DataTable.AddColumn("6021","RunTimeMatlQty","String","                ")
+F.Data.DataTable.AddColumn("6021","CustID","String","      ")
+F.Data.DataTable.AddColumn("6021","OriginalDate","String","      ")
+F.Data.DataTable.AddColumn("6021","OperationCodeVend","String","      ")
+F.Data.DataTable.AddColumn("6021","RateUC","String","                ")
+F.Data.DataTable.AddColumn("6021","UM","String","  ")
+F.Data.DataTable.AddColumn("6021","ExtraDesc1","String","                                                                       ")
+F.Data.DataTable.AddColumn("6021","ExtraDesc2","String","                                                                       ")
+F.Data.DataTable.AddColumn("6021","ExtraDesc3","String","                                                                       ")
+F.Data.DataTable.AddColumn("6021","Qty1","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty2","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty3","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty4","String","                ")
+F.Data.DataTable.AddColumn("6021","PurgeFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","Freq","String","                ")
+F.Data.DataTable.AddColumn("6021","Machine","String","                ")
+F.Data.DataTable.AddColumn("6021","Overlap","String","                ")
+F.Data.DataTable.AddColumn("6021","WCFactor","String","                ")
+F.Data.DataTable.AddColumn("6021","MinFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","MinOutside","String","                ")
+F.Data.DataTable.AddColumn("6021","CrewSize","String","                ")
+F.Data.DataTable.AddColumn("6021","LeadTime","String","                ")
+F.Data.DataTable.AddColumn("6021","PartLoc","String","  ")
+F.Data.DataTable.AddColumn("6021","ToolingFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","SortCode","String","                    ")
+F.Data.DataTable.AddColumn("6021","DrawingNum","String","                    ")
+F.Data.DataTable.AddColumn("6021","PostFloat","String","                ")
+F.Data.DataTable.AddColumn("6021","SubSetup","String","                ")
+F.Data.DataTable.AddColumn("6021","NonContiguousFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","MinRunQty","String","                ")
+F.Data.DataTable.AddColumn("6021","MaxRunQty","String","                ")
+F.Data.DataTable.AddColumn("6021","MultipleOfRunQty","String","                ")
+F.Data.DataTable.AddColumn("6021","ReSetupNonContiguous","String"," ")
+F.Data.DataTable.AddColumn("6021","PercMachineUtil","String","                ")
+F.Data.DataTable.AddColumn("6021","SchedulingPercMod","String","                ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib1Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib2Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib3Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib4Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib5Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib6Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib7Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib8Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib9Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib10Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib11Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib12Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib13Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib14Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib15Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib16Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib17Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib18Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib19Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib20Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib21Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib22Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib23Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib24Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib25Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","MachineAttrib26Flag","String"," ")
+F.Data.DataTable.AddColumn("6021","EmpLaborConstraintOnSetup","String"," ")
+F.Data.DataTable.AddColumn("6021","EmpsRequiredOnSetup","String","                ")
+F.Data.DataTable.AddColumn("6021","EmpLaborConstraintOnRuntime","String"," ")
+F.Data.DataTable.AddColumn("6021","EmpsRequiredOnRuntime","String","                ")
+F.Data.DataTable.AddColumn("6021","UnattendedSetupFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","UnattendedSetupHours","String","                ")
+F.Data.DataTable.AddColumn("6021","UnattendedRuntimeFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","UnattendedRuntimeHours","String","                ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib1","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib2","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib3","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib4","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib5","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib6","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib7","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib8","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib9","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib10","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib11","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib12","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib13","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib14","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib15","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib16","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib17","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib18","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib19","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib20","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib21","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib22","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib23","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib24","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib25","String"," ")
+F.Data.DataTable.AddColumn("6021","SetupLaborAttrib26","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib1","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib2","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib3","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib4","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib5","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib6","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib7","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib8","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib9","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib10","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib11","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib12","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib13","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib14","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib15","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib16","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib17","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib18","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib19","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib20","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib21","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib22","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib23","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib24","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib25","String"," ")
+F.Data.DataTable.AddColumn("6021","RunLaborAttrib26","String"," ")
+F.Data.DataTable.AddColumn("6021","Scrap","String","                ")
+F.Data.DataTable.AddColumn("6021","CustPartNum","String","                    ")
+F.Data.DataTable.AddColumn("6021","User1","String","                    ")
+F.Data.DataTable.AddColumn("6021","User2","String","                    ")
+F.Data.DataTable.AddColumn("6021","Commission","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty5","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty6","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty7","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty8","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty9","String","                ")
+F.Data.DataTable.AddColumn("6021","Qty10","String","                ")
+F.Data.DataTable.AddColumn("6021","SignoffGroupUser","String","        ")
+F.Data.DataTable.AddColumn("6021","SignoffType","String"," ")
+F.Data.DataTable.AddColumn("6021","PL","String","  ")
+F.Data.DataTable.AddColumn("6021","OmitFromRouterRepricingFlag","String"," ")
+F.Data.DataTable.AddColumn("6021","RouterYieldPerc","String","                ")
+F.Data.DataTable.AddColumn("6021","MainCommentFlag","String"," ")
+Program.Sub.Preflight.End
+
+Program.Sub.6021.Start
+F.Intrinsic.Control.Try
+	V.Local.sFileContent.Declare(String)
+	V.Local.sFilePath.Declare(String)
+	V.Local.sParams.Declare(String)
+	V.Local.sRet.Declare(String)
+	V.Local.iCount.Declare(Long)
+	'Set file path
+	F.Intrinsic.String.Build("{0}\ROUTERHD.txt",V.Caller.FilesDir,V.Local.sFilePath)
+	
+	F.Intrinsic.Control.If(V.DataTable.6021.RowCount,>,0)
+		F.Intrinsic.Control.For(V.Local.iCount,0,V.DataTable.6021.RowCount--,1)
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).RouterNum!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"RouterNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).RouterDesc!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"RouterDesc",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Seq!FieldVal,"0",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Seq",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).PartNum!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PartNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).WC!FieldVal," ",4,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"WC",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).PartStepDesc!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PartStepDesc",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).SetupQty!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"SetupQty",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).RunTimeMatlQty!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"RunTimeMatlQty",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).CustID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"CustID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).OriginalDate!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"OriginalDate",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).OperationCodeVend!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"OperationCodeVend",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).RateUC!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"RateUC",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).UM!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"UM",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).ExtraDesc1!FieldVal," ",71,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"ExtraDesc1",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).ExtraDesc2!FieldVal," ",71,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"ExtraDesc2",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).ExtraDesc3!FieldVal," ",71,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"ExtraDesc3",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty1!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty1",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty2!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty2",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty3!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty3",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty4!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty4",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).PurgeFlag!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PurgeFlag",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Freq!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Freq",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Machine!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Machine",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Overlap!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Overlap",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).WCFactor!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"WCFactor",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).MinFlag!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"MinFlag",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).MinOutside!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"MinOutside",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).CrewSize!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"CrewSize",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).LeadTime!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"LeadTime",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).PartLoc!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PartLoc",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).ToolingFlag!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"ToolingFlag",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).SortCode!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"SortCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).DrawingNum!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"DrawingNum",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).PostFloat!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PostFloat",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).SubSetup!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"SubSetup",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).MinRunQty!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"MinRunQty",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).MaxRunQty!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"MaxRunQty",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).MultipleOfRunQty!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"MultipleOfRunQty",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).PercMachineUtil!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PercMachineUtil",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).SchedulingPercMod!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"SchedulingPercMod",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).EmpsRequiredOnSetup!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"EmpsRequiredOnSetup",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).EmpsRequiredOnRuntime!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"EmpsRequiredOnRuntime",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).UnattendedSetupHours!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"UnattendedSetupHours",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).UnattendedRuntimeHours!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"UnattendedRuntimeHours",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Scrap!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Scrap",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).CustPartNum!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"CustPartNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).User1!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"User1",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).User2!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"User2",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Scrap!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Scrap",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Commission!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Commission",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty5!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty5",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty6!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty6",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty7!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty7",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty8!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty8",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty9!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty9",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).Qty10!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"Qty10",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).SignoffGroupUser!FieldVal," ",8,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"SignoffGroupUser",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6021(V.Local.iCount).PL!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"PL",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6021(V.Local.iCount).RouterYieldPerc!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6021",V.Local.iCount,"RouterYieldPerc",V.Local.sRet)
+			
+		F.Intrinsic.Control.Next(V.Local.iCount)
+		
+		F.Data.DataView.Create("6021","6021View",22)
+		F.Data.DataView.ToString("6021","6021View","",V.Ambient.NewLine,V.Local.sFileContent)
+		F.Data.DataView.Close("6021","6021View")
+		
+		'Write file content to file
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContent)
+		
+		'Setup params for call
+		F.Intrinsic.String.ConcatCallWrapperArgs(V.Global.s6021Mode,"ROUTERHD",V.Local.sParams)
+		
+		F.Intrinsic.Control.SelectCase(V.Args.CallWrapperType)
+			F.Intrinsic.Control.Case(0)
+				F.Global.General.CallWrapperSync(6021,V.Local.sParams)
+			F.Intrinsic.Control.Case(1)
+				F.Global.General.CallWrapperAsync(6021,V.Local.sParams)
+		F.Intrinsic.Control.EndSelect
+	
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.DeleteRow("6021")
+	F.Data.DataTable.AcceptChanges("6021")
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6021,"Sub",V.Ambient.CurrentSubroutine,"ErrNo",V.Ambient.ErrorNumber,"ErrDesc",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6021.End
+
+'Calls 6021 with callwrapper type of 0
+Program.Sub.6021Sync.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6021,"CallWrapperType",0)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6021,"Sub",V.Ambient.CurrentSubroutine,"ErrNo",V.Ambient.ErrorNumber,"ErrDesc",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6021Sync.End
+
+'Calls 6021 with callwrapper type of 1
+Program.Sub.6021Async.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6021,"CallWrapperType",1)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6021,"Sub",V.Ambient.CurrentSubroutine,"ErrNo",V.Ambient.ErrorNumber,"ErrDesc",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6021Async.End
+
+Program.Sub.CatchError6021.Start
+F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Args.Sub, V.Args.ErrNo, V.Args.ErrDesc, V.Global.s6021Error)
+Program.Sub.CatchError6021.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20230630144157056$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbM3N9FpCtqs/hgl/IXYq9R6CkIkgT5WueRz+8SYrOShg=
+Program.Sub.Comments.End
