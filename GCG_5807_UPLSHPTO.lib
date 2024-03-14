@@ -1,0 +1,132 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLSHPTOError.Declare(String, "")
+V.Global.sUPLSHPTOFile.Declare(String, "")
+
+F.Data.DataTable.Create("dtUPLSHPTO", True)
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "CUSTOMER_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SHIP_TO_ID", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ADDRESS_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ADDRESS_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ADDRESS_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ADDRESS_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ADDRESS_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "CITY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "STATE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "COUNTRY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ATTENTION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "INTERNATIONAL", "Boolean", False)
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SALESPERSON_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SHIP_VIA_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "AREA", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "BRANCH", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SALES_TAX_EXEMPT_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "NORMAL_GL", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_STATE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_6", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_7", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_8", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_9", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "TAX_CODE_10", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "COMMISSION_RATE_TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "PRICE_CLASS_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "FREIGHT_ZONE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ORDER_DISCOUNT_PERCENTAGE", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "PHONE_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "FAX_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "CARRIER_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "THIRD_PARTY_FREIGHT_CUSTOMER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "UPS_ACCOUNT", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "FEDEX_ACCOUNT", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SERVICE_TYPE", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SIC_CODE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "PRIMARY_GROUP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "SECONDARY_GROUP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "COUNTY", "String", "")
+F.Data.DataTable.AddExpressionColumn("dtUPLSHPTO", "INTERNATIONAL_FORMATTED", "String", "IIF([INTERNATIONAL], 'Y', 'N')")
+Program.Sub.Preflight.End
+
+'Program.Sub.Main.Start
+''for testing
+'F.Data.DataTable.AddRow("dtUPLSHPTO", "CUSTOMER_NUMBER", "001000", "SHIP_TO_ID", "TST002", "NAME", "Test")
+'F.Intrinsic.Control.CallSub(UPLSHPTO)
+'Program.Sub.Main.End
+
+Program.Sub.UPLSHPTO.Start
+'this is a library for help with using the UPLSHPTO oneshot to upload customer multiple ship to data to OE_MULTI_SHIP
+'add data to the dtUPLSHPTO datatable and then call the UPLSHPTO subroutine to run the upload
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFields.Declare(String, "CUSTOMER_NUMBER*!*SHIP_TO_ID*!*NAME*!*ADDRESS_1*!*ADDRESS_2*!*ADDRESS_3*!*ADDRESS_4*!*ADDRESS_5*!*CITY*!*STATE*!*ZIP*!*COUNTRY*!*ATTENTION*!*INTERNATIONAL_FORMATTED*!*SALESPERSON_CODE*!*SHIP_VIA_CODE*!*AREA*!*BRANCH*!*SALES_TAX_EXEMPT_NUMBER*!*NORMAL_GL*!*TAX_STATE*!*TAX_ZIP*!*TAX_CODE_1*!*TAX_CODE_2*!*TAX_CODE_3*!*TAX_CODE_4*!*TAX_CODE_5*!*TAX_CODE_6*!*TAX_CODE_7*!*TAX_CODE_8*!*TAX_CODE_9*!*TAX_CODE_10*!*COMMISSION_RATE_TYPE*!*PRICE_CLASS_CODE*!*FREIGHT_ZONE*!*ORDER_DISCOUNT_PERCENTAGE*!*PHONE_NUMBER*!*FAX_NUMBER*!*CARRIER_CODE*!*THIRD_PARTY_FREIGHT_CUSTOMER*!*UPS_ACCOUNT*!*FEDEX_ACCOUNT*!*SERVICE_TYPE*!*SIC_CODE*!*PRIMARY_GROUP*!*SECONDARY_GROUP*!*LOCATION*!*COUNTY")
+V.Local.sLengths.Declare(String, "6*!*6*!*30*!*30*!*30*!*30*!*30*!*30*!*15*!*2*!*13*!*12*!*30*!*1*!*3*!*1*!*2*!*2*!*20*!*15*!*2*!*13*!*3*!*3*!*3*!*3*!*3*!*3*!*3*!*3*!*3*!*3*!*5*!*1*!*10*!*16*!*13*!*13*!*6*!*7*!*10*!*25*!*3*!*4*!*2*!*2*!*2*!*12")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+'reset error variable
+V.Global.sUPLSHPTOError.Set("")
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLSHPTO", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLSHPTO", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLSHPTO", "dvUPLSHPTOFile", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("strbUPLSHPTO")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLSHPTO.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLSHPTO", "dvUPLSHPTOFile", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLSHPTO", "dvUPLSHPTOFile", V.Local.sFields, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("strbUPLSHPTO", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("strbUPLSHPTO", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("strbUPLSHPTO")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLSHPTO", "dvUPLSHPTOFile")
+
+'clean up main DT
+F.Data.DataTable.RemoveColumn("dtUPLSHPTO", "ID")
+F.Data.DataTable.DeleteRow("dtUPLSHPTO")
+F.Data.DataTable.AcceptChanges("dtUPLSHPTO")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\SHIPTOIN.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLSHPTOFile.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLSHPTO/U")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLSHPTOError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLSHPTO.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8312.21889$}$1
+${$6$}$rseddon$}$20221211165752274$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRb9HbeBcjJvEaF6u9Bc+hjVoYGfSZpIg4IiKs1rwdISC0=
+Program.Sub.Comments.End
