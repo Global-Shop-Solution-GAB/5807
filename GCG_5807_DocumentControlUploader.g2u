@@ -1,0 +1,225 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Document Control Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_PartCrossReferenceUploader.g2u
+'Trey S
+'April 22nd, 2022
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload document control data from the staging table GCG_5807_DOC_STAGE
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check for staged 'routers
+F.Intrinsic.Control.CallSub(LoadStagedDocuments)
+F.Intrinsic.Control.If(V.DataTable.dtDocuments.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(UploadStagedDocuments)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedDocuments.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String, "select RECORD_ID, RECORD_TIMESTAMP, FAILED, PROCESSED, PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_ID) EXTERNAL_ID, LINK_TYPE, RTRIM(GROUP_NAME) GROUP_NAME, RTRIM(UPPER(LINK_KEY)) LINK_KEY, FILE_PATH, RTRIM(DESCRIPTION) DESCRIPTION from GCG_5807_DOC_STAGE where PROCESSED = 0 and FAILED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtDocuments", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedDocuments.End
+
+Program.Sub.UploadStagedDocuments.Start
+'loop through staged DC records and process
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sLinkTypes.Declare(String, "10*!*11*!*12*!*14*!*15*!*17*!*18*!*19*!*20*!*25*!*27*!*28*!*29*!*30*!*31*!*35*!*37*!*38*!*39*!*40*!*41*!*45*!*50*!*55*!*60*!*61*!*62*!*65*!*70*!*71*!*75*!*76*!*80*!*90*!*91*!*92*!*93*!*94*!*95*!*96*!*110*!*120")
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.bInString.Declare(Boolean, False)
+V.Local.sMessage.Declare(String)
+V.Local.sGroup.Declare(String)
+V.Local.sReturn.Declare(String)
+V.Local.iLinkID.Declare(Long)
+V.Local.iGroup.Declare(Long)
+V.Local.sExtension.Declare(String)
+V.Local.sPrefix.Declare(String)
+
+F.Intrinsic.String.Build("[{0}] staged document control records found for processing...", V.DataTable.dtDocuments.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtDocuments.RowCount--, 1)
+	V.Local.iLinkID.Set(-1)
+	V.Local.bFailed.Set(False)
+	
+	'check the ID
+	F.Intrinsic.String.IsInString(V.Local.sLinkTypes, V.DataTable.dtDocuments(V.Local.iCounter).LINK_TYPE!FieldValLong, True, V.Local.bInString)
+	F.Intrinsic.Control.If(V.Local.bInString)
+		'link type is valid, now check group
+		F.Intrinsic.Control.If(V.DataTable.dtDocuments(V.Local.iCounter).GROUP_NAME!FieldValTrim, !=, "")
+			V.Local.sGroup.Set(V.DataTable.dtDocuments(V.Local.iCounter).GROUP_NAME!FieldValTrim)
+			F.Intrinsic.String.Build("select GRP_ID from ATG_DOC_GRP where UPPER(GRP_NAME) = '{0}'", V.Local.sGroup.UCase, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				'group does not exist, fail
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Staged document control record with ID [{0}] failed to process because the group [{1}] does not exist in Global Shop.", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sGroup, V.Local.sMessage)
+			F.Intrinsic.Control.Else
+				V.Local.iGroup.Set(V.Local.sReturn.Long)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			V.Local.iGroup.Set(-1)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(V.Local.bFailed.Not)
+			'all good, upload
+			
+			F.Intrinsic.String.Build("Creating link ID for Staged document control record with ID [{0}], type [{1}], and key [{2}].", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtDocuments(V.Local.iCounter).LINK_TYPE!FieldValLong, V.DataTable.dtDocuments(V.Local.iCounter).LINK_KEY!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			F.Global.DocumentControl.CreateReference(V.DataTable.dtDocuments(V.Local.iCounter).LINK_KEY!FieldValTrim, V.DataTable.dtDocuments(V.Local.iCounter).LINK_TYPE!FieldValLong, V.Local.iLinkID)
+			
+			F.Intrinsic.String.Build("Adding document to link ID [{3}] for Staged document control record with ID [{0}], type [{1}], and key [{2}].", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtDocuments(V.Local.iCounter).LINK_TYPE!FieldValLong, V.DataTable.dtDocuments(V.Local.iCounter).LINK_KEY!FieldValTrim, V.Local.iLinkID, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			V.Local.sPrefix.Set(V.DataTable.dtDocuments(V.Local.iCounter).FILE_PATH!FieldValTrim)
+			V.Local.sPrefix.Set(V.Local.sPrefix.UCase)
+			F.Intrinsic.Control.If(V.Local.sPrefix.Left3, =, "WWW", "OR", V.Local.sPrefix.Left4, =, "HTTP")
+				V.Local.sExtension.Set("HTTP")
+			F.Intrinsic.Control.Else
+				F.Intrinsic.File.GetExtensionComponent(V.DataTable.dtDocuments(V.Local.iCounter).FILE_PATH!FieldValTrim, V.Local.sExtension)
+				F.Intrinsic.String.StripCharacters(V.Local.sExtension, V.Local.sExtension)
+			F.Intrinsic.Control.EndIf
+			
+			F.Global.DocumentControl.AddDocumentNFC(V.Local.iLinkID, V.DataTable.dtDocuments(V.Local.iCounter).FILE_PATH!FieldValTrim, V.DataTable.dtDocuments(V.Local.iCounter).DESCRIPTION!FieldValTrim, V.Local.iGroup, V.Local.sExtension)
+			
+			F.Intrinsic.String.Build("Successful upload of Staged document control record with ID [{0}] as link ID [{1}].", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.iLinkID, V.Local.sMessage)
+			
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		'invalid type, fail
+		V.Local.bFailed.Set(True)
+		F.Intrinsic.String.Build("Staged document control record with ID [{0}] failed to process because [{1}] is not a valid Link Type ID.", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtDocuments(V.Local.iCounter).LINK_TYPE!FieldValLong, V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+	'now save feedback to staging table
+	F.Intrinsic.Control.CallSub(SaveFeedback, "Record_ID", V.DataTable.dtDocuments(V.Local.iCounter).RECORD_ID!FieldValLong, "Failed", V.Local.bFailed, "Feedback", V.Local.sMessage, "LINK_ID", V.Local.iLinkID)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Document control upload process complete.")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedDocuments.End
+
+Program.Sub.SaveFeedback.Start
+'pass RECORD_ID, FAILED, FEEDBACK, LINK_ID
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+	F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_DOC_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{2}' where RECORD_ID = {3} and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Local.sTimestamp, V.Args.RECORD_ID, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+
+F.Intrinsic.Control.If(V.Args.Failed.Not)
+	F.Intrinsic.String.Build("update GCG_5807_DOC_STAGE set LINK_ID = {0} where RECORD_ID = {1};", V.Args.Link_ID, V.Args.Record_Id, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.Exit.Start
+'celan up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtDocuments.Exists)
+	F.Data.DataTable.Close("dtDocuments")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+'F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240302215432815$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9lpzDzfHUE9NaAKx8qRi4uQx0/y9PFaiG0=
+Program.Sub.Comments.End
