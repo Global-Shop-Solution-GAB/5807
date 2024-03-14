@@ -1,0 +1,132 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("1010.lib")
+
+V.Global.s6010Error.Declare(String, "")
+F.Data.DataTable.Create("dt6010", True)
+F.Data.DataTable.AddColumn("dt6010", "PARENT_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "SEQUENCE", "Long", 0)
+F.Data.DataTable.AddColumn("dt6010", "QUANTITY", "Float", 0)
+F.Data.DataTable.AddColumn("dt6010", "PART_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "UNIT_OF_MEASURE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "PART_DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "MEMO_1", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "MEMO_2", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "VENDOR", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "VENDOR_PART", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "PURGE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "DRAWING", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "TAG", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "CATEGORY", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "SOURCE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "FREQUENCY", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "DRAWING_SIZE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "SIMILAR_PART", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "REVISION_CODE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "REVISION_DATE", "Date", "1900-01-01")
+F.Data.DataTable.AddColumn("dt6010", "SORT_VALUE", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "START_DATE", "Date", "1900-01-01")
+F.Data.DataTable.AddColumn("dt6010", "STOP_DATE", "Date", "1900-01-01")
+F.Data.DataTable.AddColumn("dt6010", "SERIAL_START", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "SERIAL_STOP", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "REQUIRES_TRACEABILITY", "String", "")
+Program.Sub.Preflight.End
+
+Program.Sub.6010.Start
+V.Local.iCounter.Declare(Long)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sFile.Declare(String)
+V.Local.sMap.Declare(String, "PARENT_NUMBER*!*SEQUENCE_FORMATTED*!*QUANTITY_FORMATTED*!*PART_NUMBER*!*UNIT_OF_MEASURE*!*PART_DESCRIPTION*!*MEMO_1*!*MEMO_2*!*VENDOR*!*VENDOR_PART*!*PURGE*!*DRAWING*!*TAG*!*CATEGORY*!*SOURCE*!*FREQUENCY*!*DRAWING_SIZE*!*SIMILAR_PART*!*REVISION_CODE*!*REVISION_DATE_FORMATTED*!*SORT_VALUE*!*START_DATE_FORMATTED*!*STOP_DATE_FORMATTED*!*SERIAL_START*!*SERIAL_STOP*!*REQUIRES_TRACEABILITY")
+V.Local.sLengths.Declare(String, "20*!*4*!*16*!*20*!*2*!*30*!*30*!*30*!*6*!*20*!*1*!*20*!*6*!*1*!*1*!*6*!*1*!*20*!*2*!*6*!*12*!*6*!*6*!*15*!*15*!*1")
+
+F.Intrinsic.Control.Try
+
+'clear the error variable for a new run
+V.Global.s6010Error.Set("")
+
+'make sure records were passed
+F.Intrinsic.Control.If(V.DataTable.dt6010.RowCount, <, 1)
+	V.Global.s6010Error.Set("The BOM Upload was unable to process because no records were passed.")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+'date formatting
+F.Data.DataTable.AddColumn("dt6010", "REVISION_DATE_FORMATTED", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "START_DATE_FORMATTED", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "STOP_DATE_FORMATTED", "String", "")
+F.Data.DataTable.SetValueFormat("dt6010", -1, "REVISION_DATE", "REVISION_DATE_FORMATTED", "MMDDYY")
+F.Data.DataTable.SetValueFormat("dt6010", -1, "START_DATE", "START_DATE_FORMATTED", "MMDDYY")
+F.Data.DataTable.SetValueFormat("dt6010", -1, "STOP_DATE", "STOP_DATE_FORMATTED", "MMDDYY")
+
+'number formatting
+F.Data.DataTable.AddColumn("dt6010", "SEQUENCE_FORMATTED", "String", "")
+F.Data.DataTable.AddColumn("dt6010", "QUANTITY_FORMATTED", "String", "")
+F.Data.DataTable.SetValueFormat("dt6010", -1, "SEQUENCE", "SEQUENCE_FORMATTED", "0000")
+F.Data.DataTable.SetValueFormat("dt6010", -1, "QUANTITY", "QUANTITY_FORMATTED", "#.0000")
+
+'unique column
+F.Data.DataTable.AddColumn("dt6010", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dt6010", "ID", 0, 1)
+
+'for each record, grab the line and format it, then add it to the text file string
+F.Data.DataView.Create("dt6010", "dv6010", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("BOMString")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dt6010.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dt6010", "dv6010", V.Local.sFilter)
+	F.Data.DataView.ToString("dt6010", "dv6010", V.Local.sMap, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("BOMString", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("BOMString", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("BOMString")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\BOMHDR.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+
+'Upload
+F.Global.General.CallWrapperSync(6010, "NS!*!50")
+
+'now run callwrapper 1010 on these to rebuild browser index
+F.Data.DataView.SetFilter("dt6010", "dv6010", "")
+F.Data.DataView.SetSort("dt6010", "dv6010", "PARENT_NUMBER")
+F.Data.DataView.ToDataTableDistinct("dt6010", "dv6010", "dt6010Distinct", "PARENT_NUMBER")
+F.Data.DataView.Close("dt6010", "dv6010")
+F.Data.DataTable.AddRow("1010", "Process", "02", "BegBOMParent", V.DataTable.dt6010Distinct(0).PARENT_NUMBER!FieldValTrim, "EndBOMParent", V.DataTable.dt6010Distinct(V.DataTable.dt6010Distinct.RowCount--).PARENT_NUMBER!FieldValTrim)
+F.Data.DataTable.Close("dt6010Distinct")
+F.Intrinsic.Control.CallSub(1010Sync)
+
+'done, now cleanup
+F.Data.DataTable.RemoveColumn("dt6010", "REVISION_DATE_FORMATTED")
+F.Data.DataTable.RemoveColumn("dt6010", "START_DATE_FORMATTED")
+F.Data.DataTable.RemoveColumn("dt6010", "STOP_DATE_FORMATTED")
+F.Data.DataTable.RemoveColumn("dt6010", "SEQUENCE_FORMATTED")
+F.Data.DataTable.RemoveColumn("dt6010", "QUANTITY_FORMATTED")
+F.Data.DataTable.RemoveColumn("dt6010", "ID")
+
+F.Data.DataTable.DeleteRow("dt6010")
+F.Data.DataTable.AcceptChanges("dt6010")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.s6010Error)
+F.Intrinsic.Control.EndTry
+Program.Sub.6010.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240301142712458$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9njNN6nh3LhserUGtZa7CXzLGWLNjVZxR8=
+Program.Sub.Comments.End
