@@ -1,0 +1,709 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_UPLCNTCT.lib")
+V.Global.iUploaded.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Contact Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_ContactUploader.g2u
+'Trey S
+'February 11th, 2020
+'This program is the contact uploader portion of the standard soap order uploader
+'the script reads from the contact staging table GCG_5807_CNTCT_STAGE
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check if already running
+F.Intrinsic.Control.CallSub(ScriptPIDCheck, "PROJECT", V.Global.sProject)
+
+'check for staged contacts
+F.Intrinsic.Control.CallSub(LoadStagedContacts)
+
+F.Intrinsic.Control.If(V.DataTable.dtContacts.RowCount, >, 0)
+	'log that staged contacts found
+	F.Intrinsic.String.Build("{0} potential contact(s) found to upload/update.", V.DataTable.dtContacts.RowCount, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'if there are staged contacts, prep / check them
+	F.Intrinsic.Control.CallSub(PrepareStagedContacts)
+	
+	'upload any valid contacts
+	F.Data.DataView.Create("dtContacts", "dvValid", 22, "FAILED = False and Update_Contact = False", "")
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvValid.RowCount, >, 0)
+		'log valid contacts found
+		F.Intrinsic.String.Build("{0} valid contact(s) found to upload.", V.DataView.dtContacts!dvValid.RowCount, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'upload
+		F.Intrinsic.Control.CallSub(UploadStagedContacts)
+	F.Intrinsic.Control.EndIf
+	
+	'update any valid contacts marked to be updated
+	F.Data.DataView.SetFilter("dtContacts", "dvValid", "FAILED = False and Update_Contact = True")
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvValid.RowCount, >, 0)
+		'log valid updates found
+		F.Intrinsic.String.Build("{0} valid contact(s) found to update.", V.DataView.dtContacts!dvValid.RowCount, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'update
+		F.Intrinsic.Control.CallSub(UpdateContacts)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtContacts", "dvValid")
+	
+	'save / log feedback
+	F.Intrinsic.Control.CallSub(LogUploads)
+	F.Intrinsic.Control.CallSub(SaveFeedback)
+
+	F.Intrinsic.String.Build("Processing done. {0} contacts uploaded, {1} updated, {2} failed.", V.Global.iUploaded, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedContacts.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+
+V.Local.sSQL.Set("select RTRIM(EXTERNAL_CONTACT_ID) EXTERNAL_CONTACT_ID, GSS_CONTACT_ID, RTRIM(EXTERNAL_COMPANY_ID) EXTERNAL_COMPANY_ID, RTRIM(GSS_COMPANY_ID) GSS_COMPANY_ID, RTRIM(TYPE) TYPE, RTRIM(FULL_NAME) FULL_NAME, RTRIM(UPPER(FULL_NAME)) FULL_NAME_UPPER, PREFIX, RTRIM(FIRST_NAME) FIRST_NAME, RTRIM(MIDDLE_INITIAL) MIDDLE_INITIAL, RTRIM(LAST_NAME) LAST_NAME, SUFFIX, RTRIM(PREFERRED_NAME) PREFERRED_NAME, PRIMARY_CONTACT, BIRTHDAY, RTRIM(EMAIL) EMAIL, RTRIM(PHONE) PHONE, RTRIM(EXTENSION) EXTENSION, PHONE_TYPE, USE_COMPANY_ADDRESS, RTRIM(ADDRESS_1) ADDRESS_1, RTRIM(ADDRESS_2) ADDRESS_2, RTRIM(ADDRESS_3) ADDRESS_3, RTRIM(ADDRESS_4) ADDRESS_4, RTRIM(ADDRESS_5) ADDRESS_5, RTRIM(CITY) CITY, RTRIM(STATE) STATE, RTRIM(ZIP) ZIP, RTRIM(COUNTRY) COUNTRY, RTRIM(SHIP_TO_ID) SHIP_TO_ID, RTRIM(SHIP_ADDRESS_1) SHIP_ADDRESS_1, RTRIM(SHIP_ADDRESS_2) SHIP_ADDRESS_2, RTRIM(SHIP_ADDRESS_3) SHIP_ADDRESS_3, RTRIM(SHIP_ADDRESS_4) SHIP_ADDRESS_4, RTRIM(SHIP_ADDRESS_5) SHIP_ADDRESS_5, RTRIM(SHIP_CITY) SHIP_CITY, RTRIM(SHIP_STATE) SHIP_STATE, RTRIM(SHIP_ZIP) SHIP_ZIP, RTRIM(SHIP_COUNTRY) SHIP_COUNTRY, SHIP_PRIMARY_CONTACT, RTRIM(PHONE_2) PHONE_2, RTRIM(PHONE_2_EXTENSION) PHONE_2_EXTENSION, PHONE_2_TYPE, RTRIM(PHONE_3) PHONE_3, RTRIM(PHONE_3_EXTENSION) PHONE_3_EXTENSION, PHONE_3_TYPE, RTRIM(PHONE_4) PHONE_4, RTRIM(PHONE_4_EXTENSION) PHONE_4_EXTENSION, PHONE_4_TYPE, RTRIM(EMAIL_2) EMAIL_2, RTRIM(SPOUSE_NAME) SPOUSE_NAME, RTRIM(JOB_TITLE) JOB_TITLE, RTRIM(JOB_FUNCTION) JOB_FUNCTION, RTRIM(MANAGER_NAME) MANAGER_NAME, RTRIM(ASSISTANT_MANAGER) ASSISTANT_MANAGER, RTRIM(USER_FIELD_1) USER_FIELD_1, RTRIM(USER_FIELD_2) USER_FIELD_2, RTRIM(USER_FIELD_3) USER_FIELD_3, RTRIM(USER_FIELD_4) USER_FIELD_4, RTRIM(USER_FIELD_5) USER_FIELD_5, RTRIM(USER_FIELD_6) USER_FIELD_6, RTRIM(USER_FIELD_7) USER_FIELD_7, RTRIM(USER_FIELD_8) USER_FIELD_8, RTRIM(USER_FIELD_9) USER_FIELD_9, RTRIM(USER_FIELD_10) USER_FIELD_10, RTRIM(USER_FIELD_11) USER_FIELD_11, RTRIM(USER_FIELD_12) USER_FIELD_12, RTRIM(USER_FIELD_13) USER_FIELD_13, RTRIM(USER_FIELD_14) USER_FIELD_14, RTRIM(USER_FIELD_15) USER_FIELD_15, RTRIM(USER_FIELD_16) USER_FIELD_16, UPDATE_CONTACT, RECORD_ID, E_INVOICING, E_ACKNOWLEDGEMENT, E_STATEMENT, E_CREDIT_MEMO from GCG_5807_CNTCT_STAGE where PROCESSED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.CreateFromSQL("dtContacts", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+'don't need any data that was in these columns
+F.Data.DataTable.AddColumn("dtContacts", "PROCESSED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtContacts", "FAILED", "Boolean", False)
+F.Data.DataTable.AddColumn("dtContacts", "FEEDBACK", "String", "")
+F.Data.DataTable.AddColumn("dtContacts", "PROCESSED_TIMESTAMP", "Date", V.Ambient.Now)
+F.Data.DataTable.AddColumn("dtContacts", "CREATED_CONTACT_ID", "Long", -1)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedContacts.End
+
+Program.Sub.PrepareStagedContacts.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sContact.Declare(String)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'grab gss customer, using option selected for storing external customer ID for now
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CUSTOMER")
+
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "EXTERNAL_COMPANY_ID")
+F.Data.DataTable.AddColumn("dtContacts", "GSS_CUSTOMER_FROM_EXTERNAL", "String", "")
+
+F.Intrinsic.Control.If(V.Args.Core_Field, !=, "***DONOTSTORE***")
+	F.Intrinsic.String.Build("select RTRIM({0}) CUSTOMER_ID, RTRIM(CUSTOMER) CUSTOMER from {1} where {0} in ('{2}')", V.Args.Core_Field, V.Args.Core_Table, V.Args.Filter, V.Local.sSQL)
+	
+	F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+	F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContacts.RowCount--, 1)
+		F.Intrinsic.String.Build("[CUSTOMER_ID] = '{0}'", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_COMPANY_ID!FieldValTrim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+		
+		F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+			F.Data.DataTable.SetValue("dtContacts", V.Local.iCounter, "GSS_CUSTOMER_FROM_EXTERNAL", V.DataView.dtIDs!dvIDs(0).CUSTOMER!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Data.DataView.Close("dtIDs", "dvIDs")
+	F.Data.DataTable.Close("dtIDs")
+F.Intrinsic.Control.EndIf
+
+'grab GSS prospect/suspect
+F.Data.DataTable.AddColumn("dtContacts", "GSS_PROSPECT_FROM_EXTERNAL", "String", "")
+F.Intrinsic.String.Build("select RTRIM(ALPHA_SORT) PROSPECT_ID, RTRIM(PROSPECT) PROSPECT from V_PROSPECT_AUX where ALPHA_SORT in ('{0}') and ALPHA_SORT <> ''", V.Args.Filter, V.Local.sSQL)
+
+F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContacts.RowCount--, 1)
+	F.Intrinsic.String.Build("[PROSPECT_ID] = '{0}'", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_COMPANY_ID!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+		F.Data.DataTable.SetValue("dtContacts", V.Local.iCounter, "GSS_PROSPECT_FROM_EXTERNAL", V.DataView.dtIDs!dvIDs(0).PROSPECT!FieldValTrim)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtIDs", "dvIDs")
+F.Data.DataTable.Close("dtIDs")
+
+'grab gss vendor, assuming ID is stored in other for now
+F.Data.DataTable.AddColumn("dtContacts", "GSS_VENDOR_FROM_EXTERNAL", "String", "")
+F.Intrinsic.String.Build("select RTRIM(OTHER) VENDOR_ID, RTRIM(VENDOR) VENDOR from V_VENDOR_MASTER where OTHER in ('{0}') and OTHER <> ''", V.Args.Filter, V.Local.sSQL)
+
+F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContacts.RowCount--, 1)
+	F.Intrinsic.String.Build("[VENDOR_ID] = '{0}'", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_COMPANY_ID!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+		F.Data.DataTable.SetValue("dtContacts", V.Local.iCounter, "GSS_VENDOR_FROM_EXTERNAL", V.DataView.dtIDs!dvIDs(0).VENDOR!FieldValTrim)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtIDs", "dvIDs")
+F.Data.DataTable.Close("dtIDs")
+
+'get final company id, check if exists
+F.Data.DataTable.AddExpressionColumn("dtContacts", "FINAL_COMPANY_ID", "String", "IIF(IsNull([GSS_COMPANY_ID], '') <> '', [GSS_COMPANY_ID], IIF([TYPE] = 'C', [GSS_CUSTOMER_FROM_EXTERNAL], IIF([TYPE] = 'S' or [TYPE] = 'P', [GSS_PROSPECT_FROM_EXTERNAL], IIF([TYPE] = 'V', [GSS_VENDOR_FROM_EXTERNAL], ''))))")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "FINAL_COMPANY_ID")
+
+'customer exists
+F.Intrinsic.String.Build("select RTRIM(CUSTOMER), Cast(1 as Bit) from V_CUSTOMER_MASTER where CUSTOMER in ('{0}') and CUSTOMER <> ''", V.Args.Filter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtContacts", "CUSTOMER_EXISTS", "Boolean", False)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "FINAL_COMPANY_ID", "CUSTOMER_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+'prospect exists
+F.Intrinsic.String.Build("select RTRIM(PROSPECT), Cast(1 as Bit) from V_PROSPECT_MASTER where PROSPECT in ('{0}') and PROSPECT <> '' and PROSP_TYPE = 0", V.Args.Filter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtContacts", "PROSPECT_EXISTS", "Boolean", False)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "FINAL_COMPANY_ID", "PROSPECT_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+'suspect exists
+F.Intrinsic.String.Build("select RTRIM(PROSPECT), Cast(1 as Bit) from V_PROSPECT_MASTER where PROSPECT in ('{0}') and PROSPECT <> '' and PROSP_TYPE = 1", V.Args.Filter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtContacts", "SUSPECT_EXISTS", "Boolean", False)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "FINAL_COMPANY_ID", "SUSPECT_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+'vendor exists
+F.Intrinsic.String.Build("select RTRIM(VENDOR), Cast(1 as Bit) from V_VENDOR_MASTER where VENDOR in ('{0}') and VENDOR <> ''", V.Args.Filter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtContacts", "VENDOR_EXISTS", "Boolean", False)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "FINAL_COMPANY_ID", "VENDOR_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.AddExpressionColumn("dtContacts", "COMPANY_EXISTS", "Boolean", "IIF([TYPE] = 'C', [CUSTOMER_EXISTS], IIF([TYPE] = 'P', [PROSPECT_EXISTS], IIF([TYPE] = 'S', [SUSPECT_EXISTS], IIF([TYPE] = 'V', [VENDOR_EXISTS], False))))")
+
+'grab contact from external contact ID
+F.Data.DataTable.AddColumn("dtContacts", "CONTACT_ID_FROM_EXTERNAL_ID", "Long", -1)
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CONTACT")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "EXTERNAL_CONTACT_ID")
+
+F.Intrinsic.Control.If(V.Args.Core_Field, !=, "***DONOTSTORE***")
+	F.Intrinsic.String.Build("select RTRIM({0}) EXTERNAL_ID, CID from {1} where TYPE = 12 and {0} in ('{2}')", V.Args.Core_Field, V.Args.Core_Table, V.Args.Filter, V.Local.sSQL)
+	
+	F.Data.DataTable.CreateFromSQL("dtIDs", "Con", V.Local.sSQL)
+	F.Data.DataView.Create("dtIDs", "dvIDs", 22)
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContacts.RowCount--, 1)
+		V.Local.sContact.Set(V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim)
+		F.Intrinsic.String.Build("[EXTERNAL_ID] = '{0}'", V.Local.sContact.PSQLFriendly, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtIDs", "dvIDs", V.Local.sFilter)
+		
+		F.Intrinsic.Control.If(V.DataView.dtIDs!dvIDs.RowCount, >, 0)
+			F.Data.DataTable.SetValue("dtContacts", V.Local.iCounter, "CONTACT_ID_FROM_EXTERNAL_ID", V.DataView.dtIDs!dvIDs(0).CID!FieldValLong)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Data.DataView.Close("dtIDs", "dvIDs")
+	F.Data.DataTable.Close("dtIDs")
+F.Intrinsic.Control.EndIf
+
+'grab contact id from name
+F.Data.DataTable.AddExpressionColumn("dtContacts", "COMPANY_AND_CONTACT_NAME", "String", "Trim([FINAL_COMPANY_ID]) + Trim([TYPE]) + Trim([FULL_NAME_UPPER])")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "COMPANY_AND_CONTACT_NAME")
+F.Intrinsic.String.Build("select RTRIM(CUST) + RTRIM(TYPE) + RTRIM(UPPER(NAME)) COMPANY_AND_CONTACT_NAME, ALT_ID from V_CONTACT where COMPANY_AND_CONTACT_NAME in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+F.Data.DataTable.AddColumn("dtContacts", "CONTACT_ID_FROM_NAME", "Long", -1)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "COMPANY_AND_CONTACT_NAME", "CONTACT_ID_FROM_NAME")
+F.Data.Dictionary.Close("dictTemp")
+
+'get final contact id
+F.Data.DataTable.AddExpressionColumn("dtContacts", "FINAL_CONTACT_ID", "Long", "IIF(IsNull([GSS_CONTACT_ID], -1) <> -1, [GSS_CONTACT_ID], IIF([CONTACT_ID_FROM_EXTERNAL_ID] <> -1, [CONTACT_ID_FROM_EXTERNAL_ID], IIF([CONTACT_ID_FROM_NAME] <> -1, [CONTACT_ID_FROM_NAME], [CREATED_CONTACT_ID])))")
+
+'check if contact exists
+'getfilter returns a string filter, get rid of the quotes
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "FINAL_CONTACT_ID")
+F.Intrinsic.String.Replace(V.Args.Filter, "'", "", V.Local.sFilter)
+F.Intrinsic.String.Build("select ALT_ID, Cast(1 as Bit) from V_CONTACT where ALT_ID <> -1 and ALT_ID in ({0})", V.Local.sFilter, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dictTemp", False)
+F.Data.DataTable.AddColumn("dtContacts", "CONTACT_EXISTS", Boolean, False)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "FINAL_CONTACT_ID", "CONTACT_EXISTS")
+F.Data.Dictionary.Close("dictTemp")
+
+'check if ship to exists?
+
+'check duplicate names?
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+'now run actual checks
+F.Data.DataView.Create("dtContacts", "dvCheck", 22)
+
+'now setting the update flag ourselves based off keys instead of requiring the inserter to set it
+F.Data.DataView.SetFilter("dtContacts", "dvCheck", "Failed = False and Contact_Exists = True")
+F.Intrinsic.Control.If(V.DataView.dtContacts!dvCheck.RowCount, >, 0)
+	F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "Update_Contact", True)
+F.Intrinsic.Control.EndIf
+
+'some of the below update checks don't make much sense anymore, leaving them in for now. 
+'these were for when we were updating based solely off the update flag, and the update flag was set by the inserter, not us.
+'if updating, check if the order exists
+'check update option
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CONTACT", "NAME", "ALLOW_UPDATE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting.Not)
+		F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[CONTACT_EXISTS] = True and Failed = False and Update_Contact = True")
+		F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact update failed because the passed option to allow contact updates is not on.", Failed, True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[CONTACT_EXISTS] = True and Failed = False and Update_Contact = True")
+	F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact update failed because the passed option to allow contact updates is not on.", Failed, True)
+F.Intrinsic.Control.EndIf
+
+'check if company exists
+F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[COMPANY_EXISTS] = False and Failed = False and Update_Contact = False")
+F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact upload failed because the passed company does not exist in Global Shop.", Failed, True)
+
+F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[COMPANY_EXISTS] = False and Failed = False and Update_Contact = True")
+F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact update failed because the passed company does not exist in Global Shop.", Failed, True)
+
+'check if contact exists
+F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[CONTACT_EXISTS] = False and Failed = False and Update_Contact = True")
+F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact update failed because the passed contact does not exist in Global Shop.", Failed, True)
+
+F.Data.DataView.SetFilter("dtContacts", "dvCheck", "[CONTACT_EXISTS] = True and Failed = False and Update_Contact = False")
+F.Data.DataView.SetValue("dtContacts", "dvCheck", -1, "FEEDBACK", "The contact upload failed because the passed contact already exists in Global Shop.", Failed, True)
+
+'overrides
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CONTACT", "NAME", "OVERRIDE_E_INVOICING")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.SetValue("dtContacts", -1, "E_INVOICING", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CONTACT", "NAME", "OVERRIDE_E_ACKNOWLEDGEMENT")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.SetValue("dtContacts", -1, "E_ACKNOWLEDGEMENT", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CONTACT", "NAME", "OVERRIDE_E_STATEMENT")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.SetValue("dtContacts", -1, "E_STATEMENT", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "CONTACT", "NAME", "OVERRIDE_E_CREDIT_MEMO")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	F.Intrinsic.Control.If(V.Args.Setting)
+		F.Data.DataTable.SetValue("dtContacts", -1, "E_CREDIT_MEMO", True)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.Close("dtContacts", "dvCheck")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.PrepareStagedContacts.End
+
+Program.Sub.UploadStagedContacts.Start
+'add the contacts to the library table and then process
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sExternalID.Declare(String)
+V.Local.sSQL.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sSequence.Declare(String)
+V.Local.iEProgramSettings.Declare(Long)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CONTACT")
+
+F.Data.DataTable.AddColumn("dtContacts", "SEQUENCE", "String", "00")
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtContacts!dvValid.RowCount--, 1)
+	'this doesn't really matter since we aren't allowing duplicates anyway
+	F.Intrinsic.Control.CallSub(GetNextSequence, "COMPANY", V.DataView.dtContacts!dvValid(V.Local.iCounter).FINAL_COMPANY_ID!FieldValTrim, "TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).TYPE!FieldValTrim, "CONTACT", V.DataView.dtContacts!dvValid(V.Local.iCounter).FULL_NAME!FieldValTrim)
+	F.Intrinsic.String.LPad(V.Args.Sequence, "0", 2, V.Local.sSequence)
+	F.Data.DataView.SetValue("dtContacts", "dvValid", V.Local.iCounter, "SEQUENCE", V.Local.sSequence)
+	
+	'store the external ID
+	F.Intrinsic.Control.If(V.Args.UPLOAD_FIELD.Trim, !=, "***DONOTSTORE***")
+		'should we fail if the ID is too long?
+		V.Local.sExternalID.Set(V.DataView.dtContacts!dvValid(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sExternalID.Length, >, V.Args.Size)
+			'add log?
+			F.Intrinsic.String.Build("External ID [{0}] is too long ({1}) for field [{2}] ({3}). ID will be truncated.", V.Local.sExternalID, V.Local.sExternalID.Length, V.Args.CORE_FIELD, V.Args.Size, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.String.Left(V.Local.sExternalID, V.Args.Size, V.Local.sExternalID)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataView.SetValue("dtContacts", "dvValid", V.Local.iCounter, V.Args.UPLOAD_FIELD, V.Local.sExternalID)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.AddRow("dtUPLCNTCT", "COMPANY_ID", V.DataView.dtContacts!dvValid(V.Local.iCounter).FINAL_COMPANY_ID!FieldValTrim, "CONTACT_TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).TYPE!FieldValTrim, "CONTACT_NAME", V.DataView.dtContacts!dvValid(V.Local.iCounter).FULL_NAME!FieldValTrim, "SEQUENCE", V.Args.SEQUENCE, "NAME_PREFIX", V.DataView.dtContacts!dvValid(V.Local.iCounter).PREFIX!FieldValLong, "FIRST_NAME", V.DataView.dtContacts!dvValid(V.Local.iCounter).FIRST_NAME!FieldValTrim, "MIDDLE_INITIAL", V.DataView.dtContacts!dvValid(V.Local.iCounter).MIDDLE_INITIAL!FieldValTrim, "LAST_NAME", V.DataView.dtContacts!dvValid(V.Local.iCounter).LAST_NAME!FieldValTrim, "NAME_SUFFIX", V.DataView.dtContacts!dvValid(V.Local.iCounter).SUFFIX!FieldValLong, "PREFERRED_NAME", V.DataView.dtContacts!dvValid(V.Local.iCounter).PREFERRED_NAME!FieldValTrim, "BIRTHDAY", V.DataView.dtContacts!dvValid(V.Local.iCounter).BIRTHDAY!FieldVal, "AFFILIATION", True, "PRIMARY_PHONE_TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_TYPE!FieldValLong, "PRIMARY_PHONE_NUMBER", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE!FieldValTrim, "PRIMARY_PHONE_EXTENSION", V.DataView.dtContacts!dvValid(V.Local.iCounter).EXTENSION!FieldValTrim, "SECONDARY_PHONE_TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_2_TYPE!FieldValLong, "SECONDARY_PHONE_NUMBER", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_2!FieldValTrim, "SECONDARY_PHONE_EXTENSION", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_2_EXTENSION!FieldValTrim, "EMAIL", V.DataView.dtContacts!dvValid(V.Local.iCounter).EMAIL!FieldValTrim, "PRIMARY_ADDRESS", V.DataView.dtContacts!dvValid(V.Local.iCounter).USE_COMPANY_ADDRESS!FieldVal, "PRIMARY_ADDRESS_1", V.DataView.dtContacts!dvValid(V.Local.iCounter).ADDRESS_1!FieldValTrim, "PRIMARY_ADDRESS_2", V.DataView.dtContacts!dvValid(V.Local.iCounter).ADDRESS_2!FieldValTrim, "PRIMARY_ADDRESS_3", V.DataView.dtContacts!dvValid(V.Local.iCounter).ADDRESS_3!FieldValTrim, "PRIMARY_ADDRESS_4", V.DataView.dtContacts!dvValid(V.Local.iCounter).ADDRESS_4!FieldValTrim, "PRIMARY_ADDRESS_5", V.DataView.dtContacts!dvValid(V.Local.iCounter).ADDRESS_5!FieldValTrim, "PRIMARY_CITY", V.DataView.dtContacts!dvValid(V.Local.iCounter).CITY!FieldValTrim, "PRIMARY_STATE", V.DataView.dtContacts!dvValid(V.Local.iCounter).STATE!FieldValTrim, "PRIMARY_ZIP", V.DataView.dtContacts!dvValid(V.Local.iCounter).ZIP!FieldValTrim, "PRIMARY_COUNTRY", V.DataView.dtContacts!dvValid(V.Local.iCounter).COUNTRY!FieldValTrim, "SHIP_TO_ID", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_TO_ID!FieldValTrim, "SHIP_TO_PRIMARY_CONTACT", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_PRIMARY_CONTACT!FieldVal, "SHIP_TO_ADDRESS_1", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ADDRESS_1!FieldValTrim, "SHIP_TO_ADDRESS_2", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ADDRESS_2!FieldValTrim, "SHIP_TO_ADDRESS_3", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ADDRESS_3!FieldValTrim, "SHIP_TO_ADDRESS_4", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ADDRESS_4!FieldValTrim, "SHIP_TO_ADDRESS_5", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ADDRESS_5!FieldValTrim, "SHIP_TO_CITY", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_CITY!FieldValTrim, "SHIP_TO_STATE", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_STATE!FieldValTrim, "SHIP_TO_ZIP", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_ZIP!FieldValTrim, "SHIP_TO_COUNTRY", V.DataView.dtContacts!dvValid(V.Local.iCounter).SHIP_COUNTRY!FieldValTrim, "ADDITIONAL_PHONE_1_TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_3_TYPE!FieldValLong, "ADDITIONAL_PHONE_1_NUMBER", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_3!FieldValTrim, "ADDITIONAL_PHONE_1_EXTENSION", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_3_EXTENSION!FieldValTrim, "ADDITIONAL_PHONE_2_TYPE", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_4_TYPE!FieldValLong, "ADDITIONAL_PHONE_2_NUMBER", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_4!FieldValTrim, "ADDITIONAL_PHONE_2_EXTENSION", V.DataView.dtContacts!dvValid(V.Local.iCounter).PHONE_4_EXTENSION!FieldValTrim, "SECONDARY_EMAIL", V.DataView.dtContacts!dvValid(V.Local.iCounter).EMAIL_2!FieldValTrim, "SPOUSE_NAME", V.DataView.dtContacts!dvValid(V.Local.iCounter).SPOUSE_NAME!FieldValTrim, "JOB_TITLE", V.DataView.dtContacts!dvValid(V.Local.iCounter).JOB_TITLE!FieldValTrim, "JOB_FUNCTION", V.DataView.dtContacts!dvValid(V.Local.iCounter).JOB_FUNCTION!FieldValTrim, "MANAGER", V.DataView.dtContacts!dvValid(V.Local.iCounter).MANAGER_NAME!FieldValTrim, "ASSISTANT_MANAGER", V.DataView.dtContacts!dvValid(V.Local.iCounter).ASSISTANT_MANAGER!FieldValTrim, "USER_FIELD_1", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_1!FieldValTrim, "USER_FIELD_2", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_2!FieldValTrim, "USER_FIELD_3", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_3!FieldValTrim, "USER_FIELD_4", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_4!FieldValTrim, "USER_FIELD_5", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_5!FieldValTrim, "USER_FIELD_6", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_6!FieldValTrim, "USER_FIELD_7", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_7!FieldValTrim, "USER_FIELD_8", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_8!FieldValTrim, "USER_FIELD_9", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_9!FieldValTrim, "USER_FIELD_10", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_10!FieldValTrim, "USER_FIELD_11", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_11!FieldValTrim, "USER_FIELD_12", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_12!FieldValTrim, "USER_FIELD_13", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_13!FieldValTrim, "USER_FIELD_14", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_15!FieldValTrim, "USER_FIELD_15", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_15!FieldValTrim, "USER_FIELD_16", V.DataView.dtContacts!dvValid(V.Local.iCounter).USER_FIELD_16!FieldValTrim, "PRIMARY_CONTACT", V.DataView.dtContacts!dvValid(V.Local.iCounter).PRIMARY_CONTACT!FieldVal)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'upload customers
+F.Intrinsic.Control.CallSub(UPLCNTCT)
+
+'check if upload library had error
+F.Intrinsic.Control.If(V.Global.sUPLCNTCTError.Trim, !=, "")
+	F.Intrinsic.String.Build("UPLCNTCT library failed with error message: [{0}] Exiting...", V.Global.sUPLCNTCTError, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(Exit)
+F.Intrinsic.Control.EndIf
+
+'back up files
+F.Intrinsic.String.Build("{0}\CONTACT.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.Control.CallSub(BackUpFile, "Type", "Contact", "File", V.Local.sFile)
+
+'check upload
+F.Data.DataTable.AddExpressionColumn("dtContacts", "CONTACT_CHECK_KEY", "String", "[COMPANY_AND_CONTACT_NAME] + Trim([SEQUENCE])")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContacts", "Field", "CONTACT_CHECK_KEY")
+F.Intrinsic.String.Build("select RTRIM(CUST) + RTRIM(TYPE) + RTRIM(UPPER(NAME)) + RTRIM(SEQ) CONTACT_CHECK_KEY, ALT_ID from V_CONTACT where CONTACT_CHECK_KEY in ('{0}')", V.Args.Filter.Trim, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.Dictionary.CreateFromSQL("dictTemp", "Con", V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.Dictionary.SetDefaultReturn("dictTemp", -1)
+F.Data.DataTable.FillFromDictionary("dtContacts", "dictTemp", "CONTACT_CHECK_KEY", "CREATED_CONTACT_ID")
+F.Data.Dictionary.Close("dictTemp")
+
+'update extra fields on successful uploads
+F.Data.DataView.Create("dtContacts", "dvCheck", 22, "FAILED = False and Update_Contact = False and CREATED_CONTACT_ID <> -1", "")
+F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtContacts!dvCheck.RowCount--, 0, -1)
+	'e program settings
+	'invoices = 1
+	'acknowledgements = 2
+	'statements = 4
+	'credit memos = 8
+	'add them together to get what goes in E_PROG_SETTINGS in CRM_CONTACT_AUX
+	
+	V.Local.iEProgramSettings.Set(0)
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvCheck(V.Local.iCounter).E_INVOICING!FieldVal)
+		F.Intrinsic.Math.Add(V.Local.iEProgramSettings, 1, V.Local.iEProgramSettings)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvCheck(V.Local.iCounter).E_ACKNOWLEDGEMENT!FieldVal)
+		F.Intrinsic.Math.Add(V.Local.iEProgramSettings, 2, V.Local.iEProgramSettings)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvCheck(V.Local.iCounter).E_STATEMENT!FieldVal)
+		F.Intrinsic.Math.Add(V.Local.iEProgramSettings, 4, V.Local.iEProgramSettings)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataView.dtContacts!dvCheck(V.Local.iCounter).E_CREDIT_MEMO!FieldVal)
+		F.Intrinsic.Math.Add(V.Local.iEProgramSettings, 8, V.Local.iEProgramSettings)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("update CRM_CONTACT_AUX set E_PROG_SETTINGS = {0} where CID = {1}", V.Local.iEProgramSettings, V.DataView.dtContacts!dvCheck(V.Local.iCounter).CREATED_CONTACT_ID!FieldValLong, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtContacts", "dvCheck")
+
+'log failed uploads
+F.Data.DataView.Create("dtContacts", "dvCheck", 22, "FAILED = False and Update_Contact = False and CREATED_CONTACT_ID = -1", "")
+F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtContacts!dvCheck.RowCount--, 0, -1)
+	F.Intrinsic.String.Build("Attempted upload of external contact [{0}] failed.", V.DataView.dtContacts!dvCheck(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim, V.Local.sMessage)
+	F.Data.DataView.SetValue("dtContacts", "dvCheck", V.Local.iCounter, "FEEDBACK", V.Local.sMessage, "Failed", True)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtContacts", "dvCheck")
+
+V.Global.iUploaded.Set(V.DataView.dtContacts!dvValid.RowCount)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedContacts.End
+
+Program.Sub.GetNextSequence.Start
+'pass COMPANY, TYPE, CONTACT (full name)
+'returns SEQUENCE
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.iSequence.Declare(Long, 0)
+
+F.Intrinsic.String.Build("select MAX(SEQ) from V_CONTACT where TYPE = '{0}' and CUST = '{1}' and NAME = '{2}'", V.Args.Type.Trim, V.Args.Company.Trim, V.Args.Contact.PSQLFriendly, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+	F.Intrinsic.Control.If(V.Local.sRet.Trim, !=, "")
+		F.Intrinsic.Math.Add(V.Local.sRet.Long, 1, V.Local.iSequence)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("SEQUENCE", V.Local.iSequence)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetNextSequence.End
+
+Program.Sub.SaveFeedback.Start
+'update staging table with feedback
+
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.SetValue("dtContacts", -1, "Processed", True)
+F.Data.DataTable.AcceptChanges("dtContacts")
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.SaveToDB("dtContacts", "Con", "GCG_5807_CNTCT_STAGE", "RECORD_ID", 256, "FINAL_CONTACT_ID@!@GSS_CONTACT_ID*!*FINAL_COMPANY_ID@!@GSS_COMPANY_ID*!*PROCESSED@!@PROCESSED*!*FAILED@!@FAILED*!*FEEDBACK@!@FEEDBACK*!*PROCESSED_TIMESTAMP@!@PROCESSED_TIMESTAMP*!*RECORD_ID@!@RECORD_ID*!*UPDATE_CONTACT@!@UPDATE_CONTACT")
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.LogUploads.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sMessage.Declare(String)
+
+'log all uploads, failed / passed
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContacts.RowCount--, 1)
+
+	F.Intrinsic.Control.If(V.DataTable.dtContacts(V.Local.iCounter).FAILED!FieldVal)
+		F.Intrinsic.String.Build("Upload for external contact [{0}] failed with message: {1}", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim, V.DataTable.dtContacts(V.Local.iCounter).FEEDBACK!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.If(V.DataTable.dtContacts(V.Local.iCounter).UPDATE_CONTACT!FieldVal)
+			F.Intrinsic.String.Build("External contact [{0}] / GSS contact [{1}] successfully updated.", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim, V.DataTable.dtContacts(V.Local.iCounter).FULL_NAME!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("External contact [{0}] successfully uploaded as GSS contact {1}.", V.DataTable.dtContacts(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim, V.DataTable.dtContacts(V.Local.iCounter).FULL_NAME!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.Datatable.SetValue("dtContacts", V.Local.iCounter, "FEEDBACK", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'grab failed count
+F.Data.DataView.Create("dtContacts", "dvFailed", 22, "Failed = True", "")
+V.Global.iFailed.Set(V.DataView.dtContacts!dvFailed.RowCount)
+F.Data.DataView.Close("dtContacts", "dvFailed")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LogUploads.End
+
+Program.Sub.UpdateContacts.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.dDate.Declare(Date)
+V.Local.sExternalID.Declare(String)
+V.Local.sDate.Declare(String)
+V.Local.iUID.Declare(Long)
+V.Local.iCompType.Declare(Long)
+
+F.Data.DataView.ToDataTable("dtContacts", "dvValid", "dtContactUpdate", True)
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtContactUpdate", "Field", "FINAL_CONTACT_ID")
+F.Intrinsic.String.Replace(V.Args.Filter, "'", "", V.Local.sFilter)
+
+F.Data.DataTable.AddExpressionColumn("dtContactUpdate", "PRIMARY_ADDRESS_LONG", "Long", "IIF([USE_COMPANY_ADDRESS], 1, 0)")
+F.Data.DataTable.AddExpressionColumn("dtContactUpdate", "PREFIX_STRING", "String", "IIF([PREFIX] = 0, '', IIF([PREFIX] = 1, 'Miss', IIF([PREFIX] = 2, 'Mrs.', IIF([PREFIX] = 3, 'Mr.', IIF([PREFIX] = 4, 'Ms.', '')))))")
+F.Data.DataTable.AddExpressionColumn("dtContactUpdate", "SUFFIX_STRING", "String", "IIF([SUFFIX] = 0, '', IIF([SUFFIX] = 1, 'II', IIF([SUFFIX] = 2, 'III', IIF([SUFFIX] = 3, 'IV', IIF([SUFFIX] = 4, 'Jr.', IIF([SUFFIX] = 5, 'Sr.', ''))))))")
+
+'run through the contacts marked to be updated, update them
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'grab contact table
+F.Intrinsic.String.Build("select ALT_ID, ALT_ID CID, NAME, NAME_PREFIX, NAME_FIRST, NAME_MID_INT, NAME_LAST, NAME_PREFERRED, NAME_SUFFIX, PHONE_T1, PHONE_T2, PHONE_T3, PHONE_T4, PHONE1, PHONE2, PHONE3, PHONE4, EXT1, EXT2, EXT3, EXT4, TITLE, JOB_FUNCTION, EMAIL1, EMAIL2, BIRTHDAY, SPOUSE, JOB_MGR, JOB_ASST_MGR, ADDRESS_1, ADDRESS_2, CITY, STATE, ZIP, ADDRESS2_1, ADDRESS2_2, CITY2, STATE2, ZIP2, USER_1, USER_2, USER_3, USER_4, PRI_ADDRESS, PRI_CNTCT from CONTACT where ALT_ID in ({0})", V.Local.sFilter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtContactTableUpdate", "Con", V.Local.sSQL)
+
+'grab aux table
+F.Intrinsic.String.Build("select CID, SHIPTOID, PRIM_SHIPTO_CONTACT, PRIM_ADDRESS3, PRIM_ADDRESS4, PRIM_ADDRESS5, PRIM_COUNTRY, SHIPTO_ADDRESS3, SHIPTO_ADDRESS4, SHIPTO_ADDRESS5, SHIPTO_COUNTRY from CRM_CONTACT_AUX where CID in ({0})", V.Local.sFilter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtAuxTableUpdate", "Con", V.Local.sSQL)
+
+'grab user field table
+F.Intrinsic.String.Build("select UID, CID, COMPID, TYPE, COMPTYPE, UF5, UF6, UF7, UF8, UF9, UF10, UF11, UF12, UF13, UF14, UF15, UF16 from CRM_UF_VALUE where TYPE = 12 and CID in ({0})", V.Local.sFilter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtUFTableUpdate", "Con", V.Local.sSQL)
+
+'grab external ID options
+F.Intrinsic.Control.CallSub(GetExternalIDField, "TYPE", "CONTACT")
+
+'now loop through and set values
+F.Data.DataView.Create("dtContactTableUpdate", "dvContactTableUpdate", 22)
+F.Data.DataView.Create("dtAuxTableUpdate", "dvAuxTableUpdate", 22)
+F.Data.DataView.Create("dtUFTableUpdate", "dvUFTableUpdate", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtContactUpdate.RowCount--, 1)
+	'store the external ID
+	F.Intrinsic.Control.If(V.Args.UPLOAD_FIELD.Trim, !=, "***DONOTSTORE***")
+		'should we fail if the ID is too long?
+		V.Local.sExternalID.Set(V.DataTable.dtContactUpdate(V.Local.iCounter).EXTERNAL_CONTACT_ID!FieldValTrim)
+		F.Intrinsic.Control.If(V.Local.sExternalID.Length, >, V.Args.Size)
+			'add log?
+			F.Intrinsic.String.Build("External ID [{0}] is too long ({1}) for field [{2}] ({3}). ID will be truncated.", V.Local.sExternalID, V.Local.sExternalID.Length, V.Args.CORE_FIELD, V.Args.Size, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.String.Left(V.Local.sExternalID, V.Args.Size, V.Local.sExternalID)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataTable.SetValue("dtContactUpdate", V.Local.iCounter, V.Args.UPLOAD_FIELD, V.Local.sExternalID)
+	F.Intrinsic.Control.EndIf
+	
+	'check if the row exists
+	F.Intrinsic.String.Build("[CID] = {0}", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtContactTableUpdate", "dvContactTableUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtAuxTableUpdate", "dvAuxTableUpdate", V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUFTableUpdate", "dvUFTableUpdate", V.Local.sFilter)
+	
+	'check contact table
+	F.Intrinsic.Control.If(V.DataView.dtContactTableUpdate!dvContactTableUpdate.RowCount, >, 0)
+		
+		F.Intrinsic.Control.If(V.DataTable.dtContactUpdate(V.Local.iCounter).BIRTHDAY!FieldVal, !=, "")
+			V.Local.dDate.Set(V.DataTable.dtContactUpdate(V.Local.iCounter).BIRTHDAY!FieldVal)
+			V.Local.sDate.Set(V.Local.dDate.FormatMM/DD/YYYY)
+		F.Intrinsic.Control.Else
+			V.Local.sDate.Set("")
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataView.SetValue("dtContactTableUpdate", "dvContactTableUpdate", -1, "NAME", V.DataTable.dtContactUpdate(V.Local.iCounter).FULL_NAME!FieldValTrim, "NAME_PREFIX", V.DataTable.dtContactUpdate(V.Local.iCounter).PREFIX_STRING!FieldValTrim, "NAME_FIRST", V.DataTable.dtContactUpdate(V.Local.iCounter).FIRST_NAME!FieldValTrim, "NAME_MID_INT", V.DataTable.dtContactUpdate(V.Local.iCounter).MIDDLE_INITIAL!FieldValTrim, "NAME_LAST", V.DataTable.dtContactUpdate(V.Local.iCounter).LAST_NAME!FieldValTrim, "NAME_PREFERRED", V.DataTable.dtContactUpdate(V.Local.iCounter).PREFERRED_NAME!FieldValTrim, "NAME_SUFFIX", V.DataTable.dtContactUpdate(V.Local.iCounter).SUFFIX_STRING!FieldValTrim, "PHONE_T1", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_TYPE!FieldValTrim, "PHONE_T2", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_2_TYPE!FieldValTrim, "PHONE_T3", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_3_TYPE!FieldValTrim, "PHONE_T4", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_4_TYPE!FieldValTrim, "PHONE1", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE!FieldValTrim, "PHONE2", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_2!FieldValTrim, "PHONE3", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_3!FieldValTrim, "PHONE4", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_4!FieldValTrim, "EXT1", V.DataTable.dtContactUpdate(V.Local.iCounter).EXTENSION!FieldValTrim, "EXT2", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_2_EXTENSION!FieldValTrim, "EXT3", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_3_EXTENSION!FieldValTrim, "EXT4", V.DataTable.dtContactUpdate(V.Local.iCounter).PHONE_4_EXTENSION!FieldValTrim, "TITLE", V.DataTable.dtContactUpdate(V.Local.iCounter).JOB_TITLE!FieldValTrim, "JOB_FUNCTION", V.DataTable.dtContactUpdate(V.Local.iCounter).JOB_FUNCTION!FieldValTrim, "EMAIL1", V.DataTable.dtContactUpdate(V.Local.iCounter).EMAIL!FieldValTrim, "EMAIL2", V.DataTable.dtContactUpdate(V.Local.iCounter).EMAIL_2!FieldValTrim, "BIRTHDAY", V.Local.sDate, "SPOUSE", V.DataTable.dtContactUpdate(V.Local.iCounter).SPOUSE_NAME!FieldValTrim, "JOB_MGR", V.DataTable.dtContactUpdate(V.Local.iCounter).MANAGER_NAME!FieldValTrim, "JOB_ASST_MGR", V.DataTable.dtContactUpdate(V.Local.iCounter).ASSISTANT_MANAGER!FieldValTrim, "ADDRESS_1", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_1!FieldValTrim, "ADDRESS_2", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_2!FieldValTrim, "CITY", V.DataTable.dtContactUpdate(V.Local.iCounter).CITY!FieldValTrim, "STATE", V.DataTable.dtContactUpdate(V.Local.iCounter).STATE!FieldValTrim, "ZIP", V.DataTable.dtContactUpdate(V.Local.iCounter).ZIP!FieldValTrim, "ADDRESS2_1", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_1!FieldValTrim, "ADDRESS2_2", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_2!FieldValTrim, "CITY2", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_CITY!FieldValTrim, "STATE2", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_STATE!FieldValTrim, "ZIP2", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ZIP!FieldValTrim, "USER_1", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_1!FieldValTrim, "USER_2", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_2!FieldValTrim, "USER_3", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_3!FieldValTrim, "USER_4", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_4!FieldValTrim, "PRI_ADDRESS", V.DataTable.dtContactUpdate(V.Local.iCounter).PRIMARY_ADDRESS_LONG!FieldValLong, "PRI_CNTCT", V.DataTable.dtContactUpdate(V.Local.iCounter).PRIMARY_CONTACT!FieldVal)
+		
+		'check aux table
+		F.Intrinsic.Control.If(V.DataView.dtAuxTableUpdate!dvAuxTableUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtAuxTableUpdate", "dvAuxTableUpdate", -1, "SHIPTOID", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_5!FieldValTrim, "PRIM_SHIPTO_CONTACT", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_PRIMARY_CONTACT!FieldVal, "PRIM_ADDRESS3", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_3!FieldValTrim, "PRIM_ADDRESS4", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_4!FieldValTrim, "PRIM_ADDRESS5", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_5!FieldValTrim, "PRIM_COUNTRY", V.DataTable.dtContactUpdate(V.Local.iCounter).COUNTRY!FieldValTrim, "SHIPTO_ADDRESS3", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_3!FieldValTrim, "SHIPTO_ADDRESS4", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_4!FieldValTrim, "SHIPTO_ADDRESS5", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_5!FieldValTrim, "SHIPTO_COUNTRY", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_COUNTRY!FieldValTrim)
+		F.Intrinsic.Control.Else
+			'add row if there is not one
+			F.Intrinsic.String.Build("No CRM_CONTACT_AUX record found for contact [{0} - {1}]. Adding new record.", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, V.DataTable.dtContactUpdate(V.Local.iCounter).FULL_NAME!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			F.Data.DataTable.AddRow("dtAuxTableUpdate", "CID", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, "SHIPTOID", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_5!FieldValTrim, "PRIM_SHIPTO_CONTACT", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_PRIMARY_CONTACT!FieldVal, "PRIM_ADDRESS3", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_3!FieldValTrim, "PRIM_ADDRESS4", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_4!FieldValTrim, "PRIM_ADDRESS5", V.DataTable.dtContactUpdate(V.Local.iCounter).ADDRESS_5!FieldValTrim, "PRIM_COUNTRY", V.DataTable.dtContactUpdate(V.Local.iCounter).COUNTRY!FieldValTrim, "SHIPTO_ADDRESS3", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_3!FieldValTrim, "SHIPTO_ADDRESS4", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_4!FieldValTrim, "SHIPTO_ADDRESS5", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_ADDRESS_5!FieldValTrim, "SHIPTO_COUNTRY", V.DataTable.dtContactUpdate(V.Local.iCounter).SHIP_COUNTRY!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+		
+		'check UF table
+		F.Intrinsic.Control.If(V.DataView.dtUFTableUpdate!dvUFTableUpdate.RowCount, >, 0)
+			F.Data.DataView.SetValue("dtUFTableUpdate", "dvUFTableUpdate", -1, "UF5", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_5!FieldValTrim, "UF6", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_6!FieldValTrim, "UF7", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_7!FieldValTrim, "UF8", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_8!FieldValTrim, "UF9", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_9!FieldValTrim, "UF10", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_10!FieldValTrim, "UF11", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_11!FieldValTrim, "UF12", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_12!FieldValTrim, "UF13", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_13!FieldValTrim, "UF14", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_14!FieldValTrim, "UF15", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_15!FieldValTrim, "UF16", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_16!FieldValTrim)
+		F.Intrinsic.Control.Else
+			'can I do this?
+			F.Intrinsic.String.Build("No CRM_UF_VALUE record found for contact [{0} - {1}]. Adding new record.", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, V.DataTable.dtContactUpdate(V.Local.iCounter).FULL_NAME!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			'grab top ID
+			F.ODBC.Connection!Con.ExecuteAndReturn("select MAX(UID) + 1 from CRM_UF_VALUE", V.Local.iUID)
+			
+			F.Intrinsic.Control.If(V.DataTable.dtContactUpdate(V.Local.iCounter).Type!FieldValTrim, =, "C")
+				V.Local.iCompType.Set(15)
+			F.Intrinsic.Control.ElseIf(V.DataTable.dtContactUpdate(V.Local.iCounter).Type!FieldValTrim, =, "V")
+				V.Local.iCompType.Set(10)
+			F.Intrinsic.Control.EndIf
+			
+			F.Data.DataTable.AddRow("dtUFTableUpdate", "COMPID", V.DataView.dtContacts!dvValid(V.Local.iCounter).FINAL_COMPANY_ID!FieldValTrim, "CID", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, "UF5", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_5!FieldValTrim, "UF6", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_6!FieldValTrim, "UF7", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_7!FieldValTrim, "UF8", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_8!FieldValTrim, "UF9", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_9!FieldValTrim, "UF10", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_10!FieldValTrim, "UF11", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_11!FieldValTrim, "UF12", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_12!FieldValTrim, "UF13", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_13!FieldValTrim, "UF14", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_14!FieldValTrim, "UF15", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_15!FieldValTrim, "UF16", V.DataTable.dtContactUpdate(V.Local.iCounter).USER_FIELD_16!FieldValTrim, "TYPE", 12, "UID", V.Local.iUID, "COMPTYPE", V.Local.iCompType)
+			
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		'if it ain't in here, we got problems
+		F.Intrinsic.String.Build("Contact [{0} - {1}] failed to update because the contact was not found in the CONTACT table.", V.DataTable.dtContactUpdate(V.Local.iCounter).FINAL_CONTACT_ID!FieldValLong, V.DataTable.dtContactUpdate(V.Local.iCounter).FULL_NAME!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'technically these rows should match and exist
+		F.Data.DataView.SetValue("dtContacts", "dvValid", V.Local.iCounter, "FEEDBACK", V.Local.sMessage, "FAILED", True)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtContactTableUpdate", "dvContactTableUpdate")
+F.Data.DataView.Close("dtAuxTableUpdate", "dvAuxTableUpdate")
+F.Data.DataView.Close("dtUFTableUpdate", "dvUFTableUpdate")
+
+'post back to the database
+F.Data.DataTable.RemoveColumn("dtContactTableUpdate", "CID")
+F.Data.DataTable.SaveToDB("dtContactTableUpdate", "Con", "CONTACT", "ALT_ID", 256)
+F.Data.DataTable.AddColumn("dtAuxTableUpdate", "INTERCEPT", "Boolean", False)
+F.Data.DataTable.SaveToDB("dtAuxTableUpdate", "Con", "CRM_CONTACT_AUX", "CID", 256)
+F.Data.DataTable.SaveToDB("dtUFTableUpdate", "Con", "CRM_UF_VALUE", "UID", 256)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataTable.Close("dtContactTableUpdate")
+F.Data.DataTable.Close("dtAuxTableUpdate")
+F.Data.DataTable.Close("dtUFTableUpdate")
+F.Data.DataTable.Close("dtContactUpdate")
+
+V.Global.iUpdated.Set(V.DataView.dtContacts!dvValid.RowCount)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UpdateContacts.End
+
+Program.Sub.SendIPMMessage.Start
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+'return counts to PID passed in switch
+F.Intrinsic.String.Build("CONTACTS{0}{1}{0}{2}{0}{3}", "!@@!", V.Global.iUploaded, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+F.Intrinsic.IPM.SendMessage(V.Local.sMessage, V.Caller.Switches)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SendIPMMessage.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtContacts.Exists)
+	F.Data.DataTable.Close("dtContacts")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.CallSub(ScriptPIDClear, "PROJECT", V.Global.sProject)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214155007544$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347T2scAYDBhkqz999zITGlekiTCvTkY4Sj8=
+Program.Sub.Comments.End
