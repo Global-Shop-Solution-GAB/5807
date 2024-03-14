@@ -1,0 +1,960 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_6021.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Router Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_RouterUploader.g2u
+'Trey S
+'September 9th, 2021
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload routers from the GCG_5807_ROUT_STAGE staging table utilizing callwrapper 6021
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check for staged 'routers
+F.Intrinsic.Control.CallSub(LoadStagedRouters)
+F.Intrinsic.Control.If(V.DataTable.dtRouters.RowCount, >, 0)
+	'process these records
+	F.Intrinsic.Control.CallSub(PrepareStagedRouters)
+	
+	'now upload any marked as valid
+	F.Data.DataView.Create("dtRouters", "dvValid", 22, "FAILED = False", "")
+	F.Intrinsic.Control.If(V.DataView.dtRouters!dvValid.RowCount, >, 0)
+		F.Intrinsic.Control.CallSub(UploadStagedRouters)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtRouters", "dvValid")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedRouters.Start
+'grab unprocessed records
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sTypes.Declare(String, "LONG*!*DATE*!*BOOLEAN*!*BOOLEAN*!*DATE*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*DATE*!*FLOAT*!*FLOAT*!*STRING*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*LONG*!*STRING*!*STRING*!*STRING*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*FLOAT*!*LONG*!*FLOAT*!*STRING*!*STRING*!*STRING*!*STRING*!*FLOAT*!*LONG*!*FLOAT*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*FLOAT*!*FLOAT*!*STRING*!*STRING*!*STRING*!*BOOLEAN*!*BOOLEAN")
+
+V.Local.sSQL.Set("select RECORD_ID, ISNULL(RECORD_TIMESTAMP, NOW()) RECORD_TIMESTAMP, PROCESSED, FAILED, ISNULL(PROCESSED_TIMESTAMP, NOW()) PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_ID) EXTERNAL_ID, UPPER(RTRIM(ROUTER_NUMBER)) ROUTER_NUMBER, UPPER(RTRIM(REVISION)) REVISION, RTRIM(ROUTER_DESCRIPTION) ROUTER_DESCRIPTION, UPPER(RTRIM(PRODUCT_LINE)) PRODUCT_LINE, UPPER(RTRIM(UNIT_OF_MEASURE)) UNIT_OF_MEASURE, ORIGINAL_DATE, ISNULL(COMMISSION_PERCENT, 0) COMMISSION_PERCENT, ISNULL(SCRAP_PERCENT, 0) SCRAP_PERCENT, UPPER(RTRIM(CUSTOMER_ID)) CUSTOMER_ID, ISNULL(QUANTITY_1, 0) QUANTITY_1, ISNULL(QUANTITY_2, 0) QUANTITY_2, ISNULL(QUANTITY_3, 0) QUANTITY_3, ISNULL(QUANTITY_4, 0) QUANTITY_4, ISNULL(QUANTITY_5, 0) QUANTITY_5, ISNULL(QUANTITY_6, 0) QUANTITY_6, ISNULL(QUANTITY_7, 0) QUANTITY_7, ISNULL(QUANTITY_8, 0) QUANTITY_8, ISNULL(QUANTITY_9, 0) QUANTITY_9, ISNULL(QUANTITY_10, 0) QUANTITY_10, RTRIM(EXTRA_DESCRIPTION_1) EXTRA_DESCRIPTION_1, RTRIM(EXTRA_DESCRIPTION_2) EXTRA_DESCRIPTION_2, RTRIM(EXTRA_DESCRIPTION_3) EXTRA_DESCRIPTION_3, RTRIM(PART_ID) PART_ID, RTRIM(DRAWING_NUMBER) DRAWING_NUMBER, RTRIM(USER_FIELD_1) USER_FIELD_1, RTRIM(USER_FIELD_2) USER_FIELD_2, UPPER(RTRIM(LINE_TYPE)) LINE_TYPE, ISNULL(LINE_NUMBER, -1) LINE_NUMBER, UPPER(RTRIM(MATERIAL)) MATERIAL, UPPER(RTRIM(MATERIAL_REVISION)) MATERIAL_REVISION, UPPER(RTRIM(OPERATION)) OPERATION, ISNULL(SETUP, 0) SETUP, ISNULL(LINE_QUANTITY, 0) LINE_QUANTITY, ISNULL(RATE, 0) RATE, ISNULL(MINIMUM, 0) MINIMUM, ISNULL(LEAD_HOURS, 0) LEAD_HOURS, ISNULL(OVERLAP, 0) OVERLAP, ISNULL(FREQUENCY, 0) FREQUENCY, RTRIM(SEQUENCE_GROUP) SEQUENCE_GROUP, RTRIM(LINE_DESCRIPTION) LINE_DESCRIPTION, RTRIM(SORT_CODE) SORT_CODE, UPPER(RTRIM(WORKCENTER)) WORKCENTER, ISNULL(CREW_SIZE, 0) CREW_SIZE, ISNULL(WORKCENTER_FACTOR, 0) WORKCENTER_FACTOR, ISNULL(YIELD, 0) YIELD, UPPER(RTRIM(VENDOR_ID)) VENDOR_ID, UPPER(RTRIM(SIGNOFF_TYPE)) SIGNOFF_TYPE, UPPER(RTRIM(SIGNOFF_BY)) SIGNOFF_BY, UPPER(RTRIM(OUTSIDE_CODE)) OUTSIDE_CODE, UPPER(RTRIM(ISNULL(TASK, ''))) TASK, ISNULL(TASK_DURATION, 0) TASK_DURATION, ISNULL(RUNTIME, 0) RUNTIME, RTRIM(LINE_COMMENTS) LINE_COMMENTS, UPPER(RTRIM(LINE_UNIT_OF_MEASURE)) LINE_UNIT_OF_MEASURE, UPPER(RTRIM(PROJECT_GROUP)) PROJECT_GROUP, OMIT_FROM_WO, ROUTER_COMPLETE from GCG_5807_ROUT_STAGE where PROCESSED = 0")
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.CreateFromSQL("dtRouters", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+'now clean up unicode
+F.Intrinsic.Control.If(V.DataTable.dtRouters.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(RemoveUnicodeFromDataTable, "Project", V.Global.sProject, "DataTable", "dtRouters", "Types", V.Local.sTypes, "Fields", V.DataTable.dtRouters.FieldNames, "Key", "RECORD_ID")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.AddColumn("dtRouters", "SEQUENCE", "Long", 0)
+F.Data.DataTable.AddExpressionColumn("dtRouters", "SEQUENCE_STRING", "String", "Convert([SEQUENCE], 'System.String')")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "SEQUENCE_FORMAT", "String", "SUBSTRING('000000' + [SEQUENCE_STRING], 1 + LEN([SEQUENCE_STRING]), 6 + LEN([SEQUENCE_STRING]))")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "SEQUENCE_GROUP_STRING", "String", "Convert([SEQUENCE_GROUP], 'System.String')")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "SEQUENCE_GROUP_FORMAT", "String", "SUBSTRING('000' + [SEQUENCE_GROUP_STRING], 1 + LEN([SEQUENCE_GROUP_STRING]), 3 + LEN([SEQUENCE_GROUP_STRING]))")
+
+F.Data.DataTable.AddExpressionColumn("dtRouters", "ROUTER_FULL", "String", "IIF(Trim(IsNull([REVISION], '')) = '', TRIM([ROUTER_NUMBER]), SUBSTRING([ROUTER_NUMBER] + '                 ', 1, 17) + [REVISION])")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "MATERIAL_FULL", "String", "IIF(Trim(IsNull([MATERIAL_REVISION], '')) = '', TRIM([MATERIAL]), SUBSTRING([MATERIAL] + '                 ', 1, 17) + [MATERIAL_REVISION])")
+
+'not sure if TASK needs to go in WC or MATERIAL
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_PART_NUMBER", "String", "IIF([LINE_TYPE] = 'M', [MATERIAL_FULL], IIF([LINE_TYPE] = 'O', [OUTSIDE_CODE], IIF([LINE_TYPE] = 'T', 'TASK', '')))")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_WC", "String", "IIF([LINE_TYPE] = 'L', [WORKCENTER], '')")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OPCODE", "String", "IIF([LINE_TYPE] = 'L' or [LINE_TYPE] = 'M' or [LINE_TYPE] = 'C', [OPERATION], IIF([LINE_TYPE] = 'O', [VENDOR_ID], IIF([LINE_TYPE] = 'T', [TASK], '')))")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedRouters.End
+
+Program.Sub.PrepareStagedRouters.Start
+'maybe add any prechecks here in the future
+
+F.Intrinsic.Control.Try
+
+'load defaults. heirarchy is 1 - Passed data, 2 - opcode data, 3 - wc data
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'opcode
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(LMO) LMO, RTRIM(MACHINE) MACHINE, RTRIM(OPERATION) OPERATION, RTRIM(DESCRIPTION) DESCRIPTION, STANDARD_RUNTIME, STANDARD_SETUP, RTRIM(UNIT_MEASURE) UNIT_MEASURE, FREQUENCY, RATE, OVERLAP, WC_FACTOR, STD_LEAD_TIME, CREW_SIZE, RTRIM(PROJ_GROUP) PROJ_GROUP from V_OP_CODES")
+F.Data.DataTable.CreateFromSQL("dtOpCodes", "Con", "select RTRIM(LMO) LMO, RTRIM(MACHINE) MACHINE, RTRIM(OPERATION) OPERATION, RTRIM(DESCRIPTION) DESCRIPTION, STANDARD_RUNTIME, STANDARD_SETUP, RTRIM(UNIT_MEASURE) UNIT_MEASURE, FREQUENCY, RATE, OVERLAP, WC_FACTOR, STD_LEAD_TIME, CREW_SIZE, RTRIM(PROJ_GROUP) PROJ_GROUP, RTRIM(MACHINE) + '-' + RTRIM(OPERATION) MOP_KEY from V_OP_CODES")
+
+F.Data.DataTable.AddExpressionColumn("dtRouters", "MOP_KEY", "String", "TRIM(WORKCENTER) + '-' + TRIM(OPERATION)")
+
+'labor sequence fields---------------------------------------------
+'you can have the same opcode on multiple WCs, not currently accounting for that
+F.Data.DataView.Create("dtOpCodes", "dvOpCodes", 22, "LMO = 'L' and MACHINE <> 'TASK'", "")
+F.Data.DataView.ToDataTable("dtOpCodes", "dvOpCodes", "dtLaborOpCodes")
+
+'workcenter
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "MACHINE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_WORKCENTER", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_WORKCENTER")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_WC", "String", "IIF([LINE_TYPE] = 'L' and TRIM(IsNull([FINAL_WC], '')) = '', TRIM([GSS_OPCODE_LABOR_WORKCENTER]), TRIM([FINAL_WC]))")
+
+'project group
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "PROJ_GROUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_PROJECT_GROUP", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_PROJECT_GROUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_PROJECT_GROUP", "String", "IIF([LINE_TYPE] = 'L' and TRIM(IsNull([PROJECT_GROUP], '')) = '', [GSS_OPCODE_LABOR_PROJECT_GROUP], [PROJECT_GROUP])")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_WORKCENTER_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'L' and TRIM(IsNull([LINE_DESCRIPTION], '')) = '', [GSS_OPCODE_LABOR_DESCRIPTION], [LINE_DESCRIPTION])")
+
+'setup
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "STANDARD_SETUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_SETUP", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_SETUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_SETUP", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([SETUP], 0) = 0, [GSS_OPCODE_LABOR_SETUP], [SETUP])")
+
+'runtime
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "STANDARD_RUNTIME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_RUNTIME", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_RUNTIME")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_RUNTIME", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([RUNTIME], 0) = 0, [GSS_OPCODE_LABOR_RUNTIME], [RUNTIME])")
+
+'frequency
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "FREQUENCY")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_FREQUENCY", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_FREQUENCY")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FREQUENCY", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([FREQUENCY], 0) = 0, [GSS_OPCODE_LABOR_FREQUENCY], [FREQUENCY])")
+
+'crew size
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "CREW_SIZE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_CREW_SIZE", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_CREW_SIZE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_CREW_SIZE", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([CREW_SIZE], 0) = 0, [GSS_OPCODE_LABOR_CREW_SIZE], [CREW_SIZE])")
+
+'rate
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "RATE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_RATE", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_RATE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_RATE", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([RATE], 0) = 0, [GSS_OPCODE_LABOR_RATE], [RATE])")
+
+'overlap
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "OVERLAP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_OVERLAP", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_OVERLAP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OVERLAP", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([OVERLAP], 0) = 0, [GSS_OPCODE_LABOR_OVERLAP], [OVERLAP])")
+
+'wc factor
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtLaborOpCodes", "MOP_KEY", "WC_FACTOR")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_LABOR_WORKCENTER_FACTOR", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "MOP_KEY", "GSS_OPCODE_LABOR_WORKCENTER_FACTOR")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_WORKCENTER_FACTOR", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([WORKCENTER_FACTOR], 0) = 0, [GSS_OPCODE_LABOR_WORKCENTER_FACTOR], [WORKCENTER_FACTOR])")
+
+F.Data.DataTable.Close("dtLaborOpCodes")
+
+'task sequence fields---------------------------------------------
+F.Data.DataView.SetFilter("dtOpCodes", "dvOpCodes", "LMO = 'L' and MACHINE = 'TASK'")
+F.Data.DataView.ToDataTable("dtOpCodes", "dvOpCodes", "dtTaskOpCodes")
+
+'duration
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtTaskOpCodes", "OPERATION", "STANDARD_SETUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_TASK_DURATION", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_TASK_DURATION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_DURATION", "Float", "IIF([LINE_TYPE] = 'T' and IsNull([TASK_DURATION], 0) = 0, [GSS_OPCODE_TASK_DURATION] / 10, [TASK_DURATION])")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtTaskOpCodes", "OPERATION", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_TASK_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_TASK_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_TASK_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'T' and TRIM(IsNull([LINE_DESCRIPTION], '')) = '', [GSS_OPCODE_TASK_DESCRIPTION], [LINE_DESCRIPTION])")
+
+'project group
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtTaskOpCodes", "OPERATION", "PROJ_GROUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_TASK_PROJECT_GROUP", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_TASK_PROJECT_GROUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_TASK_PROJECT_GROUP", "String", "IIF([LINE_TYPE] = 'T' and TRIM(IsNull([PROJECT_GROUP], '')) = '', [GSS_OPCODE_TASK_PROJECT_GROUP], [PROJECT_GROUP])")
+
+F.Data.DataTable.Close("dtTaskOpCodes")
+
+'material sequence fields---------------------------------------------
+F.Data.DataView.SetFilter("dtOpCodes", "dvOpCodes", "LMO = 'M'")
+F.Data.DataView.ToDataTable("dtOpCodes", "dvOpCodes", "dtMaterialOpCodes")
+
+'part
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "MACHINE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_MATERIAL", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_MATERIAL")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([FINAL_PART_NUMBER], '')) = '', [GSS_OPCODE_MATERIAL_MATERIAL], [FINAL_PART_NUMBER])")
+
+'project group
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "PROJ_GROUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_PROJECT_GROUP", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_PROJECT_GROUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_PROJECT_GROUP", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([PROJECT_GROUP], '')) = '', [GSS_OPCODE_MATERIAL_PROJECT_GROUP], [PROJECT_GROUP])")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([LINE_DESCRIPTION], '')) = '', [GSS_OPCODE_MATERIAL_DESCRIPTION], [LINE_DESCRIPTION])")
+
+'setup
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "STANDARD_SETUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_QUANTITY", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_QUANTITY")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_SETUP", "Float", "IIF([LINE_TYPE] = 'M' and IsNull([SETUP], 0) = 0, [GSS_OPCODE_MATERIAL_QUANTITY], [SETUP])")
+
+'runtime
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "STANDARD_RUNTIME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_SETUP", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_SETUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_QUANTITY", "Float", "IIF([LINE_TYPE] = 'M' and IsNull([LINE_QUANTITY], 0) = 0, [GSS_OPCODE_MATERIAL_SETUP], [LINE_QUANTITY])")
+
+'um
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "UNIT_MEASURE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_UM", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_UM")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_UM", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([LINE_UNIT_OF_MEASURE], '')) = '', [GSS_OPCODE_MATERIAL_UM], [LINE_UNIT_OF_MEASURE])")
+
+'rate
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "RATE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_RATE", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_RATE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_RATE", "Float", "IIF([LINE_TYPE] = 'M' and IsNull([RATE], 0) = 0, [GSS_OPCODE_MATERIAL_RATE], [RATE])")
+
+'lead time
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterialOpCodes", "OPERATION", "STD_LEAD_TIME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_MATERIAL_LEAD_TIME", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_MATERIAL_LEAD_TIME")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_MATERIAL_LEAD_TIME", "Float", "IIF([LINE_TYPE] = 'M' and IsNull([LEAD_HOURS], 0) = 0, [GSS_OPCODE_MATERIAL_LEAD_TIME], [LEAD_HOURS])")
+
+F.Data.DataTable.Close("dtMaterialOpCodes")
+
+'outsides sequence fields---------------------------------------------
+F.Data.DataView.SetFilter("dtOpCodes", "dvOpCodes", "LMO = 'O'")
+F.Data.DataView.ToDataTable("dtOpCodes", "dvOpCodes", "dtOutsideOpCodes")
+
+'vendor
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "OPERATION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_VENDOR", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_VENDOR")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_VENDOR", "String", "IIF([LINE_TYPE] = 'O' and TRIM(IsNull([FINAL_OPCODE], '')) = '', [GSS_OPCODE_OUTSIDE_VENDOR], [FINAL_OPCODE])")
+
+'project group
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "PROJ_GROUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_PROJECT_GROUP", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_PROJECT_GROUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_PROJECT_GROUP", "String", "IIF([LINE_TYPE] = 'O' and TRIM(IsNull([PROJECT_GROUP], '')) = '', [GSS_OPCODE_OUTSIDE_PROJECT_GROUP], [PROJECT_GROUP])")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'O' and TRIM(IsNull([LINE_DESCRIPTION], '')) = '', [GSS_OPCODE_OUTSIDE_DESCRIPTION], [LINE_DESCRIPTION])")
+
+'minimum
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "STANDARD_SETUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_MATERIAL", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_MATERIAL")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_MINIMUM", "Float", "IIF([LINE_TYPE] = 'O' and IsNull([MINIMUM], 0) = 0, [GSS_OPCODE_OUTSIDE_MATERIAL], [MINIMUM])")
+
+'runtime
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "STANDARD_RUNTIME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_RUNTIME", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_RUNTIME")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_RUNTIME", "Float", "IIF([LINE_TYPE] = 'O' and IsNull([LINE_QUANTITY], 0) = 0, [GSS_OPCODE_OUTSIDE_RUNTIME], [LINE_QUANTITY])")
+
+'um
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "UNIT_MEASURE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_UM", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_UM")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_UM", "String", "IIF([LINE_TYPE] = 'O' and TRIM(IsNull([LINE_UNIT_OF_MEASURE], '')) = '', [GSS_OPCODE_OUTSIDE_UM], [LINE_UNIT_OF_MEASURE])")
+
+'rate
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "RATE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_RATE", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_RATE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_RATE", "Float", "IIF([LINE_TYPE] = 'O' and IsNull([RATE], 0) = 0, [GSS_OPCODE_OUTSIDE_RATE], [RATE])")
+
+'leadtime
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtOutsideOpCodes", "MACHINE", "STD_LEAD_TIME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_OUTSIDE_LEAD_TIME", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OUTSIDE_CODE", "GSS_OPCODE_OUTSIDE_LEAD_TIME")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_OUTSIDE_LEAD_TIME", "Float", "IIF([LINE_TYPE] = 'O' and IsNull([LEAD_HOURS], 0) = 0, [GSS_OPCODE_OUTSIDE_LEAD_TIME], [LEAD_HOURS])")
+
+F.Data.DataTable.Close("dtOutsideOpCodes")
+
+'comment sequence fields---------------------------------------------
+F.Data.DataView.SetFilter("dtOpCodes", "dvOpCodes", "LMO = 'C'")
+F.Data.DataView.ToDataTable("dtOpCodes", "dvOpCodes", "dtCommentOpCodes")
+
+'Comment description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtCommentOpCodes", "OPERATION", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_OPCODE_COMMENT_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "OPERATION", "GSS_OPCODE_COMMENT_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_COMMENT_DESCRIPTION", "String", "IIF(LINE_TYPE = 'C' and TRIM(IsNull([LINE_DESCRIPTION], '')) = '', [GSS_OPCODE_COMMENT_DESCRIPTION], [LINE_DESCRIPTION])")
+
+F.Data.Datatable.Close("dtCommentOpCodes")
+F.Data.DataView.Close("dtOpCodes", "dvOpCodes")
+F.Data.DataTable.Close("dtOpCodes")
+
+'wc fields---------------------------------------------
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(MACHINE) MACHINE, RTRIM(WC_NAME) WC_NAME, STANDARD_COST, YIELD, RTRIM(PROJ_GROUP) PROJ_GROUP from V_WORKCENTERS union select WORK_GROUP, RTRIM(DESCR) WC_NAME, STANDARD_COST, YIELD, RTRIM(PROJ_GROUP) PROJ_GROUP from V_WORKGROUP_HEAD A left join V_WORKCENTERS B on A.PROTOTYPE_WC = B.MACHINE")
+F.Data.Datatable.CreateFromSQL("dtWorkcenters", "Con", "select RTRIM(MACHINE) MACHINE, RTRIM(WC_NAME) WC_NAME, STANDARD_COST, YIELD, RTRIM(PROJ_GROUP) PROJ_GROUP from V_WORKCENTERS union select RTRIM(WORK_GROUP) WORK_GROUP, RTRIM(DESCR) WC_NAME, STANDARD_COST, YIELD, RTRIM(PROJ_GROUP) PROJ_GROUP from V_WORKGROUP_HEAD A left join V_WORKCENTERS B on A.PROTOTYPE_WC = B.MACHINE")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtWorkcenters", "MACHINE", "WC_NAME")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_WORKCENTER_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_FINAL_WC", "GSS_WORKCENTER_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_WORKCENTER_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'L' and TRIM(IsNull([FINAL_WORKCENTER_DESCRIPTION], '')) = '', [GSS_WORKCENTER_DESCRIPTION], [FINAL_WORKCENTER_DESCRIPTION])")
+
+'rate
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtWorkcenters", "MACHINE", "STANDARD_COST")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_WORKCENTER_RATE", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_FINAL_WC", "GSS_WORKCENTER_RATE")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_RATE", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([FINAL_RATE], 0) = 0, [GSS_WORKCENTER_RATE], [FINAL_RATE])")
+
+'yield
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtWorkcenters", "MACHINE", "YIELD")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtRouters", "GSS_WORKCENTER_YIELD", "Float", 0)
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_FINAL_WC", "GSS_WORKCENTER_YIELD")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_YIELD", "Float", "IIF([LINE_TYPE] = 'L' and IsNull([YIELD], 0) = 0, [GSS_WORKCENTER_YIELD], [YIELD])")
+
+'project group
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtWorkcenters", "MACHINE", "PROJ_GROUP")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_WORKCENTER_PROJECT_GROUP", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_FINAL_WC", "GSS_WORKCENTER_PROJECT_GROUP")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_PROJECT_GROUP", "String", "IIF([LINE_TYPE] = 'L' and TRIM(IsNull([FINAL_PROJECT_GROUP], '')) = '', [GSS_WORKCENTER_PROJECT_GROUP], [FINAL_PROJECT_GROUP])")
+
+F.Data.DataTable.Close("dtWorkcenters")
+
+'material description, UM. do we need to account for location?
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", "select RTRIM(PART) PART, RTRIM(UM_INVENTORY) UM_INVENTORY, RTRIM(DESCRIPTION) DESCRIPTION from V_INVENTORY_MSTR")
+F.Data.DataTable.CreateFromSQL("dtMaterial", "Con", "select RTRIM(PART) PART, RTRIM(UM_INVENTORY) UM_INVENTORY, RTRIM(DESCRIPTION) DESCRIPTION from V_INVENTORY_MSTR")
+
+'description
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterial", "PART", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_MATERIAL_DESCRIPTION", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_PART_NUMBER", "GSS_MATERIAL_DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_MATERIAL_DESCRIPTION", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([FINAL_MATERIAL_DESCRIPTION], '')) = '', [GSS_MATERIAL_DESCRIPTION], [FINAL_MATERIAL_DESCRIPTION])")
+
+'um
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtMaterial", "PART", "UM_INVENTORY")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtRouters", "GSS_MATERIAL_UM", "String", "")
+F.Data.DataTable.FillFromDictionary("dtRouters", "dictTemp", "FINAL_PART_NUMBER", "GSS_MATERIAL_UM")
+F.Data.Dictionary.Close("dictTemp")
+F.Data.DataTable.AddExpressionColumn("dtRouters", "FINAL_FINAL_MATERIAL_UM", "String", "IIF([LINE_TYPE] = 'M' and TRIM(IsNull([FINAL_MATERIAL_UM], '')) = '', [GSS_MATERIAL_UM], [FINAL_MATERIAL_UM])")
+
+F.Data.DataTable.Close("dtMaterial")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.PrepareStagedRouters.End
+
+Program.Sub.UploadStagedRouters.Start
+F.Intrinsic.Control.Try
+
+V.Local.iRouterCounter.Declare(Long)
+V.Local.iLineCounter.Declare(Long)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.sFeedback.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.iSequenceInterval.Declare(Long, 100)
+V.Local.sMinimumFlag.Declare(String)
+V.Local.fDuration.Declare(Float)
+V.Local.sDate.Declare(String)
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sComments.Declare(String)
+V.Local.bAllowUpdate.Declare(Boolean, False)
+V.Local.bUpdate.Declare(Boolean, False)
+V.Local.sMessage.Declare(String)
+V.Local.sUploadFile.Declare(String)
+V.Local.sLineType.Declare(String)
+V.Local.sMachine.Declare(String)
+V.Local.sOperation.Declare(String)
+V.Local.sDescription.Declare(String)
+V.Local.bVendorCheck.Declare(Boolean, False)
+V.Local.bSkip.Declare(Boolean, False)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'grab update option
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ROUTER", "NAME", "UPDATE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bAllowUpdate.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+'grab sequence interval
+F.Global.General.ReadOption(401113, 3, 100, V.Local.iSequenceInterval)
+
+'get list of routers to upload
+F.Data.DataView.ToDataTableDistinct("dtRouters", "dvValid", "dtRouterList", "ROUTER_FULL")
+F.Intrinsic.String.Build("[{0}] routers found for processing...", V.DataTable.dtRouterList.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'loop through routers
+F.Data.DataView.Create("dtRouters", "dvThisRouter", 22, "", "LINE_NUMBER")
+F.Intrinsic.Control.For(V.Local.iRouterCounter, 0, V.DataTable.dtRouterList.RowCount--, 1)
+	F.Intrinsic.String.Build("Processing router [{0}]...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	V.Local.bFailed.Set(False)
+	V.Local.bSkip.Set(False)
+	F.Intrinsic.String.Build("[ROUTER_FULL] = '{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtRouters", "dvThisRouter", V.Local.sFilter)
+	
+	'fix line numbers
+	'this will cause an issue if they were passing line numbers like 1,2,3,4 etc
+	'because now it will come in like that instead of 100s
+	F.Intrinsic.String.Build("{0} and IsNull(LINE_NUMBER, -1) < 1", V.Local.sFilter, V.Local.sFilter)
+	F.Data.DataView.Create("dtRouters", "dvCheck", 22, V.Local.sFilter, "")
+	F.Intrinsic.Control.If(V.DataView.dtRouters!dvCheck.RowCount, >, 0)
+		F.Data.DataView.SetSeries("dtRouters", "dvThisRouter", "SEQUENCE", V.Local.iSequenceInterval, V.Local.iSequenceInterval)
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.CopyColumn("dtRouters", "LINE_NUMBER", "SEQUENCE")
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtRouters", "dvCheck")
+	
+	'create temp datatable for upload
+	F.Data.DataTable.Clone("6021", "dtUploadTemp", True)
+	
+	'check if updating
+	'don't like doing like here, but I've had several issues with routers not pulling in without it
+	F.Intrinsic.String.Build("select ROUTER from V_ROUTER_HEADER where ROUTER like '%{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+		'router exists
+		F.Intrinsic.Control.If(V.Local.bAllowUpdate)
+			V.Local.bUpdate.Set(True)
+			
+			'delete router
+			F.Intrinsic.String.Build("Update found for router [{0}]. Deleting for reupload...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(DeleteRouter, "Router", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim)
+		F.Intrinsic.Control.Else
+			'fail because update option is off
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Router [{0}] failed to update because the option to allow updates is turned off.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFeedback)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		V.Local.bUpdate.Set(False)
+	F.Intrinsic.Control.EndIf
+	
+	'validate header fields, Customer
+	F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, !=, "")
+		F.Intrinsic.String.Build("select CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Router [{0}] failed to upload because passed CUSTOMER_ID [{0}] is not a valid GSS customer.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sFeedback)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.bFailed.Not)
+		'loop through lines and check, add to upload datatable
+		F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtRouters!dvThisRouter.RowCount--, 1)
+			F.Intrinsic.Control.SelectCase(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim)
+				F.Intrinsic.Control.Case("L")
+					'validate workcenter
+					F.Intrinsic.String.Build("select MACHINE from V_WORKCENTERS where MACHINE = '{0}' union select WORK_GROUP from V_WORKGROUP_HEAD where WORK_GROUP = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_WC!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+					F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+						V.Local.bFailed.Set(True)
+						F.Intrinsic.String.Build("Router [{0}] failed to upload because passed WORKCENTER [{1}] on sequence [{2}] is not a valid GSS workcenter.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_WC!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sFeedback)
+					F.Intrinsic.Control.Else
+						'add labor step to upload table
+						'not sure if machine is needed or not
+						F.Data.DataTable.AddRow("dtUploadTemp", "Seq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, "LineType", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, "WC", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_WC!FieldValTrim, "PartStepDesc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_WORKCENTER_DESCRIPTION!FieldValTrim, "SetupQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SETUP!FieldValFloat, "RunTimeMatlQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_RUNTIME!FieldValFloat, "OperationCodeVend", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, "RateUC", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_RATE!FieldValFloat, "Freq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FREQUENCY!FieldValFloat, "Overlap", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OVERLAP!FieldValLong, "WCFactor", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_WORKCENTER_FACTOR!FieldValFloat, "CrewSize", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_CREW_SIZE!FieldValFloat, "LeadTime", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LEAD_HOURS!FieldValFloat, "SortCode", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SORT_CODE!FieldValTrim, "RouterYieldPerc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_YIELD!FieldValFloat)
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.Case("M")
+					'validate material
+					F.Intrinsic.String.Build("select PART from V_INVENTORY_MSTR where PART = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+					F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+
+						'check if the part is pending upload
+						F.Intrinsic.String.Build("select RECORD_ID from GCG_5807_PART_STAGE where PARTNUMBER = '{0}' and IsNull(REVISION, '') = '{1}' and PROCESSED = 0", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MATERIAL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MATERIAL_REVISION!FieldValTrim, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+						F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+							'part is awaiting upload, skip this router and try again later
+							V.Local.bSkip.Set(True)
+							F.Intrinsic.String.Build("Material [{0}] on router [{1}] does not currently exist in GSS, but is pending upload in the GCG_5807_PART_STAGE part upload staging table with record ID [{2}]. Skipping this router for now...", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim, V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sRet, V.Local.sFeedback)
+							F.Intrinsic.Control.CallSub(Addlog, "Message", V.Local.sFeedback)
+						F.Intrinsic.Control.Else
+							V.Local.bFailed.Set(True)
+							F.Intrinsic.String.Build("Router [{0}] failed to upload because passed MATERIAL [{1}] on sequence [{2}] is not a valid GSS part.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sFeedback)
+						F.Intrinsic.Control.EndIf
+					
+					F.Intrinsic.Control.Else
+						'add material step to upload table
+						F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MINIMUM!FieldValFloat, =, 0)
+							V.Local.sMinimumFlag.Set("")
+						F.Intrinsic.Control.Else
+							V.Local.sMinimumFlag.Set("M")
+						F.Intrinsic.Control.EndIf
+						
+						F.Data.DataTable.AddRow("dtUploadTemp", "Seq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, "LineType", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, "PartStepDesc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_MATERIAL_DESCRIPTION!FieldValTrim, "SetupQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_SETUP!FieldValFloat, "RunTimeMatlQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_QUANTITY!FieldValFloat, "OperationCodeVend", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, "RateUC", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_RATE!FieldValFloat, "Freq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FREQUENCY!FieldValFloat, "LeadTime", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_LEAD_TIME!FieldValFloat, "SortCode", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SORT_CODE!FieldValTrim, "UM", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_MATERIAL_UM!FieldValTrim, "MinFlag", V.Local.sMinimumFlag, "MinOutside", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MINIMUM!FieldValFloat, "PartNum", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL!FieldValTrim)
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.Case("O")
+					'validate vendor
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, =, "")
+						V.Local.bVendorCheck.Set(False)
+					F.Intrinsic.Control.Else
+						F.Intrinsic.String.Build("select VENDOR from V_VENDOR_MASTER where VENDOR = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+						V.Local.bVendorCheck.Set(V.Ambient.ExecuteAndReturnEOF)
+					F.Intrinsic.Control.EndIf
+					
+					F.Intrinsic.Control.If(V.Local.bVendorCheck)
+						V.Local.bFailed.Set(True)
+						F.Intrinsic.String.Build("Router [{0}] failed to upload because passed VENDOR_ID [{1}] on sequence [{2}] is not a valid GSS vendor.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sFeedback)
+					F.Intrinsic.Control.Else
+						'add outside step to upload table
+						F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MINIMUM!FieldValFloat, =, 0)
+							V.Local.sMinimumFlag.Set("")
+						F.Intrinsic.Control.Else
+							V.Local.sMinimumFlag.Set("M")
+						F.Intrinsic.Control.EndIf
+						
+						F.Data.DataTable.AddRow("dtUploadTemp", "Seq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, "LineType", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, "PartStepDesc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_DESCRIPTION!FieldValTrim, "SetupQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SETUP!FieldValFloat, "RunTimeMatlQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_RUNTIME!FieldValFloat, "OperationCodeVend", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_VENDOR!FieldValTrim, "RateUC", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_RATE!FieldValFloat, "Freq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FREQUENCY!FieldValFloat, "LeadTime", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_LEAD_TIME!FieldValFloat, "SortCode", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SORT_CODE!FieldValTrim, "UM", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_UM!FieldValTrim, "MinFlag", V.Local.sMinimumFlag, "MinOutside", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_MINIMUM!FieldValFloat, "PartNum", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim, "RouterYieldPerc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).YIELD!FieldValFloat, "MinRunQty", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).MINIMUM!FieldValFloat)
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.Case("C")
+					'don't need to validate anything, add to upload table
+					F.Data.DataTable.AddRow("dtUploadTemp", "Seq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, "LineType", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, "PartStepDesc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_COMMENT_DESCRIPTION!FieldValTrim, "OperationCodeVend", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, "SortCode", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SORT_CODE!FieldValTrim, "MainCommentFlag", "Y")
+					
+				F.Intrinsic.Control.Case("T")
+					'validate user/group
+					F.ODBC.Connection!Comm.OpenCommonConnection
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_TYPE!FieldValTrim, =, "G")
+						F.Intrinsic.String.Build("select GS_GROUP from USER_GROUPS where GS_GROUP = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_BY!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.Else
+						'assume user if type isn't passed
+						F.Intrinsic.String.Build("select GS_USER from USER_INFORMATION where GS_USER = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_BY!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					F.ODBC.Connection!Comm.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+					F.ODBC.Connection!Comm.Close
+					
+					F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+						V.Local.bFailed.Set(True)
+						F.Intrinsic.String.Build("Router [{0}] failed to upload because passed SIGNOFF_BY [{1}] on sequence [{2}] is not a valid GSS user/group.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_BY!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sFeedback)
+					F.Intrinsic.Control.Else
+						'add to upload table
+						F.Intrinsic.Math.Mult(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_DURATION!FieldValFloat, 10, V.Local.fDuration)
+						F.Data.DataTable.AddRow("dtUploadTemp", "Seq", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, "LineType", "L", "PartStepDesc", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_TASK_DESCRIPTION!FieldValTrim, "OperationCodeVend", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim, "SortCode", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SORT_CODE!FieldValTrim, "WC", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim, "SignoffType", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_TYPE!FieldValTrim, "SignoffGroupUser", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SIGNOFF_BY!FieldValTrim, "SetupQty", V.Local.fDuration)
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.CaseElse
+					'fail because no line type was passed
+					F.Intrinsic.String.Build("Router [{0}] failed to upload because sequence [{1}] was passed without a valid LINE_TYPE. Valid line types are L, M, O, C, and T.", V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sFeedback)
+					V.Local.bFailed.Set(True)
+			F.Intrinsic.Control.EndSelect
+			
+			F.Intrinsic.Control.If(V.Local.bFailed, =, True, "OR", V.Local.bSkip, =, True)
+				'since we failed, exit line loop
+				'need to test this
+				F.Intrinsic.Control.ExitFor(V.Local.iLineCounter)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iLineCounter)
+		
+		F.Intrinsic.Control.If(V.Local.bFailed, =, False, "AND", V.Local.bSkip, =, False)
+			'set header fields
+			F.Intrinsic.String.Replace(V.DataView.dtRouters!dvThisRouter(0).ROUTER_DESCRIPTION!FieldValTrim, V.Ambient.NewLine, "", V.Local.sDescription)
+			F.Intrinsic.String.Format(V.DataView.dtRouters!dvThisRouter(0).ORIGINAL_DATE!FieldVal, "MMDDYY", V.Local.sDate)
+			F.Data.DataTable.SetValue("dtUploadTemp", -1, "RouterNum", V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, "RouterDesc", V.Local.sDescription, "Qty1", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_1!FieldValFloat, "Qty2", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_2!FieldValFloat, "Qty3", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_3!FieldValFloat, "Qty4", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_4!FieldValFloat, "Qty5", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_5!FieldValFloat, "Qty6", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_6!FieldValFloat, "Qty7", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_7!FieldValFloat, "Qty8", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_8!FieldValFloat, "Qty9", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_9!FieldValFloat, "Qty10", V.DataView.dtRouters!dvThisRouter(0).QUANTITY_10!FieldValFloat, "DrawingNum", V.DataView.dtRouters!dvThisRouter(0).DRAWING_NUMBER!FieldValTrim, "User1", V.DataView.dtRouters!dvThisRouter(0).USER_FIELD_1!FieldValTrim, "User2", V.DataView.dtRouters!dvThisRouter(0).USER_FIELD_2!FieldValTrim, "PL", V.DataView.dtRouters!dvThisRouter(0).PRODUCT_LINE!FieldValTrim, "OriginalDate", V.Local.sDate, "Commission", V.DataView.dtRouters!dvThisRouter(0).COMMISSION_PERCENT!FieldValFloat, "Scrap", V.DataView.dtRouters!dvThisRouter(0).SCRAP_PERCENT!FieldValFloat, "CustID", V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, "CustPartNum", V.DataView.dtRouters!dvThisRouter(0).PART_ID!FieldValTrim, "ExtraDesc1", V.DataView.dtRouters!dvThisRouter(0).EXTRA_DESCRIPTION_1!FieldValTrim, "ExtraDesc2", V.DataView.dtRouters!dvThisRouter(0).EXTRA_DESCRIPTION_2!FieldValTrim, "ExtraDesc3", V.DataView.dtRouters!dvThisRouter(0).EXTRA_DESCRIPTION_3!FieldValTrim)
+			
+			'upload
+			F.Data.DataTable.Merge("dtUploadTemp", "6021", False, 2)
+			F.Intrinsic.String.Build("Running router upload callwrapper 6021 for router [{0}]...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(6021Sync)
+			
+			'backup the upload file
+			F.Intrinsic.String.Build("{0}\ROUTERHD.txt", V.Caller.FilesDir, V.Local.sUploadFile)
+			F.Intrinsic.Control.CallSub(BackUpFile, "Type", "Router", "File", V.Local.sUploadFile)
+			
+			'check for success
+			F.Intrinsic.String.Build("select RTRIM(ROUTER) from V_ROUTER_HEADER where ROUTER like '%{0}'", V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				'failure
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Router [{0}] failed to upload.", V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Control.If(V.Local.bUpdate)
+					F.Intrinsic.Math.Add(V.Global.iUpdated, 1, V.Global.iUpdated)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+				F.Intrinsic.Control.EndIf
+				
+				'success
+				V.Local.bFailed.Set(False)
+				F.Intrinsic.String.Build("Router [{0}] uploaded successfully.", V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, V.Local.sFeedback)
+				
+				'update extra fields
+				F.Intrinsic.String.Build("update ROUTER_HEADER set UM_INVENTORY = '{0}', DATE_ORIGINAL = '{1}' where ROUTER = '{2}' and ROUTER_TYPE = 'H'", V.DataView.dtRouters!dvThisRouter(0).UNIT_OF_MEASURE!FieldValTrim, V.Local.sDate, V.DataView.dtRouters!dvThisRouter(0).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+				
+				'extra line fields
+				F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtRouters!dvThisRouter.RowCount--, 1)
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, !=, "C")
+						'group sequence
+						F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_GROUP!FieldValLong, !=, 0)
+							F.Intrinsic.String.Build("update ROUTER_LINE set GROUP_SEQUENCE = '{0}' where ROUTER = '{1}' and LINE_ROUTER = '{2}' and ROUTER_TYPE = 'L'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_GROUP_FORMAT!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.EndIf
+						
+						'project group
+						F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_TASK_PROJECT_GROUP!FieldValTrim, !=, "")
+							F.Intrinsic.String.Build("update ROUTER_LINE set PROJ_GROUP = '{0}' where ROUTER = '{1}' and LINE_ROUTER = '{2}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_TASK_PROJECT_GROUP!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_PROJECT_GROUP!FieldValTrim, !=, "")
+							F.Intrinsic.String.Build("update ROUTER_LINE set PROJ_GROUP = '{0}' where ROUTER = '{1}' and LINE_ROUTER = '{2}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_PROJECT_GROUP!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_PROJECT_GROUP!FieldValTrim, !=, "")
+							F.Intrinsic.String.Build("update ROUTER_LINE set PROJ_GROUP = '{0}' where ROUTER = '{1}' and LINE_ROUTER = '{2}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL_PROJECT_GROUP!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_PROJECT_GROUP!FieldValTrim, !=, "")
+							F.Intrinsic.String.Build("update ROUTER_LINE set PROJ_GROUP = '{0}' where ROUTER = '{1}' and LINE_ROUTER = '{2}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_PROJECT_GROUP!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.EndIf
+					
+					'sequence comments
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, =, "T")
+						V.Local.sMachine.Set("TASK")
+						V.Local.sOperation.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim)
+					F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, =, "L")
+						V.Local.sMachine.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_FINAL_WC!FieldValTrim)
+						V.Local.sOperation.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim)
+					F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, =, "O")
+						V.Local.sMachine.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_PART_NUMBER!FieldValTrim)
+						V.Local.sOperation.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_VENDOR!FieldValTrim)
+					F.Intrinsic.Control.ElseIf(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, =, "M")
+						V.Local.sMachine.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL!FieldValTrim)
+						V.Local.sOperation.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim)
+					F.Intrinsic.Control.Else
+						V.Local.sMachine.Set("")
+						V.Local.sOperation.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OPCODE!FieldValTrim)
+					F.Intrinsic.Control.EndIf
+					
+					'first clear existing comments
+					F.Intrinsic.String.Build("delete from RTR_SEQ_COMMENTS where RTR_NUMBER = '{0}' and RTR_SEQ = '{1}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+					
+					F.Intrinsic.String.Replace(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, "T", "L", V.Local.sLineType)
+					F.Intrinsic.String.Build("select RTRIM(TEXT) from V_OPCODE_TEXT where LMO = '{0}' and MACHINE = '{1}' and OPERATION = '{2}'", V.Local.sLineType, V.Local.sMachine, V.Local.sOperation, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					
+					'pull in extra text if necessary
+					F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+					
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_COMMENTS!FieldValTrim, !=, "")
+						
+						V.Local.sComments.Set(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_COMMENTS!FieldValTrim)
+						
+						'record should not exist at this point, so we insert
+						F.Intrinsic.String.Replace(V.Local.sComments, "***N***", V.Ambient.NewLine, V.Local.sComments)
+						F.Intrinsic.String.Build("insert into RTR_SEQ_COMMENTS (RTR_NUMBER, RTR_SEQ, TEXT) values ('{0}', '{1}', '{2}')", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sComments.PSQLFriendly, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						
+					F.Intrinsic.Control.ElseIf(V.Local.sRet.Trim, !=, "")
+						V.Local.sComments.Set(V.Local.sRet)
+						
+						'record should not exist at this point, so we insert
+						F.Intrinsic.String.Replace(V.Local.sComments, "***N***", V.Ambient.NewLine, V.Local.sComments)
+						F.Intrinsic.String.Build("insert into RTR_SEQ_COMMENTS (RTR_NUMBER, RTR_SEQ, TEXT) values ('{0}', '{1}', '{2}')", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sComments.PSQLFriendly, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+					F.Intrinsic.Control.EndIf
+					
+					'omit during WO creation flag
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).OMIT_FROM_WO!FieldVal)
+						F.Intrinsic.String.Build("update ROUTER_LINE set OMIT_FROM_WO = 'Y' where ROUTER = '{1}' and LINE_ROUTER = '{2}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_OUTSIDE_PROJECT_GROUP!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).SEQUENCE_FORMAT!FieldValTrim, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+					F.Intrinsic.Control.EndIf
+				
+					'router complete flag
+					'grab router_supp_hdr line
+					F.Intrinsic.String.Build("select * from V_ROUTER_SUPP_HDR where RTR_NUM = '{0}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
+					F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+					
+					F.Data.DataTable.CreateFromSQL("dtRouterSupp", "Con", V.Local.sSQL)
+					F.Intrinsic.Control.If(V.DataTable.dtRouterSupp.RowCount, >, 1)
+						F.Data.DataTable.SetValue("dtRouterSupp", -1, "COMPLETE", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_COMPLETE!FieldVal)
+					F.Intrinsic.Control.Else
+						F.Data.DataTable.AddRow("dtRouterSupp", "RTR_NUM", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, "TYPE", "H", "COMPLETE", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_COMPLETE!FieldVal)
+					F.Intrinsic.Control.EndIf
+					
+					F.Data.DataTable.SaveToDB("dtRouterSupp", "Con", "ROUTER_SUPP_HDR", "RTR_NUM*!*TYPE", 256)
+					F.Data.DataTable.Close("dtRouterSupp")
+					'F.Intrinsic.Control.EndIf
+					
+					'BUILT_FROM_BOM field
+					'check if BOM line exists
+					F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim, =, "M")
+						F.Intrinsic.String.Build("select PARENT from V_BOM_MSTR where PARENT = '{0}' and PART = '{1}' union select PARENT from GCG_5807_BOM_STAGE where PARENT = '{2}' and PARENT_REVISION = '{3}' and PART_NUMBER = '{1}' and PROCESSED = 0", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_NUMBER!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).REVISION!FieldValTrim, V.Local.sSQL)
+						F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+						F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+						F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+							'now update the field
+							F.Intrinsic.String.Build("update ROUTER_LINE set BUILT_FROM_BOM = 'Y' where ROUTER = '{0}' and ROUTER_TYPE = 'L' and PART_WC_OUTSIDE = '{1}'", V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).FINAL_MATERIAL!FieldValTrim, V.Local.sSQL)
+							F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+							F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.Next(V.Local.iLineCounter)
+				
+			F.Intrinsic.Control.EndIf
+			F.Data.DataTable.Close("dtUploadTemp")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'now write out log / update table
+	F.Intrinsic.Control.If(V.Local.bSkip.Not)
+		F.Intrinsic.Control.CallSub(SaveFeedback, "Router", V.DataView.dtRouters!dvThisRouter(0).ROUTER_NUMBER!FieldValTrim, "Router_Revision", V.DataView.dtRouters!dvThisRouter(0).REVISION!FieldValTrim, "Failed", V.Local.bFailed, "Feedback", V.Local.sFeedback)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iRouterCounter)
+F.Data.DataView.Close("dtRouters", "dvThisRouter")
+F.Data.DataTable.Close("dtRouterList")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Processing complete.")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedRouters.End
+
+Program.Sub.Exit.Start
+'clean up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtRouters.Exists)
+	F.Data.DataTable.Close("dtRouters")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.CallSub(ScriptPIDClear, "PROJECT", V.Global.sProject)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.DeleteRouter.Start
+'deletes a router
+'pass ROUTER
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sTables.Declare(String, "ROUTER_LINE*!*ROUTER_HEADER*!*ROUTER_SUPP_LINE*!*ROUTER_SUPP_HDR*!*ROUTER_XREF*!*ROUTER_DESC*!*ROUTER_OP_CODES*!*RTR_SEQ_COMMENTS")
+V.Local.sKeys.Declare(String, "ROUTER*!*ROUTER*!*RTR_NUM*!*RTR_NUM*!*ROUTER*!*ROUTER*!*ROUTER*!*RTR_NUMBER")
+
+F.Intrinsic.String.Split(V.Local.sTables, "*!*", V.Local.sTables)
+F.Intrinsic.String.Split(V.Local.sKeys, "*!*", V.Local.sKeys)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sTables.UBound, 1)
+	F.Intrinsic.String.Build("delete from {0} where {1} = '{2}'", V.Local.sTables(V.Local.iCounter), V.Local.sKeys(V.Local.iCounter), V.Args.Router, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.DeleteRouter.End
+
+Program.Sub.SaveFeedback.Start
+'pass ROUTER, ROUTER_REVISION, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+	F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_ROUT_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{4}', ROUTER_NUMBER = '{2}', REVISION = '{3}' where UPPER(ROUTER_NUMBER) = '{2}' and UPPER(IsNull(REVISION, '')) = '{3}' and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Args.Router, V.Args.Router_Revision, V.Local.sTimestamp, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.SendIPMMessage.Start
+'return uploaded, updated, failed counts
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+'return counts to PID passed in switch
+F.Intrinsic.String.Build("ROUTERS{0}{1}{0}{2}{0}{3}", "!@@!", V.Global.iSuccessful, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+F.Intrinsic.IPM.SendMessage(V.Local.sMessage, V.Caller.Switches)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SendIPMMessage.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240304152901778$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9mUJIzesa2Xrfu07ZlOQvpcoQ1PEkCluHA=
+Program.Sub.Comments.End
