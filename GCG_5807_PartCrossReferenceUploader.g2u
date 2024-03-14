@@ -1,0 +1,263 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_UPLIXREF.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Part Cross Reference Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_PartCrossReferenceUploader.g2u
+'Trey S
+'April 21st, 2022
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload part cross refernece data from the GCG_5807_XREF_STAGE staging table
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check for staged 'routers
+F.Intrinsic.Control.CallSub(LoadStagedCrossReferences)
+F.Intrinsic.Control.If(V.DataTable.dtCrossReference.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(UploadStagedCrossReferences)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedCrossReferences.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String, "select RECORD_ID, RECORD_TIMESTAMP, FAILED, PROCESSED, PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_PARTNUMBER) EXTERNAL_PARTNUMBER, RTRIM(UPPER(PARTNUMBER)) PARTNUMBER, RTRIM(LOCATION) LOCATION, RTRIM(REVISION) REVISION, RTRIM(CUSTOMER) CUSTOMER, RTRIM(CUSTOMER_PART) CUSTOMER_PART, RTRIM(VENDOR) VENDOR, RTRIM(MANUFACTURER_PART) MANUFACTURER_PART, RTRIM(MANUFACTURER_NAME) MANUFACTURER_NAME, RTRIM(STATUS) STATUS, RTRIM(USER_DEFAULT_TITLE) USER_DEFAULT_TITLE, RTRIM(COMMENT) COMMENT from GCG_5807_XREF_STAGE where PROCESSED = 0 and FAILED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtCrossReference", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Data.DataTable.AddExpressionColumn("dtCrossReference", "PART_FULL", "String", "IIF(Trim(IsNull([REVISION], '')) = '', TRIM([PARTNUMBER]), SUBSTRING([PARTNUMBER] + '                 ', 1, 17) + [REVISION])")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedCrossReferences.End
+
+Program.Sub.UploadStagedCrossReferences.Start
+'here, go through the staged records and process them
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sReturn.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.bPartialKey.Declare(Boolean, False)
+V.Local.bUpdate.Declare(Boolean, False)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.bSkip.Declare(Boolean, False)
+
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ADVANCED", "NAME", "ZEP_IGNORE_XREF_CUSTOMER_PART")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bPartialKey.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("[{0}] staged part cross reference records found in table GCG_5807_XREF_STAGE for upload. Processing...", V.DataTable.dtCrossReference.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'loop through staged records
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtCrossReference.RowCount--, 1)
+	V.Local.bSkip.Set(False)
+	
+	'check if part exists
+	F.Intrinsic.String.Build("select RTRIM(PART) from V_INVENTORY_MSTR where PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+	
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		
+		'check if it's currently in the other staging table, if so just skip
+		F.Intrinsic.String.Build("select RECORD_ID from GCG_5807_PART_STAGE where UPPER(PARTNUMBER) = '{0}' and IsNull(REVISION, '') = '{1}' and IsNull(LOCATION, '') = '{2}' and PROCESSED = 0", V.DataTable.dtCrossReference(V.Local.iCounter).PARTNUMBER!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).REVISION!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			V.Local.bFailed.Set(True)
+			F.Intrinsic.String.Build("Part Cross Reference staging record with ID [{0}] failed to upload because the part [{1}] does not exist.", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.Else
+			V.Local.bSkip.Set(True)
+			
+			F.Intrinsic.String.Build("Skipping upload for Part Cross Reference staging record with ID [{0}] because the part [{1}] does not yet exist but is queued in the part staging table.", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Else
+		'for each one, check if it's an update or an upload
+		
+		'these records are keyed off of customer, vendor, customer part, manf part, so we check on those
+		F.Intrinsic.Control.If(V.Local.bPartialKey.Not)
+			F.Intrinsic.String.Build("select PART from V_INV_CROSS_REF where PART = '{0}' and LOCATION = '{1}' and CUSTOMER = '{2}' and CUSTOMER_PART = '{3}' and VENDOR = '{4}' and MFG_PART = '{5}'", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER_PART!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).VENDOR!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_PART!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("select PART from V_INV_CROSS_REF where PART = '{0}' and LOCATION = '{1}' and CUSTOMER = '{2}' and VENDOR = '{3}' and MFG_PART = '{4}'", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).VENDOR!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_PART!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+		
+		'if we get a return, update, otherwise, upload
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+			V.Local.bUpdate.Set(True)
+			
+			F.Intrinsic.String.Build("Deleting cross reference record with ID [{0}] for update...", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			'delete record
+			F.Intrinsic.Control.If(V.Local.bPartialKey.Not)
+				F.Intrinsic.String.Build("delete from INV_CROSS_REF where PART = '{0}' and LOCATION = '{1}' and CUSTOMER = '{2}' and CUSTOMER_PART = '{3}' and VENDOR = '{4}' and MFG_PART = '{5}'", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER_PART!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).VENDOR!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_PART!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("delete from INV_CROSS_REF where PART = '{0}' and LOCATION = '{1}' and CUSTOMER = '{2}' and VENDOR = '{3}' and MFG_PART = '{4}'", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).VENDOR!FieldValTrim, V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_PART!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			
+			'execute sql
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.Else
+			V.Local.bUpdate.Set(False)
+		F.Intrinsic.Control.EndIf
+	
+		'here add it to the library datatable to upload
+		F.Intrinsic.String.Build("Adding cross reference record with ID [{0}] to UPLIXREF datatable for upload.", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		F.Data.DataTable.AddRow("dtUPLIXREF", "PART", V.DataTable.dtCrossReference(V.Local.iCounter).PART_FULL!FieldValTrim, "LOCATION", V.DataTable.dtCrossReference(V.Local.iCounter).LOCATION!FieldValTrim, "CUSTOMER", V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER!FieldValTrim, "CUSTOMER_PART", V.DataTable.dtCrossReference(V.Local.iCounter).CUSTOMER_PART!FieldValTrim, "VENDOR", V.DataTable.dtCrossReference(V.Local.iCounter).VENDOR!FieldValTrim, "MANUFACTURER_PART", V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_PART!FieldValTrim, "MANUFACTURER_NAME", V.DataTable.dtCrossReference(V.Local.iCounter).MANUFACTURER_NAME!FieldValTrim, "USER_DEFINED_PART", V.DataTable.dtCrossReference(V.Local.iCounter).USER_DEFAULT_TITLE!FieldValTrim, "STATUS", V.DataTable.dtCrossReference(V.Local.iCounter).STATUS!FieldValTrim, "COMMENTS", V.DataTable.dtCrossReference(V.Local.iCounter).COMMENT!FieldValTrim)
+		
+		V.Local.bFailed.Set(False)
+		F.Intrinsic.String.Build("Part Cross Reference staging record with ID [{0}] added to UPLIXREF queue sucessfully.", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+
+	'increment counter
+	F.Intrinsic.Control.If(V.Local.bSkip.Not)
+		F.Intrinsic.Control.If(V.Local.bFailed)
+			F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(V.Local.bUpdate.Not)
+				F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Math.Add(V.Global.iUpdated, 1, V.Global.iUpdated)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.CallSub(SaveFeedback, "RECORD_ID", V.DataTable.dtCrossReference(V.Local.iCounter).RECORD_ID!FieldValLong, "Failed", V.Local.bFailed, "Feedback", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'now run upload
+F.Data.DataTable.AcceptChanges("dtUPLIXREF")
+F.Intrinsic.Control.If(V.DataTable.dtUPLIXREF.RowCount, >, 0)
+	F.Intrinsic.String.Build("Running library [GCG_5807_UPLIXREF.lib] to upload cross references with program UPLIXREF [{0}] records...", V.DataTable.dtUPLIXREF.RowCount, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	F.Intrinsic.Control.CallSub(UPLIXREF)
+	F.Intrinsic.String.Build("Upload library process [GCG_5807_UPLIXREF.lib] complete. Library return status [{0}].", V.Global.sUPLIXREFError, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'back up file
+	F.Intrinsic.Control.CallSub(BackupFile, "Type", "Part Cross Reference", "File", V.Global.sUPLIXREFFile)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedCrossReferences.End
+
+Program.Sub.SaveFeedback.Start
+'pass RECORD_ID, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+	F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_XREF_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{2}' where RECORD_ID = {3} and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Local.sTimestamp, V.Args.RECORD_ID, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.Exit.Start
+'celan up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtCrossReference.Exists)
+	F.Data.DataTable.Close("dtCrossReference")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+'F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240214161523208$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4vWgqApNG+uxk0AHjq+H8fw=
+Program.Sub.Comments.End
