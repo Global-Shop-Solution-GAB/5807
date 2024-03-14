@@ -1,0 +1,452 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_UPLQDISC.lib")
+Program.External.Include.Library("GCG_5807_UPLMQDSC.lib")
+Program.External.Include.Library("GCG_5807_UPLORATE.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Price Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_PriceUploader.g2u
+'Trey S
+'April 21st, 2022
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload part pricing data from the GCG_5807_PRICE_STAGE staging table
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check for staged prices
+F.Intrinsic.Control.CallSub(LoadStagedPrices)
+F.Intrinsic.Control.If(V.DataTable.dtPrices.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(UploadStagedPrices)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedPrices.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String, "select RECORD_ID, RECORD_TIMESTAMP, FAILED, PROCESSED, PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(TYPE) TYPE, RTRIM(EXTERNAL_ID) EXTERNAL_ID, RTRIM(UPPER(PART_NUMBER)) PART_NUMBER, RTRIM(UPPER(REVISION)) REVISION, RTRIM(UPPER(LOCATION)) LOCATION, PRICE_DATE, RTRIM(DESCRIPTION) DESCRIPTION, QUANTITY_1, PRICE_1, QUANTITY_2, PRICE_2, QUANTITY_3, PRICE_3, QUANTITY_4, PRICE_4, QUANTITY_5, PRICE_5, QUANTITY_6, PRICE_6, QUANTITY_7, PRICE_7, QUANTITY_8, PRICE_8, QUANTITY_9, PRICE_9, QUANTITY_10, PRICE_10, RTRIM(UPPER(CUSTOMER)) CUSTOMER, FLAT_FEE from GCG_5807_PRICE_STAGE where PROCESSED = 0 and FAILED = 0")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtPrices", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Data.DataTable.AddExpressionColumn("dtPrices", "PART_FULL", "String", "IIF(Trim(IsNull([REVISION], '')) = '', TRIM([PART_NUMBER]), SUBSTRING([PART_NUMBER] + '                 ', 1, 17) + [REVISION])")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedprices.End
+
+Program.Sub.UploadStagedPrices.Start
+'here, go through the staged records and process them
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sReturn.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.bSkip.Declare(Boolean, False)
+V.Local.sDate.Declare(String)
+V.Local.sCurrencyCode.Declare(String)
+
+F.Intrinsic.String.Build("[{0}] staged price records found in table GCG_5807_PRICE_STAGE for upload. Processing...", V.DataTable.dtPrices.RowCount, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'loop through staged records
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtPrices.RowCount--, 1)
+	V.Local.bSkip.Set(False)
+	F.Intrinsic.String.Build("Processing price record with ID [{0}]...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'check if part exists
+	F.Intrinsic.String.Build("select RTRIM(PART) from V_INVENTORY_MSTR where PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		
+		'check if it's currently in the staging table
+		F.Intrinsic.String.Build("select RECORD_ID from GCG_5807_PART_STAGE where UPPER(PARTNUMBER) = '{0}' and IsNull(REVISION, '') = '{1}' and IsNull(LOCATION, '') = '{2}' and PROCESSED = 0", V.DataTable.dtPrices(V.Local.iCounter).PART_NUMBER!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).REVISION!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sReturn)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			F.Intrinsic.String.Build("Price staging record with ID [{0}] failed to upload because part [{1}] does not exist.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+			V.Local.bFailed.Set(True)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Skipping upload for Price staging record with ID [{0}] because part [{1}] is queued in the part staging table.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			V.Local.bSkip.Set(True)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.SelectCase(V.DataTable.dtPrices(V.Local.iCounter).TYPE!FieldValTrim)
+			F.Intrinsic.Control.Case("IQD")
+				'first, delete existing records
+				F.Intrinsic.String.Build("delete from OE_DISCOUNTS where OE_DISC_KEY = 'ORDDSC' and PART = '{0}' and LOCATION = '{1}'", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sSQL)
+				F.Intrinsic.String.Build("Deleting existing OE_DISCOUNTS records for part [{0}] and Location [{1}]...", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+				F.Intrinsic.String.Build("Adding IQD price record with ID [{0}] to library [GCG_5807_UPLQDISC.lib] library datatable [dtUPLQDISC] for upload...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				'add to datatable
+				F.Data.DataTable.AddRow("dtUPLQDISC", "PART", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, "LOCATION", V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, "DATE_ENTERED", V.DataTable.dtPrices(V.Local.iCounter).PRICE_DATE!FieldVal, "QUANTITY_1", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_1!FieldValLong, "PRICE_1", V.DataTable.dtPrices(V.Local.iCounter).PRICE_1!FieldValFloat, "QUANTITY_2", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_2!FieldValLong, "PRICE_2", V.DataTable.dtPrices(V.Local.iCounter).PRICE_2!FieldValFloat, "QUANTITY_3", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_3!FieldValLong, "PRICE_3", V.DataTable.dtPrices(V.Local.iCounter).PRICE_3!FieldValFloat, "QUANTITY_4", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_4!FieldValLong, "PRICE_4", V.DataTable.dtPrices(V.Local.iCounter).PRICE_4!FieldValFloat, "QUANTITY_5", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_5!FieldValLong, "PRICE_5", V.DataTable.dtPrices(V.Local.iCounter).PRICE_5!FieldValFloat, "QUANTITY_6", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_6!FieldValLong, "PRICE_6", V.DataTable.dtPrices(V.Local.iCounter).PRICE_6!FieldValFloat, "QUANTITY_7", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_7!FieldValLong, "PRICE_7", V.DataTable.dtPrices(V.Local.iCounter).PRICE_7!FieldValFloat, "QUANTITY_8", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_8!FieldValLong, "PRICE_8", V.DataTable.dtPrices(V.Local.iCounter).PRICE_8!FieldValFloat, "QUANTITY_9", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_9!FieldValLong, "PRICE_9", V.DataTable.dtPrices(V.Local.iCounter).PRICE_9!FieldValFloat)
+				
+				'now run upload
+				F.Intrinsic.String.Build("Running library [GCG_5807_UPLQDISC.lib] to upload IQD prices with program [UPLQDISC] for record with ID [{0}]...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.Control.CallSub(UPLQDISC)
+				F.Intrinsic.String.Build("Upload library process [GCG_5807_UPLQDISC.lib] for record with ID [{0}] complete. Library return status [{1}].",  V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLQDISCError, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				'back up file
+				F.Intrinsic.Control.CallSub(BackupFile, "Type", "Price", "File", V.Global.sUPLQDISCFile)
+				
+				'increment counter
+				F.Intrinsic.Control.If(V.Global.sUPLQDISCError.Trim, =, "")
+					F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+					V.Local.bFailed.Set(False)
+					F.Intrinsic.String.Build("Price IQD staging record with ID [{0}] uploaded sucessfully.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.Else
+					V.Local.bFailed.Set(True)
+					F.Intrinsic.String.Build("Price IQD staging record with ID [{0}] failed to upload with error message [{1}].", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLQDISCError, V.Local.sMessage)
+				F.Intrinsic.Control.EndIf
+				
+			F.Intrinsic.Control.Case("MQD")
+				F.Intrinsic.String.Build("Adding MQD price record with ID [{0}] to library [GCG_5807_UPLMQDSC.lib] library datatable [dtUPLQDISC] for upload...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.Control.CallSub(SortMQD, "ROW", V.Local.iCounter)
+				F.Intrinsic.Control.CallSub(GetSetting, "Type", "ADVANCED", "Name", "ZEP_ADJUST_MATERIAL_DISCOUNTS")
+				F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+					F.Intrinsic.Control.If(V.Args.Setting)
+						F.Intrinsic.Control.CallSub(AdjustMQD, "ROW", V.Local.iCounter)
+					F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.EndIf
+				
+				F.Intrinsic.Control.CallSub(FormatMQD, "ROW", V.Local.iCounter)
+				
+				'add to datatable
+				F.Data.DataTable.AddRow("dtUPLMQDSC", "PART", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, "QUANTITY_1", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_1!FieldValFloat, "PRICE_1", V.DataTable.dtPrices(V.Local.iCounter).PRICE_1!FieldValFloat, "QUANTITY_2", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_2!FieldValFloat, "PRICE_2", V.DataTable.dtPrices(V.Local.iCounter).PRICE_2!FieldValFloat, "QUANTITY_3", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_3!FieldValFloat, "PRICE_3", V.DataTable.dtPrices(V.Local.iCounter).PRICE_3!FieldValFloat, "QUANTITY_4", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_4!FieldValFloat, "PRICE_4", V.DataTable.dtPrices(V.Local.iCounter).PRICE_4!FieldValFloat, "QUANTITY_5", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_5!FieldValFloat, "PRICE_5", V.DataTable.dtPrices(V.Local.iCounter).PRICE_5!FieldValFloat, "QUANTITY_6", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_6!FieldValFloat, "PRICE_6", V.DataTable.dtPrices(V.Local.iCounter).PRICE_6!FieldValFloat, "QUANTITY_7", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_7!FieldValFloat, "PRICE_7", V.DataTable.dtPrices(V.Local.iCounter).PRICE_7!FieldValFloat, "QUANTITY_8", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_8!FieldValFloat, "PRICE_8", V.DataTable.dtPrices(V.Local.iCounter).PRICE_8!FieldValFloat, "QUANTITY_9", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_9!FieldValFloat, "PRICE_9", V.DataTable.dtPrices(V.Local.iCounter).PRICE_9!FieldValFloat, "QUANTITY_10", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_10!FieldValFloat, "PRICE_10", V.DataTable.dtPrices(V.Local.iCounter).PRICE_10!FieldValFloat)
+				
+				'now run upload
+				F.Intrinsic.String.Build("Running library [GCG_5807_UPLMQDSC.lib] to upload MQD prices for record with ID [{0}]...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.Control.CallSub(UPLMQDSC)
+				
+				'back up file
+				F.Intrinsic.Control.CallSub(BackupFile, "Type", "Price", "File", V.Global.sUPLMQDSCFile)
+				
+				F.Intrinsic.Control.If(V.Global.sUPLMQDSCError.Trim, =, "")
+					F.Intrinsic.String.Build("Upload library process [GCG_5807_UPLMQDSC.lib] for record with ID [{0}] complete. Library return status [{1}].",  V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLMQDSCError, V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+					
+					'increment counter
+					F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+					V.Local.bFailed.Set(False)
+					
+					F.Intrinsic.String.Build("Price MQD staging record with ID [{0}] uploaded sucessfully.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("Upload library process [GCG_5807_UPLMQDSC.lib] for record with ID [{0}] failed. Library return status [{1}].",  V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLMQDSCError, V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+					
+					V.Local.bFailed.Set(True)
+				F.Intrinsic.Control.EndIf
+				
+			F.Intrinsic.Control.Case("CPP")
+				'Contract part pricing
+				'first, delete existing records
+				F.Intrinsic.String.Format(V.DataTable.dtPrices(V.Local.iCounter).PRICE_DATE!FieldVal, "YYYYMMDD", V.Local.sDate)
+				F.Intrinsic.String.Build("delete from OE_C_PART_PRICE where KEY_TYPE = 'CP' and PART = '{0}' and LOCATION = '{1}' and CUSTOMER = '{2}' and DATE_EFFECTIVE = '{3}'", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).CUSTOMER!FieldValTrim, V.Local.sDate, V.Local.sSQL)
+				F.Intrinsic.String.Build("Deleting existing OE_DISCOUNTS records for part [{0}] and Location [{1}] and customer [{2}] and date [{3}]...", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).CUSTOMER!FieldValTrim, V.DataTable.dtPrices(V.Local.iCounter).PRICE_DATE!FieldVal, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+				
+				F.Intrinsic.String.Build("Adding CPP price record with ID [{0}] to library [GCG_5807_UPLORATE.lib] library datatable [dtUPLORATE] for upload...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				'grab currency code
+				F.Global.General.ReadOption("000000", 1, "USD", V.Local.sCurrencyCode)
+				
+				'get price type
+				F.Intrinsic.Control.If(V.DataTable.dtPrices(V.Local.iCounter).FLAT_FEE!FieldValFloat, !=, 0)
+					'flat fee
+					F.Data.DataTable.AddRow("dtUPLORATE", "CUSTOMER", V.DataTable.dtPrices(V.Local.iCounter).CUSTOMER!FieldValTrim, "PART", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, "LOCATION", V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, "CURRENCY_CODE", V.Local.sCurrencyCode, "EFFECTIVE_DATE", V.DataTable.dtPrices(V.Local.iCounter).PRICE_DATE!FieldVal, "PRICING_METHOD", "FF", "FLAT_FEE", V.DataTable.dtPrices(V.Local.iCounter).FLAT_FEE!FieldValFloat)
+				F.Intrinsic.Control.Else
+					'quantity break
+					F.Data.DataTable.AddRow("dtUPLORATE", "CUSTOMER", V.DataTable.dtPrices(V.Local.iCounter).CUSTOMER!FieldValTrim, "PART", V.DataTable.dtPrices(V.Local.iCounter).PART_FULL!FieldValTrim, "LOCATION", V.DataTable.dtPrices(V.Local.iCounter).LOCATION!FieldValTrim, "CURRENCY_CODE", V.Local.sCurrencyCode, "EFFECTIVE_DATE", V.DataTable.dtPrices(V.Local.iCounter).PRICE_DATE!FieldVal, "PRICING_METHOD", "QB", "QUANTITY_1", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_1!FieldValLong, "PRICE_1", V.DataTable.dtPrices(V.Local.iCounter).PRICE_1!FieldValFloat, "QUANTITY_2", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_2!FieldValLong, "PRICE_2", V.DataTable.dtPrices(V.Local.iCounter).PRICE_2!FieldValFloat, "QUANTITY_3", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_3!FieldValLong, "PRICE_3", V.DataTable.dtPrices(V.Local.iCounter).PRICE_3!FieldValFloat, "QUANTITY_4", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_4!FieldValLong, "PRICE_4", V.DataTable.dtPrices(V.Local.iCounter).PRICE_4!FieldValFloat, "QUANTITY_5", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_5!FieldValLong, "PRICE_5", V.DataTable.dtPrices(V.Local.iCounter).PRICE_5!FieldValFloat, "QUANTITY_6", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_6!FieldValLong, "PRICE_6", V.DataTable.dtPrices(V.Local.iCounter).PRICE_6!FieldValFloat, "QUANTITY_7", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_7!FieldValLong, "PRICE_7", V.DataTable.dtPrices(V.Local.iCounter).PRICE_7!FieldValFloat, "QUANTITY_8", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_8!FieldValLong, "PRICE_8", V.DataTable.dtPrices(V.Local.iCounter).PRICE_8!FieldValFloat, "QUANTITY_9", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_9!FieldValLong, "PRICE_9", V.DataTable.dtPrices(V.Local.iCounter).PRICE_9!FieldValFloat, "QUANTITY_10", V.DataTable.dtPrices(V.Local.iCounter).QUANTITY_10!FieldValLong, "PRICE_10", V.DataTable.dtPrices(V.Local.iCounter).PRICE_10!FieldValFloat)
+				F.Intrinsic.Control.EndIf
+				
+				'now run upload
+				F.Intrinsic.String.Build("Running library [GCG_5807_UPLORATE.lib] to upload IQD prices with program [UPLORATE] for record with ID [{0}]...", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.Control.CallSub(UPLORATE)
+				F.Intrinsic.String.Build("Upload library process [GCG_5807_UPLORATE.lib] for record with ID [{0}] complete. Library return status [{1}].",  V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLORATEError, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				'back up file
+				F.Intrinsic.Control.CallSub(BackupFile, "Type", "Price", "File", V.Global.sUPLORATEFile)
+				
+				'increment counter
+				F.Intrinsic.Control.If(V.Global.sUPLORATEError.Trim, =, "")
+					F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+					V.Local.bFailed.Set(False)
+					F.Intrinsic.String.Build("Price CPP staging record with ID [{0}] uploaded sucessfully.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Local.sMessage)
+				F.Intrinsic.Control.Else
+					V.Local.bFailed.Set(True)
+					F.Intrinsic.String.Build("Price CPP staging record with ID [{0}] failed to upload with error message [{1}].", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.Global.sUPLQDISCError, V.Local.sMessage)
+				F.Intrinsic.Control.EndIf
+		
+			F.Intrinsic.Control.CaseElse
+				F.Intrinsic.String.Build("Price staging record with ID [{0}] failed to upload because [{1}] is an invalid type.", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, V.DataTable.dtPrices(V.Local.iCounter).TYPE!FieldValTrim, V.Local.sMessage)
+				V.Local.bFailed.Set(True)
+		F.Intrinsic.Control.EndSelect
+	F.Intrinsic.Control.EndIf
+	
+	'update staging table
+	F.Intrinsic.Control.If(V.Local.bSkip.Not)
+		F.Intrinsic.Control.CallSub(SaveFeedback, "RECORD_ID", V.DataTable.dtPrices(V.Local.iCounter).RECORD_ID!FieldValLong, "Failed", V.Local.bFailed, "Feedback", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Price upload process complete.")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedPrices.End
+
+Program.Sub.AdjustMQD.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sQuantityColumn.Declare(String)
+V.Local.fQuantity.Declare(Float)
+V.Local.iTemp.Declare(Long)
+V.Local.sNextQuantityColumn.Declare(String)
+V.Local.bEnd.Declare(Boolean, False)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 1, 10, 1)
+	F.Intrinsic.Math.Add(V.Local.iCounter, 1, V.Local.iTemp)
+	
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iCounter, V.Local.sQuantityColumn)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iTemp, V.Local.sNextQuantityColumn)
+	
+	'take the NEXT quantity, subtract 0.0001 from that
+	F.Intrinsic.Control.If(V.Local.iTemp, >, 10)
+		V.Local.fQuantity.Set(0)
+	F.Intrinsic.Control.Else
+		V.Local.fQuantity.Set(V.DataTable.dtPrices(V.Args.ROW).[V.Local.sNextQuantityColumn]!FieldValFloat)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.fQuantity, !=, 0)
+		F.Intrinsic.Math.Sub(V.Local.fQuantity, 0.0001, V.Local.fQuantity)
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.SetValue("dtPrices", V.Args.Row, V.Local.sQuantityColumn, V.Local.fQuantity)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AdjustMQD.End
+
+Program.Sub.FormatMQD.Start
+'pass ROW
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sQuantityColumn.Declare(String)
+V.Local.fQuantity.Declare(Float)
+V.Local.fLastQuantity.Declare(Float)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 1, 10, 1)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iCounter, V.Local.sQuantityColumn)
+
+	F.Intrinsic.Control.If(V.Local.iCounter, =, 1)
+		V.Local.fQuantity.Set(0.0001)
+	F.Intrinsic.Control.Else
+		'if it's not the first record, take the last quantity and add 0.0001 to it
+		V.Local.fQuantity.Set(V.Local.fLastQuantity)
+		F.Intrinsic.Control.If(V.Local.fQuantity, !=, 9999999.9999)
+			F.Intrinsic.Math.Add(V.Local.fQuantity, 0.0001, V.Local.fQuantity)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	V.Local.fLastQuantity.Set(V.DataTable.dtPrices(V.Args.Row).[V.Local.sQuantityColumn]!FieldValFloat)
+	F.Data.DataTable.SetValue("dtPrices", V.Args.Row, V.Local.sQuantityColumn, V.Local.fQuantity)
+	
+	F.Intrinsic.Control.If(V.Local.fLastQuantity, =, 0)
+		F.Intrinsic.Control.ExitFor(V.Local.iCounter)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.If(V.Local.iCounter, <, 10)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iCounter.++, V.Local.sQuantityColumn)
+	F.Data.DataTable.SetValue("dtPrices", V.Args.Row, V.Local.sQuantityColumn, 9999999.9999)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormatMQD.End
+
+Program.Sub.SortMQD.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long)
+V.Local.sQuantityColumn.Declare(String)
+V.Local.sPriceColumn.Declare(String)
+V.Local.iRow.Declare(Long)
+
+F.Data.DataTable.Create("dtMQDs")
+F.Data.DataTable.AddColumn("dtMQDs", "QUANTITY", Float, 0)
+F.Data.DataTable.AddColumn("dtMQDs", "PRICE", Float, 0)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 1, 10, 1)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iCounter, V.Local.sQuantityColumn)
+	F.Intrinsic.String.Build("PRICE_{0}", V.Local.iCounter, V.Local.sPriceColumn)
+	
+	F.Intrinsic.Control.If(V.DataTable.dtPrices(V.Args.ROW).[V.Local.sQuantityColumn]!FieldValFloat, !=, 0)
+		F.Data.DataTable.AddRow("dtMQDs", "QUANTITY", V.DataTable.dtPrices(V.Args.ROW).[V.Local.sQuantityColumn]!FieldValFloat, "PRICE", V.DataTable.dtPrices(V.Args.ROW).[V.Local.sPriceColumn]!FieldValFloat)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'put it back in the upload datatable in the right order
+F.Data.DataView.Create("dtMQDs", "dvMQDs", 22, "", "QUANTITY")
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtMQDs!dvMQDs.RowCount--, 1)
+	F.Intrinsic.Math.Add(V.Local.iCounter, 1, V.Local.iRow)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iRow, V.Local.sQuantityColumn)
+	F.Intrinsic.String.Build("PRICE_{0}", V.Local.iRow, V.Local.sPriceColumn)
+	
+	F.Intrinsic.Control.If(V.DataView.dtMQDs!dvMQDs(V.Local.iCounter).QUANTITY!FieldValFloat, !=, 0)
+		F.Data.DataTable.SetValue("dtPrices", V.Args.Row, V.Local.sQuantityColumn, V.DataView.dtMQDs!dvMQDs(V.Local.iCounter).QUANTITY!FieldValFloat, V.Local.sPriceColumn, V.DataView.dtMQDs!dvMQDs(V.Local.iCounter).PRICE!FieldValFloat)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'fill in the rest
+F.Intrinsic.Control.For(V.Local.iCounter, V.DataView.dtMQDs!dvMQDs.RowCount, 9, 1)
+	F.Intrinsic.Math.Add(V.Local.iCounter, 1, V.Local.iRow)
+	F.Intrinsic.String.Build("QUANTITY_{0}", V.Local.iRow, V.Local.sQuantityColumn)
+	F.Intrinsic.String.Build("PRICE_{0}", V.Local.iRow, V.Local.sPriceColumn)
+	
+	F.Data.DataTable.SetValue("dtPrices", V.Args.Row, V.Local.sQuantityColumn, 0, V.Local.sPriceColumn, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtMQDs", "dvMQDs")
+F.Data.DataTable.Close("dtMQDs")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SortMQD.End
+
+Program.Sub.SaveFeedback.Start
+'pass RECORD_ID, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Feedback)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+	F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_PRICE_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{2}' where RECORD_ID = {3} and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Local.sTimestamp, V.Args.RECORD_ID, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.Exit.Start
+'celan up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtPrices.Exists)
+	F.Data.DataTable.Close("dtPrices")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+'F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240214162446758$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4t+YBfPWGU6iwNZVVU9T7+k=
+Program.Sub.Comments.End
