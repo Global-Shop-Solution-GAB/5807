@@ -1,0 +1,121 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLORATEError.Declare(String, "")
+V.Global.sUPLORATEFile.Declare(String, "")
+
+F.Data.DataTable.Create("dtUPLORATE", True)
+F.Data.DataTable.AddColumn("dtUPLORATE", "CUSTOMER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "CURRENCY_CODE", "String", "USD")
+F.Data.DataTable.AddColumn("dtUPLORATE", "EFFECTIVE_DATE", "Date", "1900-01-01")
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICING_METHOD", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMENT_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMENT_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMENT_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMENT_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMENT_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "COMMISSION_RATE_TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLORATE", "FLAT_FEE", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_1", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_1", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_2", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_2", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_3", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_3", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_4", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_4", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_5", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_5", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_6", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_6", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_7", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_7", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_8", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_8", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_9", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_9", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "QUANTITY_10", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLORATE", "PRICE_10", "Float", 0)
+Program.Sub.Preflight.End
+
+'Program.Sub.Main.Start
+''for testing
+''F.Data.DataTable.AddRow("dtUPLORATE", "CUSTOMER", "001000", "PART", "0025-9", "EFFECTIVE_DATE", V.Ambient.Date, "PRICING_METHOD", "FF", "FLAT_FEE", 123.321)
+''F.Data.DataTable.AddRow("dtUPLORATE", "CUSTOMER", "001000", "PART", "0025-9", "EFFECTIVE_DATE", V.Ambient.Date, "PRICING_METHOD", "QB", "QUANTITY_1", 100, "PRICE_1", 321.123)
+'F.Intrinsic.Control.CallSub(UPLORATE)
+'Program.Sub.Main.End
+
+Program.Sub.UPLORATE.Start
+'this is a library for help with using the UPLORATE oneshot to upload discount pricing
+'add data to the dtUPLORATE datatable and then call the UPLORATE subroutine to run the upload
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFields.Declare(String, "CUSTOMER*!*PART*!*LOCATION*!*CURRENCY_CODE*!*EFFECTIVE_DATE_FORMAT*!*PRICING_METHOD*!*COMMENT_1*!*COMMENT_2*!*COMMENT_3*!*COMMENT_4*!*COMMENT_5*!*COMMISSION_RATE_TYPE*!*FLAT_FEE*!*QUANTITY_1*!*QUANTITY_2*!*QUANTITY_3*!*QUANTITY_4*!*QUANTITY_5*!*QUANTITY_6*!*QUANTITY_7*!*QUANTITY_8*!*QUANTITY_9*!*QUANTITY_10*!*PRICE_1*!*PRICE_2*!*PRICE_3*!*PRICE_4*!*PRICE_5*!*PRICE_6*!*PRICE_7*!*PRICE_8*!*PRICE_9*!*PRICE_10")
+V.Local.sLengths.Declare(String, "7*!*20*!*2*!*3*!*8*!*2*!*30*!*30*!*30*!*30*!*30*!*5*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+V.Global.sUPLORATEError.Set("")
+
+'format dates
+F.Data.DataTable.AddColumn("dtUPLORATE", "EFFECTIVE_DATE_FORMAT", "String", "")
+F.Data.DataTable.SetValueFormat("dtUPLORATE", -1, "EFFECTIVE_DATE", "EFFECTIVE_DATE_FORMAT", "YYYYMMDD")
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLORATE", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLORATE", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLORATE", "dvUPLORATEFile", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("strbUPLORATE")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLORATE.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLORATE", "dvUPLORATEFile", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLORATE", "dvUPLORATEFile", V.Local.sFields, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("strbUPLORATE", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("strbUPLORATE", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("strbUPLORATE")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLORATE", "dvUPLORATEFile")
+
+'clean up main DT
+F.Data.DataTable.RemoveColumn("dtUPLORATE", "EFFECTIVE_DATE_FORMAT")
+F.Data.DataTable.RemoveColumn("dtUPLORATE", "ID")
+F.Data.DataTable.DeleteRow("dtUPLORATE")
+F.Data.DataTable.AcceptChanges("dtUPLORATE")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\ORATE.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLORATEFile.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLORATE/U")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLORATEError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLORATE.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8474.24170$}$1
+${$6$}$rseddon$}$20230516164118721$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRb0FCIItWFvzfA+KQ2bzTEeds34O+x6yLOb3rGAkEhzIU=
+Program.Sub.Comments.End
