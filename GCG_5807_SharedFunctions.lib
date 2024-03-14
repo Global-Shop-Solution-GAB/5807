@@ -1,0 +1,1169 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sLibrary_Callback.Declare(String, "")
+V.Global.bLibrary_Unattended.Declare(Boolean, False)
+V.Global.sLibrary_Project.Declare(String, "5807")
+V.Global.sLibrary_ProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Function Library")
+V.Global.sLibrary_CallingProgram.Declare(String, "")
+V.Global.bLibrary_SQLLogging.Declare(Boolean, False)
+V.Global.sLibrary_LogFile.Declare(String, "")
+Program.Sub.Preflight.End
+
+'GCG_5807_SharedFunctions.lib
+'Trey S
+'January 13th, 2020
+'This script is part of what is intended to be the standard
+'soap order uploader. This is a collection of subroutines used by many
+'or all of the scripts in this project.
+
+Program.Sub.SetLibraryLoggingVariables.Start
+'set the library error/logging variables
+'Parameters:
+'Callback - Callback subroutine on error
+'Unattended - If script is running unattended or not
+'Project - Project Arc ID
+'ProjectTitle - Name of Project for error messages
+'pass SQLLogging
+
+F.Intrinsic.Control.Try
+
+V.Local.bExists.Declare(Boolean, False)
+
+V.Global.sLibrary_Callback.Set(V.Args.Callback)
+V.Global.sLibrary_Project.Set(V.Args.Project)
+V.Global.sLibrary_ProjectTitle.Set(V.Args.ProjectTitle)
+
+F.Intrinsic.Control.If(V.Ambient.IsInIDE)
+	V.Global.bLibrary_Unattended.Set(False)
+F.Intrinsic.Control.Else
+	V.Global.bLibrary_Unattended.Set(V.Args.Unattended)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.PassedExists("CALLING_PROGRAM", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	V.Global.sLibrary_CallingProgram.Set(V.Passed.CALLING_PROGRAM.Trim)
+F.Intrinsic.Control.Else
+	V.Global.sLibrary_CallingProgram.Set(V.Caller.Caller)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.ArgExists("SQLLogging", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	V.Global.bLibrary_SQLLogging.Set(V.Args.SQLLogging)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(SetCallingProgram)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetLibraryLoggingVariables.End
+
+Program.Sub.Connection.Start
+'open or close connection if necessary, keep track of all connections
+
+F.Intrinsic.Control.Try
+
+V.Static.iConnections.Declare(Long)
+
+F.Intrinsic.Control.If(V.Args.Connect)
+	F.Intrinsic.Control.If(V.Static.iConnections, =, 0)
+		F.ODBC.Connection!Con.OpenCompanyConnection(100)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Math.Add(V.Static.iConnections, 1, V.Static.iConnections)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Static.iConnections, >, 0)
+		F.Intrinsic.Math.Sub(V.Static.iConnections, 1, V.Static.iConnections)
+		
+		F.Intrinsic.Control.If(V.Static.iConnections, =, 0)
+			F.ODBC.Connection!Con.Close
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Connection.End
+
+Program.Sub.CheckDirectories.Start
+'check if the given import directories exist
+'create them if they don't
+'pass directories delimited with *!*
+
+F.Intrinsic.Control.Try
+
+V.Local.sDirectories.Declare(String)
+V.Local.sPath.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.iCounter.Declare(Long)
+
+V.Local.sDirectories.Set(V.Args.Directories)
+F.Intrinsic.String.Split(V.Local.sDirectories, "*!*", V.Local.sDirectories)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sDirectories.UBound, 1)
+	V.Local.sPath.Set(V.Local.sDirectories(V.Local.iCounter))
+	F.Intrinsic.File.DirExists(V.Local.sPath, V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists.Not)
+		F.Intrinsic.File.CreateDir(V.Local.sPath)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckDirectories.End
+
+Program.Sub.AddLog.Start
+'date and time will be automatically added
+'MESSAGE (what to log)
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.sPath.Declare(String)
+V.Local.sFile.Declare(String)
+V.Local.sScript.Declare(String)
+
+F.Intrinsic.Control.CallSub(GetScriptNameClean)
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Log\{3}", V.Caller.GlobalDir, V.Global.sLibrary_Project, V.Caller.CompanyCode, V.Args.ScriptName, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "DIRECTORIES", V.Local.sPath)
+
+F.Intrinsic.String.Build("{0}\{1}-{2}-Log.txt", V.Local.sPath, V.Ambient.Date.FormatYYYYMMDD, V.Args.ScriptName, V.Local.sFile)
+F.Intrinsic.Control.If(V.Global.sLibrary_LogFile.Trim, =, "")
+	F.Intrinsic.String.Build("{0}\{1}-{2}-Log.txt", V.Local.sPath, V.Ambient.Now.FormatYYYYMMDDHHNNSS, V.Args.ScriptName, V.Local.sFile)
+	V.Global.sLibrary_LogFile.Set(V.Local.sFile)
+F.Intrinsic.Control.Else
+	V.Local.sFile.Set(V.Global.sLibrary_LogFile)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sScript)
+F.Intrinsic.File.Exists(V.Local.sFile, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+	F.Intrinsic.String.Build("{0} {1}\\{2}\\{3}\\{4}: Log Start - Hook: {5}, PID: {6}", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time, V.Global.sLibrary_CallingProgram, V.Local.sScript, V.Ambient.SubroutineCalledFrom, V.Caller.Hook, V.Ambient.PID, V.Local.sMessage)
+	F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Replace(V.Args.Message, V.Ambient.NewLine, ", ", V.Local.sMessage)
+F.Intrinsic.String.Build("{0} {1}\\{2}\\{3}\\{4}: {5}", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time, V.Global.sLibrary_CallingProgram, V.Local.sScript, V.Ambient.SubroutineCalledFrom, V.Local.sMessage, V.Local.sMessage)
+F.Intrinsic.File.Append2FileNewLine(V.Local.sFile, V.Local.sMessage)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddLog.End
+
+Program.Sub.ScriptPIDCheck.Start
+'check if the process is already running
+
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+V.Local.bPIDRunning.Declare(Boolean, False)
+V.Local.sContents.Declare(String)
+V.Local.iPID.Declare(Long, -1)
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sFile)
+
+F.Global.Registry.ReadValue(-1, V.Caller.CompanyCode, V.Local.sFile, V.Args.Project, 0, 1, -1, V.Local.iPID)
+F.Intrinsic.Control.If(V.Local.iPID, <>, -1)
+	'check if PID is actually running
+	F.Intrinsic.Task.PIDRunning(V.Local.iPID, V.Local.bPIDRunning)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.bPIDRunning)
+	'if it's already running, end here
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.Else
+	'create lock file contents
+	F.Intrinsic.String.Build("PID: {0}{1}Launch Time: {2}{1}GSS User: {3}{1}Terminal: {4}{1}Windows User: {5}{1}Machine: {6}{1}Hook: {7}{1}Caller: {8}{1}Script: {9}{1}Company Code: {10}", V.Ambient.PID, V.Ambient.NewLine, V.Ambient.Now, V.Caller.User, V.Caller.Terminal, V.System.UserName, V.System.ComputerName, V.Caller.Hook, V.Caller.Caller, V.Caller.ScriptFile, V.Caller.CompanyCode, V.Local.sContents)
+	F.Global.Registry.AddValue(-1, V.Caller.CompanyCode, V.Local.sFile, V.Args.Project, 0, False, "Lock", False, V.Ambient.PID, 0, V.Ambient.Date, V.Ambient.Now, V.Local.sContents)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ScriptPIDCheck.End
+
+Program.Sub.ScriptPIDClear.Start
+'delete the is running lock, so the next time the program runs it knows it isn't currently running
+'pass project
+
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sFile)
+F.Global.Registry.AddValue(-1, V.Caller.CompanyCode, V.Local.sFile, V.Args.Project, 0, False, "", False, -1, 0, V.Ambient.Date, V.Ambient.Now, "")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ScriptPIDClear.End
+
+Program.Sub.GetSetting.Start
+'return a setting from the GCG_5807_SETTINGS table
+'pass TYPE and NAME
+'returns SETTING
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Intrinsic.String.Build("select RTRIM(VALUE) from GCG_5807_SETTINGS where TYPE = '{0}' and NAME = '{1}'", V.Args.TYPE.Trim, V.Args.NAME.Trim, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	V.Local.sRet.Set("")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("SETTING", V.Local.sRet.Trim)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetSetting.End
+
+Program.Sub.ErrorMessage.Start
+'error message and logging
+'Parameters:
+'Optional:
+'other parameters are pulled from SetLibraryLoggingVariables
+
+F.Intrinsic.Control.Try
+
+V.Static.bError.Declare(Boolean, False)
+V.Local.sError.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.sLine.Declare(String)
+V.Local.sItems.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.iOrigin.Declare(Long)
+
+'check for error loop
+F.Intrinsic.Control.If(V.Static.bError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+V.Static.bError.Set(True)
+
+'grab error line
+F.Intrinsic.Control.Try
+	V.Local.sLine.Set(V.Ambient.ErrorLine)
+F.Intrinsic.Control.Catch
+	'just means they aren't updated, we don't need to do anything
+F.Intrinsic.Control.EndTry
+
+'log error
+F.Intrinsic.String.Build("{0}\\{1} Error: {2} - {3}", V.Ambient.SubroutineCalledFrom, V.Local.sLine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Local.sError)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sError)
+
+'build error file
+F.Global.General.GetScriptOrigin(V.Caller.ScriptFile, V.Local.iOrigin)
+F.Intrinsic.String.Build("Time: {0}{1}Project: {33}{1}Title: {34}{1}Script: {15}{1}Calling Script: {35}{1}Subroutine: {16}{1}Line: {17}{1}Error: {13} - {14}{1}SQL Logging: {36}{1}Log File: {37}{1}Last Action: {18}{1}Script Version: {28}{1}Script Origin: {32}{1}{1}User: {2}{1}Terminal: {6}{1}Caller: {7}{1}GSS Version: {12}{1}GAB Version: {11}{1}Database Type: {31}{1}Pervasive Server: {20}{1}Pervasive Client: {10}{1}Hook: {26}{1}Switches: {27}{1}Synchronous: {8}{1}Debug: {24}{1}{1}Machine: {4}{1}Windows User: {3}{1}Domain: {30}{1}Session: {29}{1}Windows Platform: {21}{1}Windows Version: {23}{1}PID: {5}{1}Thread ID: {9}{1}Instance Handle: {19}{1}Windows Uptime: {22}{1}Handle: {25}", V.Ambient.Now, V.Ambient.NewLine, V.Caller.User, V.System.UserName, V.System.ComputerName, V.Ambient.PID, V.Caller.Terminal, V.Caller.Caller, V.Caller.Sync,  V.Ambient.ThreadID, V.Ambient.PervasiveClientVersion, V.Ambient.GABVersion, V.Caller.GSSVersion, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Caller.ScriptFile, V.Ambient.SubroutineCalledFrom, V.Local.sLine, V.Ambient.LastAction, V.Ambient.InstanceHandle, V.Ambient.PervasiveServerVersion, V.Ambient.WindowsPlatformID, V.Ambient.WindowsUpTime, V.Ambient.WindowsVersionName, V.Caller.Debug, V.Caller.Handle, V.Caller.Hook, V.Caller.Switches, V.Caller.ScriptVer, V.System.SessionName, V.System.UserDomain, V.Ambient.DatabaseType, V.Local.iOrigin, V.Global.sLibrary_Project, V.Global.sLibrary_ProjectTitle, V.Global.sLibrary_CallingProgram, V.Global.bLibrary_SQLLogging, V.Global.sLibrary_LogFile, V.Local.sError)
+
+'add in passed variables
+F.Intrinsic.Control.If(V.Ambient.ItemList.Trim, !=, "")
+	F.Intrinsic.String.Build("{0}{1}", V.Local.sError, V.Ambient.NewLine, V.Local.sError)
+	F.Intrinsic.String.Split(V.Ambient.ItemList, "*!*", V.Local.sItems)
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sItems.UBound, 1)
+		F.Intrinsic.String.Build("{0}{1}{2} - {3}: {4}", V.Local.sError, V.Ambient.NewLine, V.Local.sItems(V.Local.iCounter), V.Passed.[V.Local.sItems(V.Local.iCounter)].Name, V.Passed.[V.Local.sItems(V.Local.iCounter)], V.Local.sError)
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.EndIf
+
+'save file
+F.Intrinsic.Control.CallSub(AddLogFile, "TYPE", "Error", "MESSAGE", V.Local.sError)
+
+'if not unattended, display error
+F.Intrinsic.String.Build("Error in GAB Script [{1}]{2}{2}Date/Time: {0}{2}Subroutine: {6}{2}Line: {3}{2}Error: {4} - {5}", V.Ambient.Now, V.Caller.ScriptFile, V.Ambient.NewLine, V.Local.sLine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Ambient.SubroutineCalledFrom, V.Local.sError)
+F.Intrinsic.Control.If(V.Global.bLibrary_Unattended.Not)
+	F.Intrinsic.UI.Msgbox(V.Local.sError, V.Global.sLibrary_ProjectTitle)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.sLibrary_Callback.Trim, !=, "")
+	F.Intrinsic.Control.CallSub(V.Global.sLibrary_Callback)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Error in GAB Script [{1}]{2}{2}Date/Time: {0}{2}Line: {3}{2}Error: {4} - {5}", V.Ambient.Now, V.Caller.ScriptFile, V.Ambient.NewLine, V.Local.sLine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError, V.Global.sLibrary_ProjectTitle)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.ErrorMessage.End
+
+Program.Sub.AddLogFile.Start
+'pass type
+'MESSAGE (what to log)
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.sFile.Declare(String)
+V.Local.sTime.Declare(String)
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.Control.CallSub(GetScriptNameClean)
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Log\{3}", V.Caller.GlobalDir, V.Global.sLibrary_Project, V.Caller.CompanyCode, V.Args.ScriptName, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "DIRECTORIES", V.Local.sPath)
+
+F.Intrinsic.String.StripCharacters(V.Ambient.Now, V.Local.sTime)
+
+'grab script name, V.Args.ScriptName
+F.Intrinsic.String.Build("{0}\{1}-{2}-{3}.txt", V.Local.sPath, V.Local.sTime, V.Args.ScriptName, V.Args.Type, V.Local.sFile)
+F.Intrinsic.String.Build("Creating {0} log file at [{1}]", V.Args.Type, V.Local.sFile, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Args.Message)
+
+F.Intrinsic.Variable.AddRV("Log_File", V.Local.sFile)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddLogFile.End
+
+Program.Sub.GetFilter.Start
+'pass DATATABLE, FIELD (*!* delimiter)
+'returns filter
+'returns a list of the distinct values of that field delimited by ','
+
+F.Intrinsic.Control.Try
+
+V.Local.iCounter.Declare(Long, 0)
+V.Local.sFilter.Declare(String)
+V.Local.sDataView.Declare(String, "dvGetFilterTemp_0")
+V.Local.sDataViewFilter.Declare(String)
+
+'make sure no duplicate dataview
+F.Intrinsic.Control.DoUntil(V.DataView.[V.Args.DataTable]![V.Local.sDataView].Exists, =, False)
+	F.Intrinsic.String.Build("dvGetFilterTemp_{0}", V.Local.iCounter.++, V.Local.sDataView)
+F.Intrinsic.Control.Loop
+
+'create in filter
+F.Intrinsic.String.Build("Convert([{0}], 'System.String') <> ''", V.Args.Field, V.Local.sDataViewFilter)
+F.Data.DataView.Create(V.Args.DataTable, V.Local.sDataView, 22, V.Local.sDataViewFilter, "")
+F.Data.DataView.ToString(V.Args.DataTable, V.Local.sDataView, V.Args.Field, "***NODELIMITER***", "*!*", V.Local.sFilter)
+F.Data.DataView.Close(V.Args.DataTable, V.Local.sDataView)
+
+V.Local.sFilter.Set(V.Local.sFilter.PSQLFriendly)
+
+'remove duplicates
+F.Intrinsic.String.Split(V.Local.sFilter, "*!*", V.Local.sFilter)
+F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sFilter, V.Local.sFilter)
+F.Intrinsic.String.Join(V.Local.sFilter, "','", V.Local.sFilter)
+V.Local.sFilter.RedimPreserve(0,0)
+
+F.Intrinsic.Variable.AddRV("FILTER", V.Local.sFilter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetFilter.End
+
+Program.Sub.GetExternalIDField.Start
+'pass type
+'returns the Core_field, Core_table, Staging_Field, and size of the external ID field
+
+F.Intrinsic.Control.Try
+
+V.Local.sCoreTableField.Declare(String, "")
+V.Local.sCoreTable.Declare(String, "")
+V.Local.iSize.Declare(Long, -1)
+V.Local.sUploadField.Declare(String, "")
+'V.Local.sCoreTableKey.Declare(String, "")
+'V.Local.sCoreTableFilter.Declare(String, "")
+
+'check external ID option
+F.Intrinsic.Control.SelectCase(V.Args.TYPE)
+	F.Intrinsic.Control.Case("CONTACT")
+		F.Intrinsic.Control.CallSub(GetSetting, "Type", "CONTACT", "NAME", "STORE_EXTERNAL_ID")
+	F.Intrinsic.Control.Case("ORDER")
+		F.Intrinsic.Control.CallSub(GetSetting, "Type", "ORDER", "NAME", "STORE_EXTERNAL_ORDER")
+	F.Intrinsic.Control.Case("CUSTOMER")
+		F.Intrinsic.Control.CallSub(GetSetting, "Type", "CUSTOMER", "NAME", "STORE_EXTERNAL_ID")
+F.Intrinsic.Control.EndSelect
+
+'return actual fields for those
+F.Intrinsic.Control.SelectCase(V.Args.Setting.Trim)
+	'contact fields
+	F.Intrinsic.Control.Case("Field 9")
+		V.Local.sCoreTableField.Set("UF9")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_9")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 10")
+		V.Local.sCoreTableField.Set("UF10")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_10")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 11")
+		V.Local.sCoreTableField.Set("UF11")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_11")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 12")
+		V.Local.sCoreTableField.Set("UF12")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_12")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 13")
+		V.Local.sCoreTableField.Set("UF13")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_13")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 14")
+		V.Local.sCoreTableField.Set("UF14")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_14")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 15")
+		V.Local.sCoreTableField.Set("UF15")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_15")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Field 16")
+		V.Local.sCoreTableField.Set("UF16")
+		V.Local.sCoreTable.Set("CRM_UF_VALUE")
+		V.Local.sUploadField.Set("USER_FIELD_16")
+		V.Local.iSize.Set(30)
+	'order fields
+	F.Intrinsic.Control.Case("Customer PO")
+		V.Local.sCoreTableField.Set("CUSTOMER_PO")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sUploadField.Set("CustomerPO")
+		V.Local.iSize.Set(15)
+	F.Intrinsic.Control.Case("Order Sort")
+		V.Local.sCoreTableField.Set("CODE_SORT")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sUploadField.Set("OrderSort")
+		V.Local.iSize.Set(20)
+	F.Intrinsic.Control.Case("Order Sort 2")
+		V.Local.sUploadField.Set("OrderSort2")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("ORDER_SORT_2")
+		V.Local.iSize.Set(20)
+	F.Intrinsic.Control.Case("User Field 1")
+		V.Local.sUploadField.Set("UserField1Head")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("USER_1")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("User Field 2")
+		V.Local.sUploadField.Set("UserField2Head")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("USER_2")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("User Field 3")
+		V.Local.sUploadField.Set("UserField3Head")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("USER_3")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("User Field 4")
+		V.Local.sUploadField.Set("UserField4Head")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("USER_4")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("User Field 5")
+		V.Local.sUploadField.Set("UserField5Head")
+		V.Local.sCoreTable.Set("V_ORDER_HEADER")
+		V.Local.sCoreTableField.Set("USER_5")
+		V.Local.iSize.Set(30)
+	'customer fields
+	F.Intrinsic.Control.Case("External ID")
+		V.Local.sCoreTableField.Set("EXTERNAL_ID")
+		V.Local.sCoreTable.Set("V_CUST_FORM_INFO")
+		V.Local.sUploadField.Set("EXTERNAL_CUSTOMER_ID")
+		V.Local.iSize.Set(12)
+	F.Intrinsic.Control.Case("Alpha Sort")
+		V.Local.sCoreTableField.Set("ALPHA_SORT")
+		V.Local.sCoreTable.Set("V_CUSTOMER_SALES")
+		V.Local.sUploadField.Set("ALPHA_SORT")
+		V.Local.iSize.Set(30)
+	F.Intrinsic.Control.Case("Sort")
+		V.Local.sCoreTableField.Set("C_SORT_1")
+		V.Local.sCoreTable.Set("V_CUSTOMER_SALES")
+		V.Local.sUploadField.Set("SORT")
+		V.Local.iSize.Set(15)
+	F.Intrinsic.Control.CaseElse
+		V.Local.sCoreTableField.Set("***DONOTSTORE***")
+		V.Local.sCoreTable.Set("***DONOTSTORE***")
+		V.Local.sUploadField.Set("***DONOTSTORE***")
+		V.Local.iSize.Set(-1)
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Variable.AddRV("CORE_FIELD", V.Local.sCoreTableField)
+F.Intrinsic.Variable.AddRV("CORE_TABLE", V.Local.sCoreTable)
+F.Intrinsic.Variable.AddRV("UPLOAD_FIELD", V.Local.sUploadField)
+F.Intrinsic.Variable.AddRV("SIZE", V.Local.iSize)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetExternalIDField.End
+
+Program.Sub.CheckORDUPLParameterFile.Start
+'check if the GSSPARAMccc exists for the Order uploader, create the directories
+
+F.Intrinsic.Control.Try
+
+V.Local.bExists.Declare(Boolean)
+V.Local.sPath.Declare(String)
+V.Local.sFileContents.Declare(String)
+V.Local.sOrderDirectory.Declare(String)
+V.Local.sErrorDirectory.Declare(String)
+V.Local.sConvertedDirectory.Declare(String)
+V.Local.sUploadedDirectory.Declare(String)
+V.Local.sDirectories.Declare(String)
+
+F.Intrinsic.String.Build("{0}\GSSPARAM{1}.txt", V.Caller.FilesDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.File.Exists(V.Local.sPath, V.Local.bExists)
+
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+	F.Intrinsic.Control.CallSub(CreateORDUPLParameterFile)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(GetWebImporterParameters)
+F.Intrinsic.String.Build("{0}*!*{1}*!*{2}*!*{3}", V.Args.ORDER_DIRECTORY.Trim, V.Args.ERROR_DIRECTORY.Trim, V.Args.CONVERTED_DIRECTORY.Trim, V.Args.UPLOADED_DIRECTORY.Trim, V.Local.sDirectories)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sDirectories)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckORDUPLParameterFile.End
+
+Program.Sub.CreateORDUPLParameterFile.Start
+'create the default order uploader parameter file
+
+F.Intrinsic.Control.Try
+
+V.Local.sParams.Declare(String)
+V.Local.sPath.Declare(String)
+
+F.Intrinsic.String.Build("WEB ORDER DIRECTORY   = {1}\WEB_ORDERS\{2}{0}WEB ERROR DIRECTORY   = {1}\WEB_ORDERS\{2}\WEB_ERRORS{0}WEB CONVERTED DIR     = {1}\WEB_ORDERS\{2}\CONVERTED{0}WEB UPLOADED DIRECTORY= {1}\WEB_ORDERS\{2}\UPLOADED{0}", V.Ambient.NewLine, V.Caller.FilesDir, V.Caller.CompanyCode, V.Local.sParams)
+F.Intrinsic.String.Build("{0}\GSSPARAM{1}.txt", V.Caller.FilesDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.File.String2File(V.Local.sPath, V.Local.sParams)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateORDUPLParameterFile.End
+
+Program.Sub.GetWebImporterParameters.Start
+'returns web importer parameter file information
+'returns ORDER_DIRECTORY, ERROR_DIRECTORY, CONVERTED_DIRECTORY, UPLOADED_DIRECTORY, EMAIL_FROM, EMAIL_TO
+
+F.Intrinsic.Control.Try
+
+V.Local.bExists.Declare(Boolean)
+V.Local.sPath.Declare(String)
+V.Local.sWebOrderFolder.Declare(String, "")
+V.Local.sWebErrorFolder.Declare(String, "")
+V.Local.sWebConvertedFolder.Declare(String, "")
+V.Local.sWebUploadedFolder.Declare(String, "")
+V.Local.sEmailFrom.Declare(String, "")
+V.Local.sEmailTo.Declare(String)
+V.Local.sFileContents.Declare(String)
+
+F.Intrinsic.String.Build("{0}\GSSPARAM{1}.txt", V.Caller.FilesDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.File.Exists(V.Local.sPath, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	'read in file, split rows
+	F.Intrinsic.File.File2String(V.Local.sPath, V.Local.sFileContents)
+	F.Intrinsic.String.Split(V.Local.sFileContents, V.Ambient.NewLine, V.Local.sFileContents)
+	
+	F.Intrinsic.Control.If(V.Local.sFileContents.UBound, >, 3)
+		F.Intrinsic.String.Split(V.Local.sFileContents(0), "=", V.Local.sWebOrderFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(1), "=", V.Local.sWebErrorFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(2), "=", V.Local.sWebConvertedFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(3), "=", V.Local.sWebUploadedFolder)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(CreateORDUPLParameterFile)
+		
+		F.Intrinsic.File.File2String(V.Local.sPath, V.Local.sFileContents)
+		F.Intrinsic.String.Split(V.Local.sFileContents, V.Ambient.NewLine, V.Local.sFileContents)
+		
+		F.Intrinsic.String.Split(V.Local.sFileContents(0), "=", V.Local.sWebOrderFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(1), "=", V.Local.sWebErrorFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(2), "=", V.Local.sWebConvertedFolder)
+		F.Intrinsic.String.Split(V.Local.sFileContents(3), "=", V.Local.sWebUploadedFolder)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.sFileContents.UBound, >, 4)
+		F.Intrinsic.String.Split(V.Local.sFileContents(4), "=", V.Local.sEmailFrom)
+		F.Intrinsic.String.Split(V.Local.sFileContents(5), "=", V.Local.sEmailTo)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(CreateORDUPLParameterFile)
+		
+	F.Intrinsic.File.File2String(V.Local.sPath, V.Local.sFileContents)
+	F.Intrinsic.String.Split(V.Local.sFileContents, V.Ambient.NewLine, V.Local.sFileContents)
+	
+	F.Intrinsic.String.Split(V.Local.sFileContents(0), "=", V.Local.sWebOrderFolder)
+	F.Intrinsic.String.Split(V.Local.sFileContents(1), "=", V.Local.sWebErrorFolder)
+	F.Intrinsic.String.Split(V.Local.sFileContents(2), "=", V.Local.sWebConvertedFolder)
+	F.Intrinsic.String.Split(V.Local.sFileContents(3), "=", V.Local.sWebUploadedFolder)
+F.Intrinsic.Control.EndIf
+
+V.Local.sWebOrderFolder.RedimPreserve(0, 1)
+V.Local.sWebErrorFolder.RedimPreserve(0, 1)
+V.Local.sWebConvertedFolder.RedimPreserve(0, 1)
+V.Local.sWebUploadedFolder.RedimPreserve(0, 1)
+V.Local.sEmailFrom.RedimPreserve(0, 1)
+V.Local.sEmailTo.RedimPreserve(0, 1)
+
+F.Intrinsic.Variable.AddRV("ORDER_DIRECTORY", V.Local.sWebOrderFolder(1).Trim)
+F.Intrinsic.Variable.AddRV("ERROR_DIRECTORY", V.Local.sWebErrorFolder(1).Trim)
+F.Intrinsic.Variable.AddRV("CONVERTED_DIRECTORY", V.Local.sWebConvertedFolder(1).Trim)
+F.Intrinsic.Variable.AddRV("UPLOADED_DIRECTORY", V.Local.sWebUploadedFolder(1).Trim)
+F.Intrinsic.Variable.AddRV("EMAIL_FROM", V.Local.sEmailFrom(1).Trim)
+F.Intrinsic.Variable.AddRV("EMAIL_TO", V.Local.sEmailTo(1).Trim)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetWebImporterParameters.End
+
+Program.Sub.FormatCallwrapperDecimal.Start
+'pass VALUE, BEFORE_DECIMAL, AFTER_DECIMAL
+'returns CALLWRAPPER_DECIMAL, formatted
+
+F.Intrinsic.Control.Try
+
+V.Local.sValue.Declare(String)
+
+F.Intrinsic.String.Format(V.Args.VALUE, "0.00", V.Local.sValue)
+F.Intrinsic.String.Split(V.Local.sValue, ".", V.Local.sValue)
+
+F.Intrinsic.String.LPad(V.Local.sValue(0), "0", V.Args.BEFORE_DECIMAL, V.Local.sValue(0))
+F.Intrinsic.String.RPad(V.Local.sValue(1), "0", V.Args.AFTER_DECIMAL, V.Local.sValue(1))
+
+F.Intrinsic.String.Join(V.Local.sValue, "", V.Local.sValue)
+V.Local.sValue.RedimPreserve(0, 0)
+
+F.Intrinsic.Variable.AddRV("CALLWRAPPER_DECIMAL", V.Local.sValue)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormatCallwrapperDecimal.End
+
+Program.Sub.BackUpDataTable.Start
+'pass DATATABLE
+'pass TYPE
+'pass NAME
+'pass DATAVIEW
+'pass FILE_TYPE (xml, CSV)
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.sName.Declare(String)
+V.Local.sDataTable.Declare(String)
+V.Local.sFileType.Declare(String)
+V.Local.bExists.Declare(Boolean, False)
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.Variable.ArgExists("FILE_TYPE", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+	V.Local.sFileType.Set("CSV")
+F.Intrinsic.Control.Else
+	V.Local.sFileType.Set(V.Args.File_Type.UCase)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Data Backups\{3}", V.Caller.GlobalDir, V.Global.sLibrary_Project, V.Caller.CompanyCode, V.Args.Type, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+
+F.Intrinsic.String.StripCharacters(V.Args.Name, V.Local.sName)
+F.Intrinsic.String.Build("{0}_{1}.{2}", V.Local.sName, V.Ambient.Now.FormatYYYYMMDDHHNNSS, V.Local.sFileType.LCase, V.Local.sName)
+F.Intrinsic.String.Build("{0}\{1}", V.Local.sPath, V.Local.sName, V.Local.sPath)
+
+F.Intrinsic.Control.If(V.Args.DataView.Trim, =, "")
+	V.Local.sDataTable.Set(V.Args.DataTable)
+F.Intrinsic.Control.Else
+	V.Local.sDataTable.Set("dtTempBackUpDataTableFromDataView")
+	F.Data.DataView.ToDataTable(V.Args.DataTable, V.Args.DataView, V.Local.sDataTable)
+F.Intrinsic.Control.EndIf
+
+'log backup
+F.Intrinsic.Control.If(V.Args.DataView.Trim, =, "")
+	F.Intrinsic.String.Build("Backing up {0} DataTable {1} to file [{2}]", V.Args.Type, V.Args.DataTable, V.Local.sPath, V.Local.sMessage)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Backing up {0} DataView {1}!{2} to file [{3}]", V.Args.Type, V.Args.DataTable, V.Args.DataView, V.Local.sPath, V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.If(V.Local.sFileType, =, "XML")
+	F.Data.DataTable.SaveToXML(V.Local.sDataTable, 1, True, V.Local.sPath)
+F.Intrinsic.Control.Else
+	F.Data.DataTable.SaveToCSV(V.Local.sDataTable, V.Local.sPath, True)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.DataView.Trim, !=, "")
+	F.Data.DataTable.Close(V.Local.sDataTable)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.BackUpDataTable.End
+
+Program.Sub.RemoveUnicodeFromDataTable.Start
+'utilizes FixUnicodeString subroutine to clean up entire datatable
+'pass DATATABLE, PROJECT, FIELDS, TYPES, KEY
+
+F.Intrinsic.Control.Try
+
+V.Local.sContents.Declare(String)
+V.Local.iCounter.Declare(Long, 0)
+V.Local.sDataView.Declare(String, "dvFixStringTemp_0")
+V.Local.sDataTable.Declare(String)
+V.Local.sFields.Declare(String)
+V.Local.sDictionary.Declare(String)
+V.Local.bExists.Declare(Boolean, False)
+
+'make sure no duplicate dataview
+F.Intrinsic.Control.DoUntil(V.DataView.[V.Args.DataTable]![V.Local.sDataView].Exists, =, False)
+	F.Intrinsic.String.Build("dvFixStringTemp_{0}", V.Local.iCounter.++, V.Local.sDataView)
+F.Intrinsic.Control.Loop
+
+'make string
+F.Data.DataView.Create(V.Args.DataTable, V.Local.sDataView, 22)
+F.Data.DataView.ToString(V.Args.DataTable, V.Local.sDataView, V.Args.Fields, "***DATATABLE-INNER-DELIMITER***", "***DATATABLE-OUTER-DELIMITER***", V.Local.sContents)
+F.Data.DataView.Close(V.Args.DataTable, V.Local.sDataView)
+
+'remove unicode
+F.Intrinsic.Control.CallSub(FixUnicodeString, "String", V.Local.sContents, "Project", V.Args.Project)
+
+'get free datatable name
+V.Local.iCounter.Set(0)
+F.Intrinsic.String.Build("{0}_Temp_0", V.Args.DataTable, V.Local.sDataTable)
+F.Intrinsic.Control.DoUntil(V.DataTable.[V.Local.sDataTable].Exists, =, False)
+	F.Intrinsic.String.Build("{0}_Temp_{1}", V.Args.DataTable, V.Local.iCounter.++, V.Local.sDataTable)
+F.Intrinsic.Control.Loop
+
+F.Data.DataTable.CreateFromString(V.Local.sDataTable, V.Args.New_String, V.Args.Fields, V.Args.Types, "***DATATABLE-INNER-DELIMITER***", "***DATATABLE-OUTER-DELIMITER***")
+
+'get free dictionary name
+V.Local.iCounter.Set(0)
+F.Intrinsic.String.Build("{0}_Dictionary_Temp_0", V.Args.DataTable, V.Local.sDictionary)
+F.Data.Dictionary.Exists(V.Local.sDictionary, V.Local.bExists)
+F.Intrinsic.Control.DoUntil(V.Local.bExists.Not)
+	F.Intrinsic.String.Build("{0}_Dictionary_Temp_{1}", V.Args.DataTable, V.Local.iCounter.++, V.Local.sDictionary)
+	F.Data.Dictionary.Exists(V.Local.sDictionary, V.Local.bExists)
+F.Intrinsic.Control.Loop
+
+'add back to datatable
+F.Intrinsic.String.Split(V.Args.Fields, "*!*", V.Local.sFields)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sFields.UBound, 1)
+	F.Intrinsic.Control.If(V.Local.sFields(V.Local.iCounter), !=, V.Args.Key)
+		F.Data.Dictionary.CreateFromDataTable(V.Local.sDictionary, V.Local.sDataTable, V.Args.Key, V.Local.sFields(V.Local.iCounter))
+		F.Data.Dictionary.SetDefaultReturn(V.Local.sDictionary, "")
+		F.Data.DataTable.FillFromDictionary(V.Args.DataTable, V.Local.sDictionary, V.Args.Key, V.Local.sFields(V.Local.iCounter))
+		F.Data.Dictionary.Close(V.Local.sDictionary)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+V.Local.sFields.Redim(0, 0)
+F.Data.DataTable.Close(V.Local.sDataTable)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.RemoveUnicodeFromDataTable.End
+
+Program.Sub.FixUnicodeString.Start
+'writes a string to a file and reads it back in
+'this is to remove unicode
+'pass STRING, PROJECT
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.sContents.Declare(String)
+
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\Temp", V.Caller.GlobalDir, V.Args.Project, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+F.Intrinsic.String.Build("{0}\StringFix_{1}.txt", V.Local.sPath, V.Ambient.Now.FormatYYYYMMDDHHNNSS, V.Local.sPath)
+
+F.Intrinsic.String.Replace(V.Args.String, "?", "***TEMPORARY-QUESTION-MARK***", V.Local.sContents)
+F.Intrinsic.File.String2File(V.Local.sPath, V.Local.sContents)
+F.Intrinsic.File.File2String(V.Local.sPath, V.Local.sContents)
+F.Intrinsic.File.DeleteFile(V.Local.sPath)
+
+F.Intrinsic.String.Replace(V.Local.sContents, "?", " ", V.Local.sContents)
+F.Intrinsic.String.Replace(V.Local.sContents, "***TEMPORARY-QUESTION-MARK***", "?", V.Local.sContents)
+F.Intrinsic.Variable.AddRV("NEW_STRING", V.Local.sContents)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FixUnicodeString.End
+
+Program.Sub.ClearUploaderLock.Start
+'this function is used for clearing the lock on the order upload script.
+'when the script runs, it creates a registry record to lock it, and removes it when done
+'The script will check if this registry record exists before running
+'this function is for clearing that lock AFTER the fact if the uploader failed to (crashed)
+'pass boolean DASHBOARD
+
+F.Intrinsic.Control.Try
+
+V.Local.sCallingProgram.Declare(String, "")
+
+'check the lock record
+'shouldn't actually need the PID for this
+'F.Global.Registry.ReadValue(V.Caller.User, V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", "5807", 0, 1, -1, V.Local.iPID)
+F.Global.Registry.ReadValue(V.Caller.User, V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sLibrary_Project, 0, 5, "", V.Local.sCallingProgram)
+
+F.Intrinsic.Control.If(V.Args.Dashboard)
+	F.Intrinsic.Control.If(V.Local.sCallingProgram.Trim, =, "[GCG_5807_ReviewDashboard.g2u]")
+		'if it was from the dashboard
+		'so in this case if it was from the dashboard and did not clear out properly, the program crashed or closed early
+		'so here we clear the lock
+		F.Global.Registry.AddValue(-1, V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sLibrary_Project, 0, False, "", False, -1, 0, V.Ambient.Date, V.Ambient.Now, "")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Local.sCallingProgram.Trim, =, "")
+		'if it was not from the dashboard, it should only be from the watchdog
+		'so in this case if it was from the watchdog and did not clear out properly, the program crashed or closed early
+		'so here we clear the lock
+		F.Global.Registry.AddValue(-1, V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sLibrary_Project, 0, False, "", False, -1, 0, V.Ambient.Date, V.Ambient.Now, "")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ClearUploaderLock.End
+
+Program.Sub.BackUpFile.Start
+'pass TYPE
+'pass File
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+V.Local.sName.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.String.Build("{0}\Custom\{1}\{2}\File Backups\{3}", V.Caller.GlobalDir, V.Global.sLibrary_Project, V.Caller.CompanyCode, V.Args.Type, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Args.File, V.Local.sName)
+F.Intrinsic.Control.CallSub(AppendFileName, "File", V.Local.sName, "Append", V.Ambient.Now.FormatYYYY-MM-DD-HH-NN-SS)
+
+F.Intrinsic.String.Build("{0}\{1}", V.Local.sPath, V.Args.New_Name, V.Local.sPath)
+
+F.Intrinsic.File.Exists(V.Args.File, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	F.Intrinsic.String.Build("Backing up {0} file [{1}] to [{2}]", V.Args.Type, V.Args.File, V.Local.sPath, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.File.CopyFile(V.Args.File, V.Local.sPath)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.BackUpFile.End
+
+Program.Sub.AppendFileName.Start
+'pass FILE
+'pass APPEND
+'returns NEW_NAME
+
+F.Intrinsic.Control.Try
+
+V.Local.sExtension.Declare(String)
+V.Local.sFile.Declare(String)
+V.Local.sNewName.Declare(String)
+
+F.Intrinsic.File.GetExtensionComponent(V.Args.File, V.Local.sExtension)
+F.Intrinsic.String.Build(".{0}", V.Local.sExtension, V.Local.sExtension)
+F.Intrinsic.String.Replace(V.Args.File, V.Local.sExtension, "", V.Local.sNewName)
+F.Intrinsic.String.Build("{0}_{1}{2}", V.Local.sNewName, V.Args.Append, V.Local.sExtension, V.Local.sNewName)
+
+F.Intrinsic.Variable.AddRV("NEW_NAME", V.Local.sNewName)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AppendFileName.End
+
+Program.Sub.DPISelectLocation.Start
+'pass PART, Zipcode, Line, ExternalOrderNumber, Type, Quantity
+'will select a location for the part based on distance and availability
+
+F.Intrinsic.Control.Try
+
+V.Local.sReturn.Declare(String, "***CANCEL***")
+V.Local.sMessage.Declare(String)
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.bExists.Declare(Boolean, False)
+V.Local.fDistance.Declare(Float)
+
+'check if part was passed
+F.Intrinsic.Control.If(V.Args.Part.Trim, !=, "")
+	'check if zipcode was passed
+	F.Intrinsic.Control.If(V.Args.Zipcode.Trim, !=, "")
+		'check part locations
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+		
+		F.Intrinsic.String.Build("select RTRIM(A.PART) PART, RTRIM(A.LOCATION) LOCATION, A.QTY_ONHAND, RTRIM(IsNull(B.ZIP, '')) ZIPCODE from V_INVENTORY_MSTR A left join V_LOCATION_ADDRESS B on A.LOCATION = B.LOCN where PART = '{0}'", V.Args.Part.Trim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		F.Data.DataTable.CreateFromSQL("dtDPILocationCheck", "Con", V.Local.sSQL)
+		F.Data.DataTable.AddColumn("dtDPILocationCheck", "QUANTITY", "Float", V.Args.Quantity)
+		F.Data.DataTable.AddColumn("dtDPILocationCheck", "DISTANCE", "Float", -1)
+		F.Data.DataTable.AddExpressionColumn("dtDPILocationCheck", "ENOUGH", "Boolean", "IIF([QTY_ONHAND] >= [QUANTITY], True, False)")
+		
+		F.Intrinsic.Control.If(V.DataTable.dtDPILocationCheck.RowCount, >, 0)
+			
+			'now check if zip table is set up
+			F.ODBC.Connection!Con.TableExists("ATG_ZIP", V.Local.bExists)
+			F.Intrinsic.Control.If(V.Local.bExists)
+				F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtDPILocationCheck.RowCount--, 1)
+					'grab distance for each location
+					F.Intrinsic.Control.If(V.DataTable.dtDPILocationCheck(V.Local.iCounter).ZIPCODE!FieldValTrim, !=, "")
+						F.Global.CRM.GetZipDistance(V.Args.Zipcode, V.DataTable.dtDPILocationCheck(V.Local.iCounter).ZIPCODE!FieldValTrim, V.Local.fDistance)
+						
+						'if 999999 is returned, the zipcode was not found or hotfixes haven't been applied
+						F.Intrinsic.Control.If(V.Local.fDistance, !=, 99999)
+							F.Data.DataTable.SetValue("dtDPILocationCheck", V.Local.iCounter, "DISTANCE", V.Local.fDistance)
+						F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.Next(V.Local.iCounter)
+				
+				'now we have all the distances, check for the closest one with quantity
+				F.Data.DataView.Create("dtDPILocationCheck", "dvDPILocationCheck", 22, "[DISTANCE] > -1 and [ENOUGH]", "DISTANCE")
+				F.Intrinsic.Control.If(V.DataView.dtDPILocationCheck!dvDPILocationCheck.RowCount, >, 0)
+					V.Local.sReturn.Set(V.DataView.dtDPILocationCheck!dvDPILocationCheck(0).LOCATION!FieldValTrim)
+				F.Intrinsic.Control.Else
+					'if none have enough quantity, just choose the closest
+					F.Data.DataView.SetFilter("dtDPILocationCheck", "dvDPILocationCheck", "[DISTANCE] > -1")
+					F.Intrinsic.Control.If(V.DataView.dtDPILocationCheck!dvDPILocationCheck.RowCount, >, 0)
+						V.Local.sReturn.Set(V.DataView.dtDPILocationCheck!dvDPILocationCheck(0).LOCATION!FieldValTrim)
+					F.Intrinsic.Control.Else
+						F.Intrinsic.String.Build("Dynamic Location selection for part [{3}] and zipcode [{4}] on {2} [{0}] line [{1}] failed because this part does not exist in any locations set up with proper zip codes. ", V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Args.Part, V.Args.Zipcode, V.Local.sMessage)
+					F.Intrinsic.Control.EndIf
+					
+				F.Intrinsic.Control.EndIf
+				F.Data.DataView.Close("dtDPILocationCheck", "dvDPILocationCheck")
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("Dynamic Location selection for part [{3}] and zipcode [{4}] on {2} [{0}] line [{1}] failed because this the ATG_ZIP table is not set up. ", V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Args.Part, V.Args.Zipcode, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+			
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Dynamic Location selection for part [{3}] and zipcode [{4}] on {2} [{0}] line [{1}] failed because this part exists at no locations. ", V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Args.Part, V.Args.Zipcode, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataTable.Close("dtDPILocationCheck")
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("Dynamic Location selection for part [{3}] on {2} [{0}] line [{1}] failed because no zipcode was passed. ", V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Args.Part, V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Dynamic Location selection for {2} [{0}] line [{1}] failed because no part was passed. ", V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sMessage.Trim, =, "")
+	F.Intrinsic.String.Build("DPISelectLocation for {3} [{1}] line [{2}] returning [{0}]", V.Local.sReturn, V.Args.ExternalOrderNumber, V.Args.Line, V.Args.Type, V.Local.sMessage)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("{1}DPISelectLocation returning [{0}]", V.Local.sReturn, V.Local.sMessage, V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("Location", V.Local.sReturn)
+F.Intrinsic.Variable.AddRV("Status", V.Local.sMessage)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.DPISelectLocation.End
+
+Program.Sub.LogSQL.Start
+'pass SQL
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.Control.If(V.Global.bLibrary_SQLLogging)
+	F.Intrinsic.String.Build("Executing SQL: [{0}]", V.Args.SQL, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LogSQL.End
+
+Program.Sub.GetScriptNameClean.Start
+'returns the name of the script without extension
+
+F.Intrinsic.Control.Try
+
+V.Local.sFileNameClean.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sFileNameClean)
+F.Intrinsic.String.Split(V.Local.sFileNameClean, ".", V.Local.sFileNameClean)
+F.Intrinsic.Variable.RemoveArrayElementByOrdinal(V.Local.sFileNameClean, V.Local.sFileNameClean.UBound, V.Local.sFileNameClean)
+F.Intrinsic.String.Join(V.Local.sFileNameClean, ".", V.Local.sFile)
+
+F.Intrinsic.Variable.AddRV("ScriptName", V.Local.sFile)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GetScriptNameClean.End
+
+Program.Sub.SetCallingProgram.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.File.GetFileNameFromFQN(V.Caller.ScriptFile, V.Local.sFile)
+F.Global.General.SetPassedDataElement("CALLING_PROGRAM", V.Local.sFile)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetCallingProgram.End
+
+Program.Sub.Export.Start
+'generic export
+'pass Form, GridControl, and Filename base
+
+F.Intrinsic.Control.Try
+
+V.Local.sFileExport.Declare(String)
+V.Local.bExcel.Declare(Boolean)
+V.Local.bFileLocked.Declare(Boolean)
+V.Local.sMessage.Declare(String)
+V.Local.sType.Declare(String)
+V.Local.sFileName.Declare(String)
+V.Local.bExists.Declare(Boolean)
+
+F.Intrinsic.Variable.ArgExists("TYPE", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	V.Local.sType.Set(V.Args.TYPE.Trim)
+F.Intrinsic.Control.Else
+	F.Automation.MSExcel.CheckPresence(V.Local.bExcel)
+	F.Intrinsic.Control.If(V.Local.bExcel)
+		V.Local.sType.Set("xlsx")
+	F.Intrinsic.Control.Else
+		V.Local.sType.Set("csv")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.File.MakeFilenameFriendly(V.Args.FileName, V.Local.sFileName)
+F.Intrinsic.String.Build("{0}\{1}_Export_{2}.{3}", V.Caller.LocalGssTempDir, V.Local.sFileName, V.Ambient.Date.FormatMM-DD-YYYY, V.Local.sType, V.Local.sFileExport)
+F.Intrinsic.File.IsFileLocked(V.Local.sFileExport, V.Local.bFileLocked)
+
+F.Intrinsic.Control.If(V.Local.bFileLocked)
+	F.Intrinsic.String.Build("File is already open. Please close and export again.{0}File: {1}", V.Ambient.NewLine, V.Local.sFileExport, V.Local.sMessage)
+	F.Intrinsic.UI.Msgbox(V.Local.sMessage,"File In Use")
+F.Intrinsic.Control.Else
+	Gui.[V.Args.Form].[V.Args.GridControl].ExportDetails(V.Local.sType, V.Local.sFileExport, 1)
+	F.Intrinsic.Task.ShellExec(0, "", V.Local.sFileExport, "", "", 1)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Export.End
+
+Program.Sub.Serialize.Start
+'pass FORM, GRIDCONTROL, GRIDVIEW, REGID, CHILD
+
+F.Intrinsic.Control.Try
+
+V.Local.sSerialize.Declare(String)
+
+GUI.[V.Args.Form.Trim].[V.Args.GridControl].Serialize(V.Args.GridView, V.Local.sSerialize)
+F.Global.Registry.AddValue(V.Caller.User, V.Caller.CompanyCode, V.Args.GridView, V.Args.REGID, 0, False, "Serialize", False, 0, 0, V.Ambient.Date, V.Ambient.Time, V.Local.sSerialize)
+
+F.Intrinsic.Control.If(V.Args.Child.Trim, !=, "")
+	GUI.[V.Args.Form.Trim].[V.Args.GridControl].SerializeChildview(V.Args.Child, V.Local.sSerialize)
+	F.Global.Registry.AddValue(V.Caller.User, V.Caller.CompanyCode, V.Args.Child, V.Args.REGID, 0, False, "Serialize", False, 0, 0, V.Ambient.Date, V.Ambient.Time, V.Local.sSerialize)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Serialize.End
+
+Program.Sub.Deserialize.Start
+'pass FORM, GRIDCONTROL, GRIDVIEW, REGID, CHILD
+
+F.Intrinsic.Control.Try
+
+V.Local.sSerialize.Declare(String)
+
+F.Global.Registry.ReadValue(V.Caller.User, V.Caller.CompanyCode, V.Args.GridView, V.Args.REGID, 0, 6, "", V.Local.sSerialize)
+F.Intrinsic.Control.If(V.Local.sSerialize.Trim,<>,"")
+	Gui.[V.Args.Form].[V.Args.GridControl].Deserialize(V.Local.sSerialize)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.Child.Trim, !=, "")
+	F.Global.Registry.ReadValue(V.Caller.User, V.Caller.CompanyCode, V.Args.Child, V.Args.REGID, 0, 6, "", V.Local.sSerialize)
+	Gui.[V.Args.Form].[V.Args.GridControl].DeserializeChildview(V.Args.Child, V.Local.sSerialize)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Deserialize.End
+
+Program.Sub.ResetSerialization.Start
+'pass REGID, GRIDVIEW
+
+F.Intrinsic.Control.Try
+
+F.Global.Registry.AddValue(V.Caller.User, V.Caller.CompanyCode, V.Args.GridView, V.Args.REGID, 0, False, "Serialize", False, 0, 0, "", "", "")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ResetSerialization.End
+
+Program.Sub.ColumnFormatting.Start
+'PASS FORM, GRIDCONTROL, GRIDVIEW, PROPERTY, COLUMNS, VALUES
+
+F.Intrinsic.Control.Try
+
+V.Local.sColumns.Declare(String)
+V.Local.sValues.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sError.Declare(String)
+V.Local.sValue.Declare(String)
+
+F.Intrinsic.String.Split(V.Args.Columns, "*!*", V.Local.sColumns)
+F.Intrinsic.String.Split(V.Args.Values, "*!*", V.Local.sValues)
+
+F.Intrinsic.Control.If(V.Local.sColumns.UBound, !=, V.Local.sValues.UBound)
+	F.Intrinsic.Control.If(V.Local.sValues.UBound, !=, 0)
+		F.Intrinsic.String.Build("Error in ColumnFormatting: COLUMNs list length [{0}] must match VALUES list length [{1}] or VALUES list length must be 1.", V.Local.sColumns.UBound, V.Local.sValues.UBound, V.Local.sError)
+		F.Intrinsic.Control.RaiseError(1, V.Local.sError)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.For(V.Local.iCounter, V.Local.sColumns.UBound)
+	F.Intrinsic.Control.If(V.Local.iCounter, >, V.Local.sValues.UBound)
+		V.Local.sValue.Set(V.Local.sValues)
+	F.Intrinsic.Control.Else
+		V.Local.sValue.Set(V.Local.sValues(V.Local.iCounter))
+	F.Intrinsic.Control.EndIf
+	GUI.[V.Args.Form].[V.Args.GridControl].SetColumnProperty(V.Args.GridView, V.Local.sColumns(V.Local.iCounter), V.Args.Property, V.Local.sValue)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.ColumnFormatting.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240303214241736$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9nyXE0uQ45QZ3+iyO0LKVGQJYEV7AuNP6c=
+Program.Sub.Comments.End
