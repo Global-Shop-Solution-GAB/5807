@@ -1,0 +1,180 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Set Order BOM Locations [DPI]")
+V.Global.bUnattended.Declare(Boolean, True)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_SetOrderBOMLocationsDPI.g2u
+'Trey S
+'November 4th, 2021
+'For Daystar (DPI)
+'Billed as a VT
+'This script will be called after a sales order is uploaded using 5807. It will check for exploded BOMs on the sales order, and will run the DPI Dynamic Location check
+'to set the location of each part based on warehouse availability and distance from the ship to location.
+'pass ORDER_NUMBER, EXTERNAL_ORDER_NUMBER, ZIPCODE
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.iLineCounter.Declare(Long)
+V.Local.sLines.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.sLineFilter.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sPossibleLocations.Declare(String)
+V.Local.bSet.Declare(Boolean, False)
+V.Local.sLocation.Declare(String)
+V.Local.iMax.Declare(Long)
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+F.Intrinsic.String.Build("Running script [GCG_5807_SetOrderBOMLocationsDPI.g2u] for external order [{0}], GSS order [{1}], Zipcode [{2}]...", V.Passed.External_Order_Number, V.Passed.Order_Number, V.Passed.Zipcode, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'grab the order, grab the BOM parents and components
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+F.Intrinsic.String.Build("select RTRIM(ORDER_NO) ORDER_NO, RTRIM(RECORD_NO) RECORD_NO, RTRIM(PART) PART, RTRIM(LOCATION) LOCATION, QTY_ORDERED, RTRIM(FLAG_BOM) FLAG_BOM, RTRIM(BOM_PARENT) BOM_PARENT from V_ORDER_LINES where ORDER_NO = '{0}' and FLAG_BOM in ('Y', 'C')", V.Passed.Order_Number, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtOrder", "Con", V.Local.sSQL)
+F.Data.DataView.Create("dtOrder", "dvOrder", 22)
+
+F.Intrinsic.Control.If(V.DataTable.dtOrder.RowCount, >, 0)
+	F.Data.DataTable.AddExpressionColumn("dtOrder", "LINE_KEY", "String", "IIF(FLAG_BOM = 'Y', RECORD_NO, BOM_PARENT)")
+	F.Data.DataTable.AddColumn("dtOrder", "CHECK_LOCATION", "String", "")
+	F.Data.DataTable.AddColumn("dtOrder", "AVAILABLE_LOCATIONS", "String", "")
+	F.Data.DataTable.AddColumn("dtOrder", "FINAL_LOCATION", "String", "")
+	F.Data.DataTable.AddColumn("dtOrder", "FINAL_LOCATION_SET", "Boolean", False)
+	F.Data.DataTable.AddExpressionColumn("dtOrder", "FINAL_FINAL_LOCATION", "String", "IIF(FINAL_LOCATION_SET, FINAL_LOCATION, CHECK_LOCATION)")
+	
+	'get list of lines
+	F.Data.DataTable.ColumnToString("dtOrder", "LINE_KEY", V.Local.sLines)
+	F.Intrinsic.String.Split(V.Local.sLines, "*!*", V.Local.sLines)
+	F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sLines, V.Local.sLines)
+	
+	'for each BOM, run the check for all components
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sLines.UBound, 1)
+		F.Intrinsic.String.Build("LINE_KEY = '{0}' and FLAG_BOM = 'C'", V.Local.sLines(V.Local.iCounter), V.Local.sLineFilter)
+		F.Data.DataView.SetFilter("dtOrder", "dvOrder", V.Local.sLineFilter)
+		
+		'loop through each component
+		F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtOrder!dvOrder.RowCount--, 1)
+			'run the check
+			F.Intrinsic.Control.CallSub(DPISelectLocation, "Part", V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).PART!FieldValTrim, "Zipcode", V.Passed.Zipcode, "ExternalOrderNumber", V.Passed.External_Order_Number, "Line", V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).RECORD_NO!FieldValTrim, "Type", "Order", "Quantity", V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).QTY_ORDERED!FieldValFloat)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Args.Status)
+			F.Data.DataView.SetValue("dtOrder", "dvOrder", V.Local.iLineCounter, "CHECK_LOCATION", V.Args.Location)
+			
+			'check all locations it is available in
+			F.Intrinsic.String.Build("select DISTINCT RTRIM(LOCATION) from V_INVENTORY_MSTR where PART = '{0}' and QTY_ONHAND >= {1} order by LOCATION desc", V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).PART!FieldValTrim, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).QTY_ORDERED!FieldValFloat, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				F.Data.DataView.SetValue("dtOrder", "dvOrder", V.Local.iLineCounter, "AVAILABLE_LOCATIONS", "NOT-FOUND")
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("BLANK-FOR-TEST#$#{0}", V.Local.sRet, V.Local.sRet)
+				F.Data.DataView.SetValue("dtOrder", "dvOrder", V.Local.iLineCounter, "AVAILABLE_LOCATIONS", V.Local.sRet)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iLineCounter)
+		
+		'set the location for each. If all are available in the same warehouse, use that, otherwise use the normal check
+		F.Intrinsic.String.Split(V.DataView.dtOrder!dvOrder(0).AVAILABLE_LOCATIONS!FieldValTrim, "#$#", V.Local.sPossibleLocations)
+		F.Data.DataView.Create("dtOrder", "dvLocationCheck", 22)
+		F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.Local.sPossibleLocations.UBound, 1)
+			F.Intrinsic.Control.If(V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, !=, "BLANK-FOR-TEST", "AND", V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, !=, "NOT-FOUND")
+				F.Intrinsic.Control.If(V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, =, "")
+					F.Intrinsic.String.Build("{0} and (AVAILABLE_LOCATIONS like '%#$#' or AVAILABLE_LOCATIONS = 'BLANK-FOR-TEST#$#')", V.Local.sLineFilter, V.Local.sFilter)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("{1} and (AVAILABLE_LOCATIONS like '%{0}%')", V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, V.Local.sLineFilter, V.Local.sFilter)
+				F.Intrinsic.Control.EndIf
+				
+				F.Data.DataView.SetFilter("dtOrder", "dvLocationCheck", V.Local.sFilter)
+				F.Intrinsic.Control.If(V.DataView.dtOrder!dvLocationCheck.RowCount, =, V.DataView.dtOrder!dvOrder.RowCount)
+					F.Data.DataView.SetValue("dtOrder", "dvOrder", -1, "FINAL_LOCATION", V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, "FINAL_LOCATION_SET", True)
+					
+					F.Intrinsic.String.Build("LINE_KEY = '{0}' and FLAG_BOM = 'Y'", V.Local.sLines(V.Local.iCounter), V.Local.sFilter)
+					F.Data.DataView.SetFilter("dtOrder", "dvLocationCheck", V.Local.sFilter)
+					F.Data.DataView.SetValue("dtOrder", "dvLocationCheck", -1, "FINAL_LOCATION", V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, "FINAL_LOCATION_SET", True)
+					
+					F.Intrinsic.String.Build("Setting location for all BOM children of order [{0}] line [{1}] to [{2}] because all are available in the same warehouse...", V.Passed.Order_Number, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).RECORD_NO!FieldValTrim, V.Local.sPossibleLocations(V.Local.iLineCounter).Trim, V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+					F.Intrinsic.Control.ExitFor(V.Local.iLineCounter)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iLineCounter)
+		F.Data.DataView.Close("dtOrder", "dvLocationCheck")
+	
+		'choose the header location
+		F.Intrinsic.String.Build("LINE_KEY = '{0}' and FLAG_BOM = 'Y'", V.Local.sLines(V.Local.iCounter), V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtOrder", "dvOrder", V.Local.sFilter)
+		
+		V.Local.sPossibleLocations.Redim(0, 0)
+		F.Intrinsic.Control.If(V.DataView.dtOrder!dvOrder(0).FINAL_LOCATION_SET!FieldVal, =, False)
+			'use the most common from the components
+			F.Data.DataTable.ColumnToString("dtOrder", "FINAL_FINAL_LOCATION", V.Local.sPossibleLocations)
+			F.Intrinsic.String.Split(V.Local.sPossibleLocations, "*!*", V.Local.sPossibleLocations)
+			F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sPossibleLocations, V.Local.sPossibleLocations)
+			
+			'loop through and get the max
+			V.Local.sLocation.Set("")
+			V.Local.iMax.Set(-1)
+			F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.Local.sPossibleLocations.UBound, 1)
+				F.Intrinsic.String.Build("({0}) and FINAL_FINAL_LOCATION = '{1}'", V.Local.sLineFilter, V.Local.sPossibleLocations(V.Local.iLineCounter), V.Local.sFilter)
+				F.Data.DataView.SetFilter("dtOrder", "dvOrder", V.Local.sFilter)
+				
+				F.Intrinsic.Control.If(V.DataView.dtOrder!dvOrder.RowCount, >, V.Local.iMax)
+					V.Local.iMax.Set(V.DataView.dtOrder!dvOrder.RowCount)
+					V.Local.sLocation.Set(V.Local.sPossibleLocations(V.Local.iLineCounter))
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Next(V.Local.iLineCounter)
+			
+			F.Intrinsic.String.Build("Setting location for BOM parent of order [{0}] line [{1}] to [{2}] because it's the most common available location of the components.", V.Passed.Order_Number, V.DataView.dtOrder!dvOrder(0).RECORD_NO!FieldValTrim, V.Local.sLocation, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+			F.Intrinsic.String.Build("LINE_KEY = '{0}' and FLAG_BOM = 'Y'", V.Local.sLines(V.Local.iCounter), V.Local.sFilter)
+			F.Data.DataView.SetFilter("dtOrder", "dvOrder", V.Local.sFilter)
+			F.Data.DataView.SetValue("dtOrder", "dvOrder", -1, "FINAL_LOCATION", V.Local.sLocation, "FINAL_LOCATION_SET", True)
+		F.Intrinsic.Control.EndIf
+		
+		'now update the locations on the table
+		F.Intrinsic.String.Build("LINE_KEY = '{0}'", V.Local.sLines(V.Local.iCounter), V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtOrder", "dvOrder", V.Local.sFilter)
+		
+		F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtOrder!dvOrder.RowCount--, 1)
+			F.Intrinsic.Control.If(V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).FINAL_FINAL_LOCATION!FieldValTrim, !=, "***CANCEL***")
+				F.Intrinsic.String.Build("Updating location of order [{0}] line [{1}] to [{2}]...", V.Passed.Order_Number, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).RECORD_NO!FieldValTrim, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).FINAL_FINAL_LOCATION!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.String.Build("update ORDER_LINES set LOCATION = '{0}' where ORDER_NO = '{1}' and RECORD_NO = '{2}' and RECORD_TYPE = 'L'", V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).FINAL_FINAL_LOCATION!FieldValTrim, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).ORDER_NO!FieldValTrim, V.DataView.dtOrder!dvOrder(V.Local.iLineCounter).RECORD_NO!FieldValTrim, V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iLineCounter)
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.Close("dtOrder", "dvOrder")
+F.Data.DataTable.Close("dtOrder")
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.String.Build("Script [GCG_5807_SetOrderBOMLocationsDPI.g2u] for external order [{0}], GSS order [{1}], Zipcode [{2}] processing complete.", V.Passed.External_Order_Number, V.Passed.Order_Number, V.Passed.Zipcode, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8693.27812$}$1
+${$6$}$rseddon$}$20240214164119047$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4rIcWJxgD311Z//pJoEgCj0=
+Program.Sub.Comments.End
