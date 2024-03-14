@@ -1,0 +1,479 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("GCG_5807_6010.lib")
+
+'debug variables
+V.Global.bSQLLogging.Declare(Boolean, False)
+V.Global.bExtendingLogging.Declare(Boolean, False)
+V.Global.bGABLogging.Declare(Boolean, False)
+V.Global.bCallWrapperLogging.Declare(Boolean, False)
+V.Global.bDebugger.Declare(Boolean, False)
+V.Global.bDataBackups.Declare(Boolean, False)
+V.Global.bUploadBackups.Declare(Boolean, False)
+
+'count variables
+V.Global.iSuccessful.Declare(Long, 0)
+V.Global.iUpdated.Declare(Long, 0)
+V.Global.iFailed.Declare(Long, 0)
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - BOM Uploader")
+V.Global.bUnattended.Declare(Boolean, True)
+
+'constants
+V.Global.sInnerDelimiter.Declare(String, "!@#@!")
+V.Global.sOuterDelimiter.Declare(String, "#@!@#")
+Program.External.Include.Library("GCG_5807_6009.lib")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_BOMUploader.g2u
+'Trey S
+'August 24th, 2021
+'This program is to be part of the 5807 E-Commerce Uploader
+'This script will upload BOMs from the GCG_5807_BOM_STAGE staging table utilizing callwrapper 6010
+
+F.Intrinsic.Control.Try
+
+'debugging options
+F.Intrinsic.Control.If(V.Global.bDebugger)
+	Function.Intrinsic.Debug.InvokeDebugger
+	Function.Intrinsic.Debug.Stop
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bGABLogging)
+	F.Intrinsic.Debug.EnableLogging
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.bCallWrapperLogging)
+	F.Intrinsic.Debug.CallWrapperDebugEnable
+F.Intrinsic.Control.EndIf
+
+'set variables for library errors
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'check if already running
+F.Intrinsic.Control.CallSub(ScriptPIDCheck, "PROJECT", V.Global.sProject)
+
+'check for staged BOMS
+F.Intrinsic.Control.CallSub(LoadStagedBOMS)
+F.Intrinsic.Control.If(V.DataTable.dtBOMs.RowCount, >, 0)
+	'process these records
+	F.Intrinsic.Control.CallSub(PrepareStagedBOMS)
+	
+	'now upload any marked as valid
+	F.Data.DataView.Create("dtBOMs", "dvValid", 22, "FAILED = False", "")
+	F.Intrinsic.Control.If(V.DataView.dtBOMS!dvValid.RowCount, >, 0)
+		F.Intrinsic.Control.CallSub(UploadStagedBOMS)
+	F.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("dtBOMs", "dvValid")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadStagedBOMS.Start
+'grab all unprocessed records
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sTypes.Declare(String, "LONG*!*DATE*!*BOOLEAN*!*BOOLEAN*!*DATE*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*LONG*!*LONG*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*FLOAT*!*STRING*!*STRING*!*FLOAT*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*STRING*!*BOOLEAN*!*STRING*!*STRING")
+
+V.Local.sSQL.Set("select RECORD_ID, ISNULL(RECORD_TIMESTAMP, NOW()) RECORD_TIMESTAMP, FAILED, PROCESSED, ISNULL(PROCESSED_TIMESTAMP, NOW()) PROCESSED_TIMESTAMP, FEEDBACK, RTRIM(EXTERNAL_ID) EXTERNAL_ID, UPPER(RTRIM(TOP_BOM)) TOP_BOM, UPPER(RTRIM(TOP_BOM_REVISION)) TOP_BOM_REVISION, RTRIM(PARENT_EXTERNAL_ID) PARENT_EXTERNAL_ID, UPPER(RTRIM(PARENT)) PARENT, UPPER(RTRIM(PARENT_REVISION)) PARENT_REVISION, LEVEL, SEQUENCE, RTRIM(PART_EXTERNAL_ID) PART_EXTERNAL_ID, UPPER(RTRIM(PART_NUMBER)) PART_NUMBER, UPPER(RTRIM(PART_NUMBER_REVISION)) PART_NUMBER_REVISION, RTRIM(DESCRIPTION) DESCRIPTION, RTRIM(ALT_DESCRIPTION_1) ALT_DESCRIPTION_1, RTRIM(ALT_DESCRIPTION_2) ALT_DESCRIPTION_2, QUANTITY, UPPER(RTRIM(UNIT_OF_MEASURE)) UNIT_OF_MEASURE, UPPER(RTRIM(PRODUCT_LINE)) PRODUCT_LINE, IsNull(COST, 0) COST, UPPER(RTRIM(SOURCE)) SOURCE, RTRIM(SORT_CODE) SORT_CODE, UPPER(RTRIM(CATEGORY)) CATEGORY, RTRIM(TAG) TAG, RTRIM(DRAWING) DRAWING, RTRIM(MEMO_1) MEMO_1, RTRIM(MEMO_2) MEMO_2, BOM_COMPLETE, EXTRA_DESCRIPTION, COMMENTS from GCG_5807_BOM_STAGE where PROCESSED = 0 and FAILED = 0")
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.CreateFromSQL("dtBoms", "Con", V.Local.sSQL, True)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+'now clean up unicode
+F.Intrinsic.Control.If(V.DataTable.dtBoms.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(RemoveUnicodeFromDataTable, "Project", V.Global.sProject, "DataTable", "dtBoms", "Types", V.Local.sTypes, "Fields", V.DataTable.dtBoms.FieldNames, "Key", "RECORD_ID")
+F.Intrinsic.Control.EndIf
+
+'add simple expression colums
+F.Data.DataTable.AddExpressionColumn("dtBoms", "TOP_BOM_FULL", "String", "IIF(Trim(IsNull([TOP_BOM_REVISION], '')) = '', TRIM([TOP_BOM]), SUBSTRING([TOP_BOM] + '                 ', 1, 17) + [TOP_BOM_REVISION])")
+F.Data.DataTable.AddExpressionColumn("dtBoms", "PARENT_FULL", "String", "IIF(Trim(IsNull([PARENT_REVISION], '')) = '', TRIM([PARENT]), SUBSTRING([PARENT] + '                 ', 1, 17) + [PARENT_REVISION])")
+F.Data.DataTable.AddExpressionColumn("dtBoms", "PART_FULL", "String", " IIF(TRIM(IsNull([PART_NUMBER], '')) = '', '', IIF(Trim(IsNull([PART_NUMBER_REVISION], '')) = '', TRIM([PART_NUMBER]), SUBSTRING([PART_NUMBER] + '                 ', 1, 17) + [PART_NUMBER_REVISION]))")
+F.Data.DataTable.AddExpressionColumn("dtBoms", "BOM_COMPLETE_FORMAT", "String", "IIF(BOM_COMPLETE, 'Y', '')")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadStagedBOMS.End
+
+Program.Sub.PrepareStagedBOMS.Start
+'check and make sure records are valid to upload
+
+'check if BOM exists
+'F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+'F.Data.Dictionary.CreateFromSQL("select RTRIM(PARENT)")
+
+'F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+Program.Sub.PrepareStagedBOMS.End
+
+Program.Sub.UploadStagedBOMS.Start
+'upload by Parent
+'we want to upload each level of the BOM
+'one parent at a time
+
+F.Intrinsic.Control.Try
+
+V.Local.sTopParents.Declare(String)
+V.Local.sParents.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sTopParentFilter.Declare(String)
+V.Local.iJ.Declare(Long)
+V.Local.sParentFilter.Declare(String)
+V.Local.iPartCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sDataView.Declare(String)
+V.Local.sDataViewOriginalFieldNames.Declare(String, "PARENT_FULL*!*SEQUENCE*!*QUANTITY*!*PART_FULL*!*UNIT_OF_MEASURE*!*DESCRIPTION*!*MEMO_1*!*MEMO_2*!*DRAWING*!*TAG*!*CATEGORY*!*SOURCE*!*SORT_CODE")
+V.Local.sDataViewNewFieldNames.Declare(String, "PARENT_NUMBER*!*SEQUENCE*!*QUANTITY*!*PART_NUMBER*!*UNIT_OF_MEASURE*!*PART_DESCRIPTION*!*MEMO_1*!*MEMO_2*!*DRAWING*!*TAG*!*CATEGORY*!*SOURCE*!*SORT_VALUE")
+V.Local.sDataViewNewFieldTypes.Declare(String, "String*!*Long*!*Float*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String")
+V.Local.sUploadFile.Declare(String)
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sFeedback.Declare(String)
+V.Local.bFailed.Declare(Boolean, False)
+V.Local.iK.Declare(Long)
+V.Local.bUpdate.Declare(Boolean, False)
+V.Local.bAllowUpdates.Declare(Boolean, False)
+V.Local.bSkip.Declare(Boolean, False)
+V.Local.sMessage.Declare(String)
+V.Local.iTemp.Declare(Long)
+
+'grab update option
+F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "BOM", "NAME", "UPDATE")
+F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+	V.Local.bAllowUpdates.Set(V.Args.Setting)
+F.Intrinsic.Control.EndIf
+
+'get list of top level parents
+F.Data.DataView.ToString("dtBOMs", "dvValid", "TOP_BOM_FULL", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter, V.Local.sTopParents)
+F.Intrinsic.String.Split(V.Local.sTopParents, V.Global.sOuterDelimiter, V.Local.sTopParents)
+F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sTopParents, V.Local.sTopParents)
+
+F.Intrinsic.Math.Add(V.Local.sTopParents.UBound, 1, V.Local.iTemp)
+F.Intrinsic.String.Build("[{0}] top level BOMs found for processing...", V.Local.iTemp, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'loop through top level parents, will upload one at a time
+F.Data.DataView.Create("dtBOMs", "dvTopParent", 22)
+F.Data.DataView.Create("dtBOMs", "dvThisParent", 22, "", "SEQUENCE")
+F.Data.DataView.Create("dtBOMs", "dvCheck", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sTopParents.UBound, 1)
+	F.Intrinsic.String.Build("Processing top level BOM [{0}]...", V.Local.sTopParents(V.Local.iCounter), V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	'filter to this top level parent
+	F.Intrinsic.String.Build("TOP_BOM_FULL = '{0}'", V.Local.sTopParents(V.Local.iCounter), V.Local.sTopParentFilter)
+	F.Data.DataView.SetFilter("dtBOMs", "dvTopParent", V.Local.sTopParentFilter)
+	
+	'now loop through the BOMs that are part of this top parent
+	F.Data.DataView.ToString("dtBOMs", "dvTopParent", "PARENT_FULL", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter, V.Local.sParents)
+	F.Intrinsic.String.Split(V.Local.sParents, V.Global.sOuterDelimiter, V.Local.sParents)
+	F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sParents, V.Local.sParents)
+	
+	F.Intrinsic.Math.Add(V.Local.sParents.UBound, 1, V.Local.iTemp)
+	F.Intrinsic.String.Build("[{0}] BOMs found in top level BOM [{1}] for processing...", V.Local.iTemp, V.Local.sTopParents(V.Local.iCounter), V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+	F.Intrinsic.Control.For(V.Local.iJ, 0, V.Local.sParents.UBound, 1)
+		F.Intrinsic.String.Build("Processing BOM [{0}] as part of top level BOM [{1}]...", V.Local.sParents(V.Local.iJ), V.Local.sTopParents(V.Local.iCounter), V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	
+		'filter to this parent
+		F.Intrinsic.String.Build("{0} and PARENT_FULL = '{1}'", V.Local.sTopParentFilter, V.Local.sParents(V.Local.iJ), V.Local.sParentFilter)
+		F.Data.DataView.SetFilter("dtBOMs", "dvThisParent", V.Local.sParentFilter)
+		
+		'before uploading, check if BOM already exists
+		F.Intrinsic.String.Build("select RTRIM(PARENT) from V_BOM_MSTR where PARENT = '{0}' and PART = '' UNION select RTRIM(PARENT) from V_BOM_MSTR where PARENT = '{0}' and PART = '{0}'", V.Local.sParents(V.Local.iJ), V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+		
+		F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+			V.Local.bSkip.Set(False)
+			V.Local.bUpdate.Set(False)
+			F.Intrinsic.String.Build("BOM [{0}] does not exist. Uploading...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.Else
+			V.Local.bUpdate.Set(True)
+			F.Intrinsic.Control.If(V.Local.bAllowUpdates)
+				V.Local.bSkip.Set(False)
+				
+				'here, do update processing
+				F.Intrinsic.String.Build("BOM [{0}] already exists and the option to update is on. Deleting for re-upload...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(DeleteBOM, "BOM", V.Local.sParents(V.Local.iJ))
+			F.Intrinsic.Control.Else
+				V.Local.bSkip.Set(True)
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("BOM [{0}] with External ID [{1}] failed to update because the option to allow BOM updates is turned off.", V.Local.sParents(V.Local.iJ), V.DataView.dtBoms!dvThisParent(0).PARENT_EXTERNAL_ID!FieldValTrim, V.Local.sFeedback)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sFeedback)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(V.Local.bSkip.Not)
+			'need to add the initial row (header row for this specific BOM) if there is not one
+			F.Intrinsic.String.Build("{0} and (PART_FULL = '{1}' or TRIM(IsNull(PART_FULL, '')) = '')", V.Local.sParentFilter, V.Local.sParents(V.Local.iJ), V.Local.sFilter)
+			F.Data.DataView.SetFilter("dtBoms", "dvCheck", V.Local.sFilter)
+			
+			F.Intrinsic.Control.If(V.DataView.dtBoms!dvCheck.RowCount, <, 1)
+				'if there is not one, we need to add it
+				'we can grab the relevant part data from the entry on the parent bom
+				
+				F.Intrinsic.String.Build("Header sequence not found for BOM [{0}]. Adding...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				
+				F.Intrinsic.String.Build("{0} and PART_FULL = '{1}'", V.Local.sTopParentFilter, V.Local.sParents(V.Local.iJ), V.Local.sFilter)
+				F.Data.DataView.SetFilter("dtBoms", "dvCheck", V.Local.sFilter)
+				
+				F.Intrinsic.Control.If(V.DataView.dtBoms!dvCheck.RowCount, >, 0)
+					'grab this record and reinsert it as the 0 sequence
+					F.Data.DataView.ToDataTable("dtBoms", "dvCheck", "dtInsert")
+					F.Data.DataTable.SetValue("dtInsert", -1, "PARENT", V.DataView.dtBoms!dvThisParent(0).PARENT!FieldValTrim, "PARENT_REVISION", V.DataView.dtBoms!dvThisParent(0).PARENT_REVISION!FieldValTrim, "LEVEL", V.DataView.dtBoms!dvThisParent(0).LEVEL!FieldValLong, "SEQUENCE", -1, "QUANTITY", 1)
+					F.Data.DataTable.RemoveColumn("dtInsert", "RECORD_ID")
+					F.Data.DataTable.RemoveColumn("dtInsert", "RECORD_TIMESTAMP")
+					F.Data.DataTable.RemoveColumn("dtInsert", "PROCESSED")
+					F.Data.DataTable.RemoveColumn("dtInsert", "FAILED")
+					F.Data.DataTable.RemoveColumn("dtInsert", "FEEDBACK")
+					
+					F.Data.DataTable.Merge("dtInsert", "dtBoms", False, 2)
+					F.Data.DataTable.Close("dtInsert")
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("Error, header sequence could not be added for BOM [{0}] because this BOM was not found in its parent.", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				F.Data.DataView.SetValue("dtBoms", "dvCheck", -1, "PART_NUMBER", "", "PART_NUMBER_REVISION", "")
+			F.Intrinsic.Control.EndIf
+			
+			'Fix sequences, it should be sorted by this already
+			F.Data.DataView.SetSeries("dtBoms", "dvThisParent", "SEQUENCE", 0, 100)
+			
+			'add this to the upload
+			F.Data.DataView.ToString("dtBoms", "dvThisParent", V.Local.sDataViewOriginalFieldNames, V.Global.sInnerDelimiter, V.Global.sOuterDelimiter, V.Local.sDataView)
+			F.Data.DataTable.CreateFromString("dtInsert", V.Local.sDataView, V.Local.sDataViewNewFieldNames, V.Local.sDataViewNewFieldTypes, V.Global.sInnerDelimiter, V.Global.sOuterDelimiter)
+			
+			F.Data.DataTable.Merge("dtInsert", "dt6010", False, 2)
+			F.Data.DataTable.Close("dtInsert")
+			
+			'now run the upload for this BOM
+			F.Intrinsic.String.Build("Running callwrapper 6010 - Bom Upload for BOM [{0}]...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(6010)
+			
+			'backup the upload file
+			F.Intrinsic.String.Build("{0}\BOMHDR.txt", V.Caller.FilesDir, V.Local.sUploadFile)
+			F.Intrinsic.Control.CallSub(BackUpFile, "Type", "BOM", "File", V.Local.sUploadFile)
+			
+			'now here check if upload was successful
+			F.Intrinsic.String.Build("select RTRIM(PARENT) from V_BOM_MSTR where PARENT = '{0}' and PART = ''", V.Local.sParents(V.Local.iJ), V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			
+			F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+			
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				'failed, mark as failed
+				F.Intrinsic.Math.Add(V.Global.iFailed, 1, V.Global.iFailed)
+				V.Local.bFailed.Set(True)
+				
+				F.Intrinsic.Control.If(V.Local.bUpdate.Not)
+					F.Intrinsic.String.Build("BOM [{0}] with External ID [{1}] failed to upload.", V.Local.sParents(V.Local.iJ), V.DataView.dtBoms!dvThisParent(0).PARENT_EXTERNAL_ID!FieldValTrim, V.Local.sFeedback)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("BOM [{0}] with External ID [{1}] failed to update.", V.Local.sParents(V.Local.iJ), V.DataView.dtBoms!dvThisParent(0).PARENT_EXTERNAL_ID!FieldValTrim, V.Local.sFeedback)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sFeedback)
+				
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Control.If(V.Local.bUpdate)
+					F.Intrinsic.Math.Add(V.Global.iUpdated, 1, V.Global.iUpdated)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.Math.Add(V.Global.iSuccessful, 1, V.Global.iSuccessful)
+				F.Intrinsic.Control.EndIf
+				
+				V.Local.bFailed.Set(False)
+				
+				F.Intrinsic.Control.If(V.Local.bUpdate.Not)
+					F.Intrinsic.String.Build("BOM [{0}] with External ID [{1}] uploaded successfully.", V.Local.sParents(V.Local.iJ), V.DataView.dtBoms!dvThisParent(0).PARENT_EXTERNAL_ID!FieldValTrim, V.Local.sFeedback)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("BOM [{0}] with External ID [{1}] updated successfully.", V.Local.sParents(V.Local.iJ), V.DataView.dtBoms!dvThisParent(0).PARENT_EXTERNAL_ID!FieldValTrim, V.Local.sFeedback)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sFeedback)
+				
+				'now update extra fields
+				'UNIT_COST, BOM_COMPLETE
+				F.Intrinsic.String.Build("Updating additional fields for BOM [{0}]...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+				F.Data.DataView.ToString("dtBoms", "dvThisParent", "PARENT_FULL*!*PART_FULL*!*COST*!*BOM_COMPLETE_FORMAT", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter, V.Local.sDataView)
+				F.Data.DataTable.CreateFromString("dtUpdate", V.Local.sDataView, "PARENT_FULL*!*PART_FULL*!*COST*!*BOM_COMPLETE_FORMAT", "String*!*String*!*Float*!*String", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter)
+				
+				F.Data.DataTable.AddColumn("dtUpdate", "DATE_LAST_CHG", "String", V.Ambient.Date.FormatYYYYMMDD)
+				F.Data.DataTable.AddColumn("dtUpdate", "LAST_CHG_BY", "String", V.Caller.User)
+				F.Data.DataTable.AddColumn("dtUpdate", "TIME_LAST_CHG", "String", V.Ambient.Time.FormatHHNNSS00)
+				F.Data.DataTable.AddColumn("dtUpdate", "LAST_CHG_PROG", "String", V.Global.sProject)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.Data.DataTable.SaveToDB("dtUpdate", "Con", "BOM_MSTR", "PARENT_FULL*!*PART_FULL", 256, "PARENT_FULL@!@PARENT*!*PART_FULL@!@PART*!*COST@!@COST*!*BOM_COMPLETE_FORMAT@!@BOM_COMPLETE*!*DATE_LAST_CHG@!@DATE_LAST_CHG*!*LAST_CHG_BY@!@LAST_CHG_BY*!*TIME_LAST_CHG@!@TIME_LAST_CHG*!*LAST_CHG_PROG@!@LAST_CHG_PROG")
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+				
+				F.Data.DataTable.Close("dtUpdate")
+				
+				'now upload comments
+				'using callwrapper 6009
+				F.Intrinsic.String.Build("{0} and TRIM(IsNull([COMMENTS], '')) <> ''", V.Local.sParentFilter, V.Local.sFilter)
+				F.Data.DataView.Create("dtBoms", "dvComments", 22, V.Local.sFilter, "")
+				F.Intrinsic.Control.If(V.DataView.dtBoms!dvComments.RowCount, >, 0)
+					F.Data.DataView.ToString("dtBoms", "dvComments", "PARENT_FULL*!*SEQUENCE*!*COMMENTS", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter, V.Local.sDataView)
+					F.Data.DataTable.CreateFromString("dtInsert", V.Local.sDataView, "PARENT*!*PARENT_SEQUENCE*!*COMMENT", "String*!*Long*!*String", V.Global.sInnerDelimiter, V.Global.sOuterDelimiter)
+					
+					'add to 6009 libraru datatable
+					F.Data.DataTable.Merge("dtInsert", "dt6009", False, 2)
+					F.Data.DataTable.Close("dtInsert")
+					
+					'upload
+					F.Intrinsic.String.Build("Running callwrapper 6009 - Bom Comment Upload for BOM [{0}]...", V.Local.sParents(V.Local.iJ), V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+					F.Intrinsic.Control.CallSub(6009)
+					
+					'backup the upload file
+					F.Intrinsic.String.Build("{0}\BOMTEXT.txt", V.Caller.FilesDir, V.Local.sUploadFile)
+					F.Intrinsic.Control.CallSub(BackUpFile, "Type", "BOM Comments", "File", V.Local.sUploadFile)
+				F.Intrinsic.Control.EndIf
+				F.Data.DataView.Close("dtBoms", "dvComments")
+				
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		F.Data.DataView.SetValue("dtBoms", "dvThisParent", -1, "FEEDBACK", V.Local.sFeedback, "FAILED", V.Local.bFailed, "PROCESSED", True)
+		F.Intrinsic.Control.CallSub(SaveFeedback, "TOP_BOM", V.DataView.dtBoms!dvThisParent(0).TOP_BOM!FieldValTrim, "TOP_BOM_REVISION", V.DataView.dtBoms!dvThisParent(0).TOP_BOM_REVISION!FieldValTrim, "BOM", V.DataView.dtBoms!dvThisParent(0).PARENT!FieldValTrim, "BOM_REVISION", V.DataView.dtBoms!dvThisParent(0).PARENT_REVISION!FieldValTrim, "Failed", V.Local.bFailed, "FEEDBACK", V.Local.sFeedback)
+		F.Intrinsic.String.Build("Processing of BOM [{0}] for Top Level Bom [{1}] complete.", V.Local.sParents(V.Local.iJ), V.Local.sTopParents(V.Local.iCounter), V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+	F.Intrinsic.Control.Next(V.Local.iJ)
+	F.Intrinsic.String.Build("Processing of Top Level Bom [{0}] complete.", V.Local.sTopParents(V.Local.iCounter), V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	V.Local.sParents.Redim(0, 0)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtBOMs", "dvCheck")
+F.Data.DataView.Close("dtBOMs", "dvThisParent")
+F.Data.DataView.Close("dtBoms", "dvTopParent")
+V.Local.sTopParents.Redim(0, 0)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadStagedBOMS.End
+
+Program.Sub.SaveFeedback.Start
+'pass TOP_BOM, TOP_BOM_REVISION, BOM, BOM_REVISION, FAILED, FEEDBACK
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iFailed.Declare(Long, 0)
+V.Local.sTimestamp.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.Failed)
+	V.Local.iFailed.Set(1)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Format(V.Ambient.Now, "YYYY-MM-DD HH:NN:SS.000", V.Local.sTimestamp)
+F.Intrinsic.String.Build("update GCG_5807_BOM_STAGE set FAILED = {0}, PROCESSED = 1, FEEDBACK = '{1}', PROCESSED_TIMESTAMP = '{6}', TOP_BOM = '{2}', TOP_BOM_REVISION = '{3}', PARENT = '{4}', PARENT_REVISION = '{5}' where UPPER(TOP_BOM) = '{2}' and UPPER(IsNull(TOP_BOM_REVISION, '')) = '{3}' and UPPER(PARENT) = '{4}' and UPPER(IsNull(PARENT_REVISION, '')) = '{5}' and FAILED = 0 and PROCESSED = 0;", V.Local.iFailed, V.Args.Feedback.PSQLFriendly, V.Args.Top_Bom, V.Args.Top_Bom_Revision, V.Args.Bom, V.Args.Bom_Revision, V.Local.sTimestamp, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveFeedback.End
+
+Program.Sub.DeleteBOM.Start
+'delete from BOM_ENG, BOM_MSTR, BOM_NOTES
+'may be leaving orphaned records in BOM_ENG... we'll have to see how this plays out
+'pass BOM
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sTables.Declare(String, "BOM_MSTR*!*BOM_ENG*!*BOM_NOTES")
+V.Local.sKeys.Declare(String, "PARENT*!*PART*!*PARENT")
+V.Local.iCounter.Declare(Long)
+
+F.Intrinsic.String.Split(V.Local.sTables, "*!*", V.Local.sTables)
+F.Intrinsic.String.Split(V.Local.sKeys, "*!*", V.Local.sKeys)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sTables.UBound, 1)
+	F.Intrinsic.String.Build("delete from {0} where {1} = '{2}'", V.Local.sTables(V.Local.iCounter), V.Local.sKeys(V.Local.iCounter), V.Args.BOM.Trim, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+V.Local.sTables.Redim(0, 0)
+V.Local.sKeys.Redim(0, 0)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.DeleteBOM.End
+
+Program.Sub.SendIPMMessage.Start
+'return uploaded, updated, failed counts
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+'return counts to PID passed in switch
+F.Intrinsic.String.Build("BOMS{0}{1}{0}{2}{0}{3}", "!@@!", V.Global.iSuccessful, V.Global.iUpdated, V.Global.iFailed, V.Local.sMessage)
+F.Intrinsic.IPM.SendMessage(V.Local.sMessage, V.Caller.Switches)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SendIPMMessage.End
+
+Program.Sub.Exit.Start
+'clean up, exit
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtBOMs.Exists)
+	F.Data.DataTable.Close("dtBOMs")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.CallSub(SendIPMMessage)
+F.Intrinsic.Control.CallSub(ScriptPIDClear, "PROJECT", V.Global.sProject)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214151929996$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347T2scAYDBhkqzR5caL0MefvNEb5tPxMMjo=
+Program.Sub.Comments.End
