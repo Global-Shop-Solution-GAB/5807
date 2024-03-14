@@ -1,0 +1,737 @@
+'this is a modification of the standard 6013 library to fix an issue where the TermsCode field was not padded
+'Trey S
+'Made for Project 5807
+'October 14th, 2020
+
+'This library helps with the use of the 6013 Call wrapper, Upload Customer Master (UPLCUST). To use it, simply add a row to the 6013 datatable for each line in the upload file.
+'Then call either 6013Sync or 6013Async to have the library generate the file needed for you and call the 6013 callwrapper. Each field is padded automatically and if a field is
+'not needed for a row then you can ignore it. V.Global.s6013Mode can be set to declare how the wrapper will be called. Valid values are:
+'"50" - Append (Default)
+'"51" - Delete
+'"52" - Append and update
+'Documentation for the file format can be found here: http://www.gss-updates.com/site/GSHelp/2015/000/INDEX.asp?addl_ref_data_conv_cust_master.asp
+'NOTE: *Parameter* denotes a required parameter.
+'The datatable is structed as follows:
+'Column									=	Parameter													=	Format					=	Field Size
+'==========================================================================================================================================================
+'CustNum								=	*Customer Number*											=							=	6
+'CustName								=	*Customer Name*												=							=	30
+'Address1								=	Address Line 1												=							=	30
+'Address2								=	Address Line 2												=							=	30
+'City									=	City														=							=	15
+'State									=	State														=							=	2
+'Zip									=	Zip															=							=	13
+'Country								=	Country														=							=	12
+'County									=	County														=							=	12
+'Attention								=	Attention													=							=	30
+'SalesRep								=	Sales Rep													=							=	3
+'IntlAddressFlag						=	International Address Flag									=	Y/N						=	1
+'Branch									=	Branch														=							=	2
+'AreaCode								=	Area Code													=							=	2
+'CreditCode								=	Credit Code													=							=	2
+'PhoneNum								=	Phone Number												=	No Dashes				=	13
+'TaxCode1								=	Tax Code 1													=							=	3
+'TaxCode2								=	Tax Code 2													=							=	3
+'TaxCode3								=	Tax Code 3													=							=	3
+'TaxCode4								=	Tax Code 4													=							=	3
+'GLAccount								=	Normal GL Account											=							=	15
+'BalanceFwdFlag							=	Balance Forward Flag										=	"B" - Balance Forward	=	1
+'																										=	"O" - Open Items
+'StatementFlag							=	Statement Indicator Flag									=	Y/N						=	1
+'CreditHoldFlag							=	Credit Hold Flag											=	Y/N						=	1
+'TaxState								=	Tax State													=							=	2
+'IntercompanyCustFlag					=	Intercompany Customer Flag									=	Y/N						=	1
+'SalesTaxExemptNum						=	Sales Tax Exempt Number										=							=	20
+'LastCashReceiptDate					=	Last Cash Receipt Date										=	MMDDYY					=	6
+'LastCashReceiptAmt						=	Last Cash Recept Amount										=	+-9.2					=	16
+'LastSaleDate							=	Last Sale Date												=	MMDDYY					=	6
+'LastSaleAmt							=	Last Sale Amount											=	+-9.2					=	16
+'InvoiceCount							=	Number of Invoices Paid										=	+-6.0					=	16
+'AvgDaysPayment							=	Average Days Payment										=	+-6.0					=	16
+'FinanceChargeCode						=	Finance Charge Code											=							=	1
+'ContractMasterFlag						=	Contract Master												=	Y/N						=	1
+'PriceClassCode							=	Price Class Code											=							=	1
+'NoBackorderFlag						=	No Backorder Flag											=	Y/N						=	1
+'CustInceptionDate						=	Customer Inception Date										=	MMDDYY					=	6
+'SICCode								=	SIC Code													=							=	4
+'TermsCode								=	Terms Code													=							=	1
+'UseGvmtPricingFlag						=	Use Government Pricing Flag									=	Y/N						=	1
+'OpenItemBal							=	Open Item Balance											=	+-9.2					=	16
+'OpenOrderBal							=	Open Order Balance											=	+-9.2					=	16
+'AlphaSort								=	Alpha Sort													=							=	30
+'FaxNum									=	Fax Number													=	No Dashes				=	13
+'SortField								=	Sort Field													=							=	15
+'CommRateType							=	Commission Rate Type										=							=	5
+'Email									=	Email Address												=							=	43
+'DateLastUpdated						=	Date Last Updated											=	MMDDYY					=	6
+'ShipName								=	Ship Name													=							=	30
+'ShipAddress1							=	Ship Address 1												=							=	30
+'ShipAddress2							=	Ship Address 2												=							=	30
+'ShipCity								=	Ship City													=							=	15
+'ShipState								=	Ship State													=							=	2
+'ShipZip								=	Ship Zip													=							=	13
+'ShipCountry							=	Ship Country												=							=	12
+'ShipCounty								=	Ship County													=							=	12
+'ShipAttention							=	Ship Attention												=							=	30
+'ShipViaCode							=	Ship Via Code												=							=	1
+'ShipCollectCode						=	Ship Collect Code											=							=	1
+'SendEDIFlag							=	Send EDI 856 (ASN) Flag										=	Y/N						=	1
+'CreateEDIInvoiceFlag					=	Create EDI Invoice Flag										=	Y/N						=	1
+'FreightZone							=	Freight Zone												=							=	10
+'IntlShipAddressFlag					=	International Ship Address Flag								=	Y/N						=	1
+'ShipPhone								=	Ship Phone													=	No Dashes				=	13
+'ShipFax								=	Ship Fax													=	No Dashes				=	13
+'GeoCode								=	Geo Code													=							=	2
+'OrderDiscPerc							=	Order Discount Percent										=	1.4						=	16
+'Address3								=	Address 3													=							=	30
+'Address4								=	Address 4													=							=	30
+'Address5								=	Address 5													=							=	30
+'ShipAddress3							=	Ship Address 3												=							=	30
+'ShipAddress4							=	Ship Address 4												=							=	30
+'ShipAddress5							=	Ship Address 5												=							=	30
+'TaxZipCode								=	Tax Zip Code												=							=	13
+'DefaultCurrCode						=	Default Currency Code										=							=	3
+'CatalogCurrCode						=	Catalog Currency Code										=							=	3
+'TaxCode5								=	Tax Code 5													=							=	3
+'TaxCode6								=	Tax Code 6													=							=	3
+'TaxCode7								=	Tax Code 7													=							=	3
+'TaxCode8								=	Tax Code 8													=							=	3
+'TaxCode9								=	Tax Code 9													=							=	3
+'TaxCode10								=	Tax Code 10													=							=	3
+'PriceCategoryCode						=	Price Category Code											=							=	2
+'AlwaysTakesTermsDiscFlag				=	Always Takes Terms Discount Flag							=	Y/N						=	1
+'PackingListReportID					=	Packing List Report ID										=	Numeric					=	6
+'AckReportID							=	Acknowledgment Report ID									=	Numeric					=	6
+'CCNum									=	Credit Card Number											=							=	25
+'CCType									=	Credit Card Type											=	"MC" - Master Card		=	2
+'																										=	"VI" - Visa
+'																										=	"DC" - Discover
+'																										=	"DI" - Diners
+'																										=	"AM" - American Express
+'																										=	"CB" - Carte Blanche
+'																										=	"JB" - JCB
+'CCRequestType							=	Credit Card Request Type									=	"1" - Pre-Authorized	=	1
+'																										=	"2" - Approved
+'																										=	"3" - Payment
+'																										=	"4" - Refund
+'Filler1								=	Filler - Ignore												=							=	3
+'ExpDate								=	Expiration Date												=	MMYY					=	4
+'ValidatingBillingAddressFlag			=	Validating Billing Address									=	Y/N						=	1
+'ShipInvoiceWhenCCRejectsFlag			=	Ship and Invoice when Cred Card Rejects						=	Y/N						=	1
+'SuppressInvoicePrintForCCFlag			=	Suppress Invoice Print for Credit Cards						=	Y/N						=	1
+'OrderAmtOnHoldFlag						=	Order Amount on Hold										=	Y/N						=	1
+'NonBackAmtOnHoldFlag					=	Non-Back Amount on Hold										=	Y/N						=	1
+'Length									=	Length														=	Numeric					=	2
+'Filler2								=	Filler - Ignore												=							=	190
+'SONumberRangeCode						=	Sales Order Number Range Code								=							=	2
+'RMAReportID							=	RMA Report ID												=	Numeric					=	6
+'QuoteReportID							=	Quote Report ID												=	Numeric					=	6
+'InvoiceCreditMemoReportID				=	Invoice/Credit Memo Report ID								=	Numeric					=	6
+'Filler3								=	Filler - Ignore												=							=	6
+'MfgName								=	Manufacturer Name											=							=	40
+'SingleGroupQuote						=	Single Group Quote											=							=	1
+'Filler4								=	Filler - Ignore												=							=	3
+'CarrierCode							=	Carrier Code												=							=	6
+'Filler5								=	Filler - Ignore												=							=	1
+'ShippingHoldFlag						=	Shipping Hold Flag											=	Y/N						=	1
+'Filler6								=	Filler - Ignore												=							=	2
+'ThirdPartyFreightCust					=	Third Party Freight Customer								=							=	7
+'UPSAcctNum								=	UPS Account Number											=							=	10
+'FedExAcctNum							=	FedEx Account Number										=							=	25
+'ConfiguratorDisc						=	Configurator Discount										=	1.4						=	16
+'BoLLabelReportID						=	Bill of Lading Label Report ID								=	Numeric					=	6
+'ExternalID								=	External ID													=							=	12
+'ServiceType							=	Service Type												=	See Note 1				=	3
+'BuyingGroupFlag						=	Buying Group Flag											=	"G" - Group				=	1
+'																											"M" - Member
+'BoLMultipageReportID					=	Bill of Lading Multipage Report ID							=	Numeric					=	6
+'ShipSoftwareCityFrom					=	Shipping Software will extract City from:					=	" " - Ship To City		=	1
+'																											"2" - Ship To Adr2
+'																											"3" - Ship To Adr3
+'																											"4" - Ship To Adr4
+'																											"5" - Ship To Adr5
+'ShipSoftwareCountyFrom					=	Shipping Software will extract County from:					=	" " - Ship To City		=	1
+'																											"2" - Ship To Adr2
+'																											"3" - Ship To Adr3
+'																											"4" - Ship To Adr4
+'																											"5" - Ship To Adr5
+'BoLReportID							=	Bill of Lading Report ID									=	Numeric					=	6
+'Language								=	Language Code												=							=	3
+'SetCreditHoldWhenLimitExceededFlag		=	Set Credit Hold WHen Limit Exceeded Flag					=	Y/N						=	1
+'SetShipHoldWhenCreditLimitExceededFlag	=	Set Ship Hold WHen Credit Limit Exceeded Flag				=	Y/N						=	1
+'AllowShipHoldChangeAtOrderLevelFlag	=	Allow Shipping Hold to be Modified at Order Level			=							=	1
+'SOLabelsReportID						=	Sales Order Labels Report ID								=	Numeric					=	6
+'MatlSurchageMarkupPerc					=	Material Surchage Markup Percent							=	1.4						=	16
+'SetInvoiceHoldFlag						=	Set Invoice Hold Flag										=	Y/N						=	1
+'RemoveInvoiceHoldShipmentLevelFlag		=	Remove Invice Hold at Shipment Level Flag					=	Y/N						=	1
+'EDIASNNotGeneratedFlag					=	EDI ASN Not Generated Flag									=	Y/N						=	1
+'MissingTrackingAndWaybillNumFlag		=	Missing Tracking and Waybill Number Flag					=	Y/N						=	1
+'FreightMissingFlag						=	Freight is Missing Flag										=	Y/N						=	1
+'InvoiceHoldShipmentManualFlag			=	Invoice Hold at Shipment (Manual) Flag						=	Y/N						=	1
+'ContainsConsignmentLinesFlag			=	Contains Consignment Lines Flag								=	Y/N						=	1
+'Filler7								=	Filler - Ignore												=							=	
+'PrintPackingListHeaderTextInvoiceFlag	=	Print Packing List Header Text on Invoice Flag				=	Y/N						=	1
+'PrintPackingListHeadetTextBOLFlag		=	Print Packing List Header Text on Bill of Lading Flag		=	Y/N						=	1
+'UseAcctShipToUPSFlag					=	Use Account per Ship To (UPS) Flag							=	Y/N						=	1
+'UseAcctShipToFedExFlag					=	Use Account per Ship To (FedEx) Flag						=	Y/N						=	1
+'ConsignmentBin							=	Consignment Bin												=							=	6
+'SuppressInvoicePrintFlag				=	Suppress Invoice Print Flag									=	Y/N						=	1
+'WOLabelsReportID						=	Work Order Labels Report ID									=	Numeric					=	6
+'Loc									=	Location													=							=	2
+'AgingDays								=	Aging Days													=							=	3
+'PrintPackingListLineTextInvoiceFlag	=	Print Packing List Line Text on Invoice Flag				=	Y/N						=	1
+'BOLLineEntry							=	Bill of Lading Line Entry									=	" " - Default Company	=	1
+'																										=	"M" - Manual Entry
+'																										=	"P" - Use Packing Data
+'ExtendedBarCodeWOReportID				=	Extended Bar Code Work Order Report ID						=	Numeric					=	6
+'TransferOrdersOnlyFlag					=	Transfer Orders Only Flag									=	Y/N						=	1
+'AutoReceiveInTransitLinesFlag			=	Auto Receive In-Transit Lines Flag							=	Y/N						=	1
+'PrintTransitFormFlag					=	Print Transit Form Flag										=	Y/N						=	1
+'TransferUsingFromBinFlag				=	Transfer Using From Bin Flag								=	Y/N						=	1
+'TransferUsingDefaultBinFlag			=	Transfer Using Default Bin Flag								=	Y/N						=	1
+'TransferToBin							=	Transfer to Bin												=							=	6
+'AllowChangeLotBinXferOptAtShipmentFlag	=	Allow Change to Lot/Bin Transfer Options at Shipment Flag	=	Y/N						=	1
+'InvoiceDelivery						=	Invoice Delivery											=	"1" - Print				=	1
+'																										=	"2" - Email
+'																										=	"3" - Both
+'WebAddress								=	Web Address													=							=	255
+'==========================================================================================================================================================
+'Note 1: The combination of Carrier Code & Service Type should exist in the Carrier Code Table. Possible service types are as follows: 
+'	Next Day Air Early AM - 901
+'	Next Day Air - 902
+'	Next Day Air Saver - 903
+'	2nd Day Air AM - 904
+'	2nd Day Air - 905
+'	3 Day Select - 906
+'	Ground - 907
+'	Worldwide Express Plus - 908
+'	Worldwide Express - 909
+'	Worldwide Expedited - 910
+Program.Sub.Preflight.Start
+V.Global.s6013Error.Declare(String)
+V.Global.s6013Mode.Declare(String,"50")
+
+F.Data.DataTable.Create("6013",True)
+F.Data.DataTable.AddColumn("6013","CustNum","String")
+F.Data.DataTable.AddColumn("6013","CustName","String")
+F.Data.DataTable.AddColumn("6013","Address1","String","                              ")
+F.Data.DataTable.AddColumn("6013","Address2","String","                              ")
+F.Data.DataTable.AddColumn("6013","City","String","               ")
+F.Data.DataTable.AddColumn("6013","State","String","  ")
+F.Data.DataTable.AddColumn("6013","Zip","String","             ")
+F.Data.DataTable.AddColumn("6013","Country","String","            ")
+F.Data.DataTable.AddColumn("6013","County","String","            ")
+F.Data.DataTable.AddColumn("6013","Attention","String","                              ")
+F.Data.DataTable.AddColumn("6013","SalesRep","String","   ")
+F.Data.DataTable.AddColumn("6013","IntlAddressFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","Branch","String","  ")
+F.Data.DataTable.AddColumn("6013","AreaCode","String","  ")
+F.Data.DataTable.AddColumn("6013","CreditCode","String","  ")
+F.Data.DataTable.AddColumn("6013","PhoneNum","String","             ")
+F.Data.DataTable.AddColumn("6013","TaxCode1","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode2","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode3","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode4","String","   ")
+F.Data.DataTable.AddColumn("6013","GLAccount","String","               ")
+F.Data.DataTable.AddColumn("6013","BalanceFwdFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","StatementFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","CreditHoldFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","TaxState","String","  ")
+F.Data.DataTable.AddColumn("6013","IntercompanyCustFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","SalesTaxExemptNum","String","                    ")
+F.Data.DataTable.AddColumn("6013","LastCashReceiptDate","String","      ")
+F.Data.DataTable.AddColumn("6013","LastCashReceiptAmt","String","                ")
+F.Data.DataTable.AddColumn("6013","LastSaleDate","String","      ")
+F.Data.DataTable.AddColumn("6013","LastSaleAmt","String","                ")
+F.Data.DataTable.AddColumn("6013","InvoiceCount","String","                ")
+F.Data.DataTable.AddColumn("6013","AvgDaysPayment","String","                ")
+F.Data.DataTable.AddColumn("6013","FinanceChargeCode","String"," ")
+F.Data.DataTable.AddColumn("6013","ContractMasterFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","PriceClassCode","String"," ")
+F.Data.DataTable.AddColumn("6013","NoBackorderFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","CustInceptionDate","String","      ")
+F.Data.DataTable.AddColumn("6013","SICCode","String","    ")
+F.Data.DataTable.AddColumn("6013","TermsCode","String"," ")
+F.Data.DataTable.AddColumn("6013","UseGvmtPricingFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","OpenItemBal","String","                ")
+F.Data.DataTable.AddColumn("6013","OpenOrderBal","String","                ")
+F.Data.DataTable.AddColumn("6013","AlphaSort","String","                              ")
+F.Data.DataTable.AddColumn("6013","FaxNum","String","             ")
+F.Data.DataTable.AddColumn("6013","SortField","String","               ")
+F.Data.DataTable.AddColumn("6013","CommRateType","String","     ")
+F.Data.DataTable.AddColumn("6013","Email","String","                                           ")
+F.Data.DataTable.AddColumn("6013","DateLastUpdated","String","      ")
+F.Data.DataTable.AddColumn("6013","ShipName","String","              ")
+F.Data.DataTable.AddColumn("6013","ShipAddress1","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipAddress2","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipCity","String","               ")
+F.Data.DataTable.AddColumn("6013","ShipState","String","  ")
+F.Data.DataTable.AddColumn("6013","ShipZip","String","             ")
+F.Data.DataTable.AddColumn("6013","ShipCountry","String","            ")
+F.Data.DataTable.AddColumn("6013","ShipCounty","String","            ")
+F.Data.DataTable.AddColumn("6013","ShipAttention","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipViaCode","String"," ")
+F.Data.DataTable.AddColumn("6013","ShipCollectCode","String"," ")
+F.Data.DataTable.AddColumn("6013","SendEDIFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","CreateEDIInvoiceFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","FreightZone","String","          ")
+F.Data.DataTable.AddColumn("6013","IntlShipAddressFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","ShipPhone","String","             ")
+F.Data.DataTable.AddColumn("6013","ShipFax","String","             ")
+F.Data.DataTable.AddColumn("6013","GeoCode","String","  ")
+F.Data.DataTable.AddColumn("6013","OrderDiscPerc","String","                ")
+F.Data.DataTable.AddColumn("6013","Address3","String","                              ")
+F.Data.DataTable.AddColumn("6013","Address4","String","                              ")
+F.Data.DataTable.AddColumn("6013","Address5","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipAddress3","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipAddress4","String","                              ")
+F.Data.DataTable.AddColumn("6013","ShipAddress5","String","                              ")
+F.Data.DataTable.AddColumn("6013","TaxZipCode","String","             ")
+F.Data.DataTable.AddColumn("6013","DefaultCurrCode","String","   ")
+F.Data.DataTable.AddColumn("6013","CatalogCurrCode","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode5","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode6","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode7","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode8","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode9","String","   ")
+F.Data.DataTable.AddColumn("6013","TaxCode10","String","   ")
+F.Data.DataTable.AddColumn("6013","PriceCategoryCode","String","  ")
+F.Data.DataTable.AddColumn("6013","AlwaysTakesTermsDiscFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","PackingListReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","AckReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","CCNum","String","                     ")
+F.Data.DataTable.AddColumn("6013","CCType","String","  ")
+F.Data.DataTable.AddColumn("6013","CCRequestType","String"," ")
+F.Data.DataTable.AddColumn("6013","Filler1","String","   ")
+F.Data.DataTable.AddColumn("6013","ExpDate","String","    ")
+F.Data.DataTable.AddColumn("6013","ValidatingBillingAddressFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","ShipInvoiceWhenCCRejectsFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","SuppressInvoicePrintForCCFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","OrderAmtOnHoldFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","NonBackAmtOnHoldFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","Length","String","  ")
+F.Data.DataTable.AddColumn("6013","Filler2","String","                                                                                                                                                                                              ")
+F.Data.DataTable.AddColumn("6013","SONumberRangeCode","String","  ")
+F.Data.DataTable.AddColumn("6013","RMAReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","QuoteReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","InvoiceCreditMemoReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","Filler3","String","      ")
+F.Data.DataTable.AddColumn("6013","MfgName","String","                                        ")
+F.Data.DataTable.AddColumn("6013","SingleGroupQuote","String"," ")
+F.Data.DataTable.AddColumn("6013","Filler4","String","   ")
+F.Data.DataTable.AddColumn("6013","CarrierCode","String","      ")
+F.Data.DataTable.AddColumn("6013","Filler5","String"," ")
+F.Data.DataTable.AddColumn("6013","ShippingHoldFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","Filler6","String","  ")
+F.Data.DataTable.AddColumn("6013","ThirdPartyFreightCust","String","       ")
+F.Data.DataTable.AddColumn("6013","UPSAcctNum","String","          ")
+F.Data.DataTable.AddColumn("6013","FedExAcctNum","String","                         ")
+F.Data.DataTable.AddColumn("6013","ConfiguratorDisc","String","                ")
+F.Data.DataTable.AddColumn("6013","BoLLabelReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","ExternalID","String","            ")
+F.Data.DataTable.AddColumn("6013","ServiceType","String","   ")
+F.Data.DataTable.AddColumn("6013","BuyingGroupFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","BoLMultipageReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","ShipSoftwareCityFrom","String"," ")
+F.Data.DataTable.AddColumn("6013","ShipSoftwareCountyFrom","String"," ")
+F.Data.DataTable.AddColumn("6013","BoLReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","Language","String","   ")
+F.Data.DataTable.AddColumn("6013","SetCreditHoldWhenLimitExceededFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","SetShipHoldWhenCreditLimitExceededFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","AllowShipHoldChangeAtOrderLevelFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","SOLabelsReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","MatlSurchageMarkupPerc","String","                ")
+F.Data.DataTable.AddColumn("6013","SetInvoiceHoldFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","RemoveInvoiceHoldShipmentLevelFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","EDIASNNotGeneratedFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","MissingTrackingAndWaybillNumFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","FreightMissingFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","InvoiceHoldShipmentManualFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","ContainsConsignmentLinesFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","Filler7","String","              ")
+F.Data.DataTable.AddColumn("6013","PrintPackingListHeaderTextInvoiceFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","PrintPackingListHeadetTextBOLFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","UseAcctShipToUPSFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","UseAcctShipToFedExFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","ConsignmentBin","String","      ")
+F.Data.DataTable.AddColumn("6013","SuppressInvoicePrintFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","WOLabelsReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","Loc","String","   ")
+F.Data.DataTable.AddColumn("6013","AgingDays","String","   ")
+F.Data.DataTable.AddColumn("6013","PrintPackingListLineTextInvoiceFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","BOLLineEntry","String"," ")
+F.Data.DataTable.AddColumn("6013","ExtendedBarCodeWOReportID","String","      ")
+F.Data.DataTable.AddColumn("6013","TransferOrdersOnlyFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","AutoReceiveInTransitLinesFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","PrintTransitFormFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","TransferUsingFromBinFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","TransferUsingDefaultBinFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","TransferToBin","String","      ")
+F.Data.DataTable.AddColumn("6013","AllowChangeLotBinXferOptAtShipmentFlag","String"," ")
+F.Data.DataTable.AddColumn("6013","InvoiceDelivery","String"," ")
+F.Data.DataTable.AddColumn("6013","WebAddress","String","                                                                                                                                                                                                                                                               ")
+Program.Sub.Preflight.End
+
+Program.Sub.6013.Start
+F.Intrinsic.Control.Try
+	V.Local.sParams.Declare(String)
+	V.Local.sRet.Declare(String)
+	V.Local.sFileContent.Declare(String)
+	V.Local.sFilePath.Declare(String)
+	V.Local.iCount.Declare(Long)
+	
+	F.Intrinsic.String.Build("{0}\CUSTOMER.TXT",V.Caller.FilesDir,V.Local.sFilePath)
+	
+	'Pad the parameters, generate a DV of the DT, send it to a string, write the string to a file, then call the callwrapper
+	F.Intrinsic.Control.If(V.DataTable.6013.RowCount,>,0)
+		'Pad parameters as needed by the upload file
+		F.Intrinsic.Control.For(V.Local.iCount,0,V.DataTable.6013.RowCount--,1)
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CustNum!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CustNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CustName!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CustName",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Address1!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Address1",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Address2!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Address2",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).City!FieldVal," ",15,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"City",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).State!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"State",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Zip!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Zip",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Country!FieldVal," ",12,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Country",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).County!FieldVal," ",12,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"County",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Attention!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Attention",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SalesRep!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SalesRep",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Branch!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Branch",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).AreaCode!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"AreaCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CreditCode!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CreditCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).PhoneNum!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"PhoneNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode1!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode1",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode2!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode2",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode3!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode3",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode4!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode4",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).GLAccount!FieldVal," ",15,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"GLAccount",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxState!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxState",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SalesTaxExemptNum!FieldVal," ",20,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SalesTaxExemptNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).LastCashReceiptDate!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"LastCashReceiptDate",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).LastCashReceiptAmt!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"LastCashReceiptAmt",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).LastSaleDate!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"LastSaleDate",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CustNum!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CustNum",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).LastSaleAmt!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"LastSaleAmt",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).InvoiceCount!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"InvoiceCount",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).AvgDaysPayment!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"AvgDaysPayment",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CustInceptionDate!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CustInceptionDate",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SICCode!FieldVal," ",4,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SICCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TermsCode!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TermsCode",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).OpenItemBal!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"OpenItemBal",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).OpenOrderBal!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"OpenOrderBal",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).AlphaSort!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"AlphaSort",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).FaxNum!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"FaxNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SortField!FieldVal," ",15,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SortField",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CommRateType!FieldVal," ",5,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CommRateType",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Email!FieldVal," ",43,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Email",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).DateLastUpdated!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"DateLastUpdated",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipName!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipName",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAddress1!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAddress1",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAddress2!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAddress2",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipCity!FieldVal," ",15,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipCity",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipState!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipState",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipZip!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipZip",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipCountry!FieldVal," ",12,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipCountry",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipCounty!FieldVal," ",12,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipCounty",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAttention!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAttention",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).FreightZone!FieldVal," ",10,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"FreightZone",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipPhone!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipPhone",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipFax!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipFax",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).GeoCode!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"GeoCode",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).OrderDiscPerc!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"OrderDiscPerc",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Address3!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Address3",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Address4!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Address4",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Address5!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Address5",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAddress3!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAddress3",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAddress4!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAddress4",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipAddress5!FieldVal," ",30,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipAddress5",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxZipCode!FieldVal," ",13,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxZipCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).DefaultCurrCode!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"DefaultCurrCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CatalogCurrCode!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CatalogCurrCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode5!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode5",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode6!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode6",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode7!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode7",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode8!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode8",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode9!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode9",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TaxCode10!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TaxCode10",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).PriceCategoryCode!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"PriceCategoryCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).PackingListReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"PackingListReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).AckReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"AckReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CCNum!FieldVal," ",25,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CCNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ExpDate!FieldVal," ",4,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ExpDate",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Length!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Length",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SONumberRangeCode!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SONumberRangeCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).RMAReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"RMAReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).QuoteReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"QuoteReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).InvoiceCreditMemoReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"InvoiceCreditMemoReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).MfgName!FieldVal," ",40,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"MfgName",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).CarrierCode!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"CarrierCode",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ThirdPartyFreightCust!FieldVal," ",7,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ThirdPartyFreightCust",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).UPSAcctNum!FieldVal," ",10,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"UPSAcctNum",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).FedExAcctNum!FieldVal," ",25,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"FedExAcctNum",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).ConfiguratorDisc!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ConfiguratorDisc",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).BoLLabelReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"BoLLabelReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ExternalID!FieldVal," ",12,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ExternalID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ServiceType!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ServiceType",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).BoLMultipageReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"BoLMultipageReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).BoLReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"BoLReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Language!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Language",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).SOLabelsReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"SOLabelsReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.LPad(V.DataTable.6013(V.Local.iCount).MatlSurchageMarkupPerc!FieldVal,"0",16,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"MatlSurchageMarkupPerc",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ConsignmentBin!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ConsignmentBin",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).WOLabelsReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"WOLabelsReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).Loc!FieldVal," ",2,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"Loc",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).AgingDays!FieldVal," ",3,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"AgingDays",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ExtendedBarCodeWOReportID!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ExtendedBarCodeWOReportID",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).TransferToBin!FieldVal," ",6,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"TransferToBin",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).WebAddress!FieldVal," ",255,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"WebAddress",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).InvoiceDelivery!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"InvoiceDelivery",V.Local.sRet)
+			
+			F.Intrinsic.String.RPad(V.DataTable.6013(V.Local.iCount).ShipViaCode!FieldVal," ",1,V.Local.sRet)
+			F.Data.DataTable.SetValue("6013",V.Local.iCount,"ShipViaCode",V.Local.sRet)
+			
+		F.Intrinsic.Control.Next(V.Local.iCount)
+		
+		F.Data.DataView.Create("6013","6013View",22)
+		F.Data.DataView.ToString("6013","6013View","",V.Ambient.NewLine,V.Local.sFileContent)
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContent)
+		F.Data.DataView.Close("6013","6013View")
+		
+		F.Intrinsic.Control.SelectCase(V.Args.CallWrapperType)
+			F.Intrinsic.Control.Case(0)
+				F.Global.General.CallWrapperSync(6013,V.Global.s6013Mode)
+			F.Intrinsic.Control.Case(1)
+				F.Global.General.CallWrapperAsync(6013,V.Global.s6013Mode)
+		F.Intrinsic.Control.EndSelect
+		
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.DeleteRow("6013")
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6013,"Sub",V.Ambient.CurrentSubroutine,"ErrNo",V.Ambient.ErrorNumber,"ErrDesc",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6013.End
+
+'Calls 6013 with callwrapper type of 0
+Program.Sub.6013Sync.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6013,"CallWrapperType",0)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6013, "Sub", V.Ambient.CurrentSubroutine, "ErrNo", V.Ambient.ErrorNumber, "ErrDesc", V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6013Sync.End
+
+'Calls 6013 with callwrapper type of 1
+Program.Sub.6013Async.Start
+F.Intrinsic.Control.Try
+	F.Intrinsic.Control.CallSub(6013,"CallWrapperType",1)
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(CatchError6013, "Sub", V.Ambient.CurrentSubroutine, "ErrNo", V.Ambient.ErrorNumber, "ErrDesc", V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.6013Async.End
+
+Program.Sub.CatchError6013.Start
+F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Args.Sub, V.Args.ErrNo, V.Args.ErrDesc, V.Global.s6013Error)
+Program.Sub.CatchError6013.End
