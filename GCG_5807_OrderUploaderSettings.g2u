@@ -1,0 +1,2164 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormSettings..Create
+Gui.FormSettings..Caption("Standardized E-Commerce/CRM/Quoting Integration Settings [5807]")
+Gui.FormSettings..Size(11340,9315)
+Gui.FormSettings..MinX(0)
+Gui.FormSettings..MinY(0)
+Gui.FormSettings..Position(0,0)
+Gui.FormSettings..BackColor(-2147483633)
+Gui.FormSettings..MousePointer(0)
+Gui.FormSettings..Event(UnLoad,FormSettings_UnLoad)
+Gui.FormSettings..Sizeable(False)
+Gui.FormSettings..MaxButton(False)
+Gui.FormSettings.chkEnabled.Create(CheckBox)
+Gui.FormSettings.chkEnabled.Size(2055,360)
+Gui.FormSettings.chkEnabled.Position(60,30)
+Gui.FormSettings.chkEnabled.Caption("Enable Integration")
+Gui.FormSettings.chkEnabled.Event(Click,chkEnabled_Click)
+Gui.FormSettings.cmdSave.Create(Button)
+Gui.FormSettings.cmdSave.Size(855,375)
+Gui.FormSettings.cmdSave.Position(10260,30)
+Gui.FormSettings.cmdSave.Caption("Save")
+Gui.FormSettings.cmdSave.Anchor(9)
+Gui.FormSettings.cmdSave.Event(Click,cmdSave_Click)
+Gui.FormSettings.ddlUploadInterval.Create(DropDownList)
+Gui.FormSettings.ddlUploadInterval.Size(2505,330)
+Gui.FormSettings.ddlUploadInterval.Position(5700,60)
+Gui.FormSettings.txtUploadInterval.Create(TextBox,"",True,750,300,0,4905,60,True,1,"Arial",8,-2147483643,1)
+Gui.FormSettings.lblUploadInterval.Create(Label,"Upload Interval :",True,1290,255,0,3570,150,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.cmdAdvanced.Create(Button)
+Gui.FormSettings.cmdAdvanced.Size(1065,375)
+Gui.FormSettings.cmdAdvanced.Position(9165,30)
+Gui.FormSettings.cmdAdvanced.Caption("Advanced")
+Gui.FormSettings.cmdAdvanced.Event(Click,cmdAdvanced_Click)
+Gui.FormSettings.tabOptions.Create(Tab)
+Gui.FormSettings.tabOptions.Size(11145,8310)
+Gui.FormSettings.tabOptions.Position(60,420)
+Gui.FormSettings.tabOptions.Tabs(3)
+Gui.FormSettings.tabOptions.SetTab(0)
+Gui.FormSettings.tabOptions.Caption("Uploads")
+Gui.FormSettings.tabOptions.SetTab(1)
+Gui.FormSettings.tabOptions.Caption("Deletions")
+Gui.FormSettings.tabOptions.SetTab(2)
+Gui.FormSettings.tabOptions.Caption("Changes")
+Gui.FormSettings.frameUploader.Create(Frame)
+Gui.FormSettings.frameUploader.Size(11205,8070)
+Gui.FormSettings.frameUploader.Position(-60,-120)
+Gui.FormSettings.frameUploader.Parent("tabOptions",0)
+Gui.FormSettings.frameOrderSettings.Create(Frame)
+Gui.FormSettings.frameOrderSettings.Size(4260,7560)
+Gui.FormSettings.frameOrderSettings.Position(90,495)
+Gui.FormSettings.frameOrderSettings.Anchor(15)
+Gui.FormSettings.frameOrderSettings.Enabled(False)
+Gui.FormSettings.frameOrderSettings.Parent("frameUploader")
+Gui.FormSettings.lblTaxes.Create(Label,"Taxes :",True,1455,255,0,75,915,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblTaxes.Parent("frameOrderSettings")
+Gui.FormSettings.ddlTaxes.Create(DropDownList)
+Gui.FormSettings.ddlTaxes.Size(3330,330)
+Gui.FormSettings.ddlTaxes.Position(75,1110)
+Gui.FormSettings.ddlTaxes.Parent("frameOrderSettings")
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Create(CheckBox)
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Size(4140,360)
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Position(75,495)
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Parent("frameOrderSettings")
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Caption("Create customer if not found when creating order")
+Gui.FormSettings.chkCreateCustomersAtOrderTime.Event(Click,chkCreateCustomersAtOrderTime_Click)
+Gui.FormSettings.chkAllowOrderUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowOrderUpdate.Size(4005,360)
+Gui.FormSettings.chkAllowOrderUpdate.Position(75,120)
+Gui.FormSettings.chkAllowOrderUpdate.Parent("frameOrderSettings")
+Gui.FormSettings.chkAllowOrderUpdate.Caption("Allow order update")
+Gui.FormSettings.chkAllowQuoteCreation.Create(CheckBox)
+Gui.FormSettings.chkAllowQuoteCreation.Size(4005,360)
+Gui.FormSettings.chkAllowQuoteCreation.Position(75,2460)
+Gui.FormSettings.chkAllowQuoteCreation.Parent("frameOrderSettings")
+Gui.FormSettings.chkAllowQuoteCreation.Caption("Allow quote creation")
+Gui.FormSettings.chkAllowQuoteCreation.Event(Click,chkAllowQuoteCreation_Click)
+Gui.FormSettings.lblExternalOrder.Create(Label,"Store External Order Number :",True,2400,255,0,75,1545,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblExternalOrder.Parent("frameOrderSettings")
+Gui.FormSettings.ddlExternalOrder.Create(DropDownList)
+Gui.FormSettings.ddlExternalOrder.Size(3330,330)
+Gui.FormSettings.ddlExternalOrder.Position(75,1740)
+Gui.FormSettings.ddlExternalOrder.Parent("frameOrderSettings")
+Gui.FormSettings.chkCreateContactAtOrderTime.Create(CheckBox)
+Gui.FormSettings.chkCreateContactAtOrderTime.Size(4005,360)
+Gui.FormSettings.chkCreateContactAtOrderTime.Position(75,5625)
+Gui.FormSettings.chkCreateContactAtOrderTime.Parent("frameOrderSettings")
+Gui.FormSettings.chkCreateContactAtOrderTime.Caption("Create contact if not found when creating order")
+Gui.FormSettings.chkCreateContactAtOrderTime.Event(Click,chkCreateContactAtOrderTime_Click)
+Gui.FormSettings.chkEmailSalesperson.Create(CheckBox)
+Gui.FormSettings.chkEmailSalesperson.Size(4140,360)
+Gui.FormSettings.chkEmailSalesperson.Position(75,2085)
+Gui.FormSettings.chkEmailSalesperson.Parent("frameOrderSettings")
+Gui.FormSettings.chkEmailSalesperson.Caption("Email Order Acknowledgement to Salesperson")
+Gui.FormSettings.lblQuoteStatus.Create(Label,"Override Quote Status With :",True,2400,255,0,75,2895,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblQuoteStatus.Parent("frameOrderSettings")
+Gui.FormSettings.ddlQuoteStatus.Create(DropDownList)
+Gui.FormSettings.ddlQuoteStatus.Size(3330,330)
+Gui.FormSettings.ddlQuoteStatus.Position(75,3105)
+Gui.FormSettings.ddlQuoteStatus.Parent("frameOrderSettings")
+Gui.FormSettings.chkRequireReview.Create(CheckBox)
+Gui.FormSettings.chkRequireReview.Size(4005,360)
+Gui.FormSettings.chkRequireReview.Position(75,3450)
+Gui.FormSettings.chkRequireReview.Parent("frameOrderSettings")
+Gui.FormSettings.chkRequireReview.Caption("Require dashboard review before upload")
+Gui.FormSettings.frameOrderHeaderComments.Create(Frame)
+Gui.FormSettings.frameOrderHeaderComments.Size(4110,1785)
+Gui.FormSettings.frameOrderHeaderComments.Position(75,3825)
+Gui.FormSettings.frameOrderHeaderComments.Parent("frameOrderSettings")
+Gui.FormSettings.frameOrderHeaderComments.Caption("Order Header Comments Options")
+Gui.FormSettings.lblOrderHeaderCommentsPosition.Create(Label,"Position on Forms:",True,1470,255,0,75,360,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblOrderHeaderCommentsPosition.Parent("frameOrderHeaderComments")
+Gui.FormSettings.ddlOrderHeaderCommentsPosition.Create(DropDownList)
+Gui.FormSettings.ddlOrderHeaderCommentsPosition.Size(2370,330)
+Gui.FormSettings.ddlOrderHeaderCommentsPosition.Position(1650,255)
+Gui.FormSettings.ddlOrderHeaderCommentsPosition.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsSalesOrder.Create(CheckBox)
+Gui.FormSettings.chkOrderHeaderCommentsSalesOrder.Size(1560,360)
+Gui.FormSettings.chkOrderHeaderCommentsSalesOrder.Position(75,645)
+Gui.FormSettings.chkOrderHeaderCommentsSalesOrder.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsSalesOrder.Caption("Sales Order")
+Gui.FormSettings.chkOrderHeaderCommentsInvoice.Create(CheckBox)
+Gui.FormSettings.chkOrderHeaderCommentsInvoice.Size(1560,360)
+Gui.FormSettings.chkOrderHeaderCommentsInvoice.Position(75,1020)
+Gui.FormSettings.chkOrderHeaderCommentsInvoice.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsInvoice.Caption("Invoice")
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Create(CheckBox)
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Size(1560,360)
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Position(75,1395)
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Caption("BOL")
+Gui.FormSettings.chkOrderHeaderCommentsBOL.Visible(False)
+Gui.FormSettings.chkOrderHeaderCommentsPackingList.Create(CheckBox)
+Gui.FormSettings.chkOrderHeaderCommentsPackingList.Size(1560,360)
+Gui.FormSettings.chkOrderHeaderCommentsPackingList.Position(1650,645)
+Gui.FormSettings.chkOrderHeaderCommentsPackingList.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsPackingList.Caption("Packing List")
+Gui.FormSettings.chkOrderHeaderCommentsQuote.Create(CheckBox)
+Gui.FormSettings.chkOrderHeaderCommentsQuote.Size(1560,360)
+Gui.FormSettings.chkOrderHeaderCommentsQuote.Position(1650,1020)
+Gui.FormSettings.chkOrderHeaderCommentsQuote.Parent("frameOrderHeaderComments")
+Gui.FormSettings.chkOrderHeaderCommentsQuote.Caption("Quote")
+Gui.FormSettings.chkAllowGSSPricing.Create(CheckBox)
+Gui.FormSettings.chkAllowGSSPricing.Size(4005,360)
+Gui.FormSettings.chkAllowGSSPricing.Position(75,6000)
+Gui.FormSettings.chkAllowGSSPricing.Parent("frameOrderSettings")
+Gui.FormSettings.chkAllowGSSPricing.Caption("Allow core GSS to override pricing/discounts")
+Gui.FormSettings.frameCustomerSettings.Create(Frame)
+Gui.FormSettings.frameCustomerSettings.Size(3390,4980)
+Gui.FormSettings.frameCustomerSettings.Position(4440,495)
+Gui.FormSettings.frameCustomerSettings.Parent("frameUploader")
+Gui.FormSettings.chkAllowCustomerUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowCustomerUpdate.Size(2805,360)
+Gui.FormSettings.chkAllowCustomerUpdate.Position(105,120)
+Gui.FormSettings.chkAllowCustomerUpdate.Parent("frameCustomerSettings")
+Gui.FormSettings.chkAllowCustomerUpdate.Caption("Allow customer update")
+Gui.FormSettings.chkAllowProspectCreation.Create(CheckBox)
+Gui.FormSettings.chkAllowProspectCreation.Size(2805,360)
+Gui.FormSettings.chkAllowProspectCreation.Position(195,4530)
+Gui.FormSettings.chkAllowProspectCreation.Parent("frameCustomerSettings")
+Gui.FormSettings.chkAllowProspectCreation.Caption("Allow prospect creation")
+Gui.FormSettings.chkAllowProspectCreation.Enabled(False)
+Gui.FormSettings.chkAllowProspectCreation.Visible(False)
+Gui.FormSettings.chkAllowDuplicateCustomerNames.Create(CheckBox)
+Gui.FormSettings.chkAllowDuplicateCustomerNames.Size(2805,360)
+Gui.FormSettings.chkAllowDuplicateCustomerNames.Position(105,480)
+Gui.FormSettings.chkAllowDuplicateCustomerNames.Parent("frameCustomerSettings")
+Gui.FormSettings.chkAllowDuplicateCustomerNames.Caption("Allow duplicate customer names")
+Gui.FormSettings.lblStoreExternalCustomerID.Create(Label,"Store External Customer ID :",True,2145,255,0,105,900,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblStoreExternalCustomerID.Parent("frameCustomerSettings")
+Gui.FormSettings.lblStoreExternalCustomerID.ToolTip("External customer ID will always be stored in the External ID field, but can also be stored in one of the fields below.")
+Gui.FormSettings.ddlExternalCustomer.Create(DropDownList)
+Gui.FormSettings.ddlExternalCustomer.Size(3180,330)
+Gui.FormSettings.ddlExternalCustomer.Position(105,1095)
+Gui.FormSettings.ddlExternalCustomer.Parent("frameCustomerSettings")
+Gui.FormSettings.frameCustomerHoldFlags.Create(Frame)
+Gui.FormSettings.frameCustomerHoldFlags.Size(3195,2175)
+Gui.FormSettings.frameCustomerHoldFlags.Position(105,1455)
+Gui.FormSettings.frameCustomerHoldFlags.Parent("frameCustomerSettings")
+Gui.FormSettings.frameCustomerHoldFlags.Caption("Customer Flag Options")
+Gui.FormSettings.chkOverrideOrderLevelShippingHold.Create(CheckBox)
+Gui.FormSettings.chkOverrideOrderLevelShippingHold.Size(2940,360)
+Gui.FormSettings.chkOverrideOrderLevelShippingHold.Position(60,285)
+Gui.FormSettings.chkOverrideOrderLevelShippingHold.Parent("frameCustomerHoldFlags")
+Gui.FormSettings.chkOverrideOrderLevelShippingHold.Caption("Override Order Shipping Hold Flag")
+Gui.FormSettings.chkOverrideSetShippingHold.Create(CheckBox)
+Gui.FormSettings.chkOverrideSetShippingHold.Size(2970,360)
+Gui.FormSettings.chkOverrideSetShippingHold.Position(60,660)
+Gui.FormSettings.chkOverrideSetShippingHold.Parent("frameCustomerHoldFlags")
+Gui.FormSettings.chkOverrideSetShippingHold.Caption("Override Set Shipping Hold Flag")
+Gui.FormSettings.chkOverrideSetCreditHold.Create(CheckBox)
+Gui.FormSettings.chkOverrideSetCreditHold.Size(2895,360)
+Gui.FormSettings.chkOverrideSetCreditHold.Position(60,1035)
+Gui.FormSettings.chkOverrideSetCreditHold.Parent("frameCustomerHoldFlags")
+Gui.FormSettings.chkOverrideSetCreditHold.Caption("Override Set Credit Hold Flag")
+Gui.FormSettings.chkOverrideCreditHold.Create(CheckBox)
+Gui.FormSettings.chkOverrideCreditHold.Size(2895,360)
+Gui.FormSettings.chkOverrideCreditHold.Position(60,1410)
+Gui.FormSettings.chkOverrideCreditHold.Parent("frameCustomerHoldFlags")
+Gui.FormSettings.chkOverrideCreditHold.Caption("Override Credit Hold Flag")
+Gui.FormSettings.chkOverrideSuppressInvoice.Create(CheckBox)
+Gui.FormSettings.chkOverrideSuppressInvoice.Size(2895,360)
+Gui.FormSettings.chkOverrideSuppressInvoice.Position(60,1785)
+Gui.FormSettings.chkOverrideSuppressInvoice.Parent("frameCustomerHoldFlags")
+Gui.FormSettings.chkOverrideSuppressInvoice.Caption("Override Suppress Invoice Flag")
+Gui.FormSettings.lblOverrideInvoiceDelivery.Create(Label,"Override Invoice Delivery With: ",True,2730,255,0,105,3705,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblOverrideInvoiceDelivery.Parent("frameCustomerSettings")
+Gui.FormSettings.lblOverrideInvoiceDelivery.ToolTip("External customer ID will always be stored in the External ID field, but can also be stored in one of the fields below.")
+Gui.FormSettings.ddlOverrideInvoiceDelivery.Create(DropDownList)
+Gui.FormSettings.ddlOverrideInvoiceDelivery.Size(3180,330)
+Gui.FormSettings.ddlOverrideInvoiceDelivery.Position(105,3915)
+Gui.FormSettings.ddlOverrideInvoiceDelivery.Parent("frameCustomerSettings")
+Gui.FormSettings.lblOverridePrimaryGroup.Create(Label,"Override Primary Group With: ",True,2730,255,0,105,4350,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblOverridePrimaryGroup.Parent("frameCustomerSettings")
+Gui.FormSettings.lblOverridePrimaryGroup.ToolTip("External customer ID will always be stored in the External ID field, but can also be stored in one of the fields below.")
+Gui.FormSettings.ddlOverridePrimaryGroup.Create(DropDownList)
+Gui.FormSettings.ddlOverridePrimaryGroup.Size(3180,330)
+Gui.FormSettings.ddlOverridePrimaryGroup.Position(105,4560)
+Gui.FormSettings.ddlOverridePrimaryGroup.Parent("frameCustomerSettings")
+Gui.FormSettings.frameContactSettings.Create(Frame)
+Gui.FormSettings.frameContactSettings.Size(3135,2595)
+Gui.FormSettings.frameContactSettings.Position(7845,5445)
+Gui.FormSettings.frameContactSettings.Parent("frameUploader")
+Gui.FormSettings.chkAllowContactUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowContactUpdate.Size(2460,360)
+Gui.FormSettings.chkAllowContactUpdate.Position(90,105)
+Gui.FormSettings.chkAllowContactUpdate.Parent("frameContactSettings")
+Gui.FormSettings.chkAllowContactUpdate.Caption("Allow contact update")
+Gui.FormSettings.lblStoreContactID.Create(Label,"Store External Contact ID:",True,2055,255,0,75,540,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblStoreContactID.Parent("frameContactSettings")
+Gui.FormSettings.ddlExternalContact.Create(DropDownList)
+Gui.FormSettings.ddlExternalContact.Size(2925,330)
+Gui.FormSettings.ddlExternalContact.Position(75,735)
+Gui.FormSettings.ddlExternalContact.Parent("frameContactSettings")
+Gui.FormSettings.chkOverrideEInvoicing.Create(CheckBox)
+Gui.FormSettings.chkOverrideEInvoicing.Size(2460,360)
+Gui.FormSettings.chkOverrideEInvoicing.Position(75,1065)
+Gui.FormSettings.chkOverrideEInvoicing.Parent("frameContactSettings")
+Gui.FormSettings.chkOverrideEInvoicing.Caption("Override E Invoicing Flag")
+Gui.FormSettings.chkOverrideEAcknowledgement.Create(CheckBox)
+Gui.FormSettings.chkOverrideEAcknowledgement.Size(2985,360)
+Gui.FormSettings.chkOverrideEAcknowledgement.Position(75,1440)
+Gui.FormSettings.chkOverrideEAcknowledgement.Parent("frameContactSettings")
+Gui.FormSettings.chkOverrideEAcknowledgement.Caption("Override E Acknowledgements Flag")
+Gui.FormSettings.chkOverrideEStatement.Create(CheckBox)
+Gui.FormSettings.chkOverrideEStatement.Size(2985,360)
+Gui.FormSettings.chkOverrideEStatement.Position(75,1815)
+Gui.FormSettings.chkOverrideEStatement.Parent("frameContactSettings")
+Gui.FormSettings.chkOverrideEStatement.Caption("Override E Statements Flag")
+Gui.FormSettings.chkOverrideECreditMemo.Create(CheckBox)
+Gui.FormSettings.chkOverrideECreditMemo.Size(2985,360)
+Gui.FormSettings.chkOverrideECreditMemo.Position(75,2190)
+Gui.FormSettings.chkOverrideECreditMemo.Parent("frameContactSettings")
+Gui.FormSettings.chkOverrideECreditMemo.Caption("Override E Credit Memo Flag")
+Gui.FormSettings.chkOrderUpload.Create(CheckBox)
+Gui.FormSettings.chkOrderUpload.Size(2160,360)
+Gui.FormSettings.chkOrderUpload.Position(90,120)
+Gui.FormSettings.chkOrderUpload.Caption("Enable Order Upload")
+Gui.FormSettings.chkOrderUpload.Parent("frameUploader")
+Gui.FormSettings.chkOrderUpload.Event(Click,chkOrderUpload_Click)
+Gui.FormSettings.chkStandaloneCustomerCreation.Create(CheckBox)
+Gui.FormSettings.chkStandaloneCustomerCreation.Size(3030,360)
+Gui.FormSettings.chkStandaloneCustomerCreation.Position(4440,120)
+Gui.FormSettings.chkStandaloneCustomerCreation.Caption("Enable Customer Upload")
+Gui.FormSettings.chkStandaloneCustomerCreation.Event(Click,chkStandaloneCustomerCreation_Click)
+Gui.FormSettings.chkStandaloneCustomerCreation.Parent("frameUploader")
+Gui.FormSettings.chkStandaloneContactUpload.Create(CheckBox)
+Gui.FormSettings.chkStandaloneContactUpload.Size(2880,360)
+Gui.FormSettings.chkStandaloneContactUpload.Position(7845,5070)
+Gui.FormSettings.chkStandaloneContactUpload.Caption("Enable Contact Upload")
+Gui.FormSettings.chkStandaloneContactUpload.Event(Click,chkStandaloneContactUpload_Click)
+Gui.FormSettings.chkStandaloneContactUpload.Parent("frameUploader")
+Gui.FormSettings.frameBOMSettings.Create(Frame)
+Gui.FormSettings.frameBOMSettings.Size(3105,510)
+Gui.FormSettings.frameBOMSettings.Position(7920,495)
+Gui.FormSettings.frameBOMSettings.Parent("frameUploader")
+Gui.FormSettings.chkAllowBOMUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowBOMUpdate.Size(1815,360)
+Gui.FormSettings.chkAllowBOMUpdate.Position(75,120)
+Gui.FormSettings.chkAllowBOMUpdate.Parent("frameBOMSettings")
+Gui.FormSettings.chkAllowBOMUpdate.Caption("Allow BOM update")
+Gui.FormSettings.chkBOMCreateParts.Create(CheckBox)
+Gui.FormSettings.chkBOMCreateParts.Size(2760,360)
+Gui.FormSettings.chkBOMCreateParts.Position(75,495)
+Gui.FormSettings.chkBOMCreateParts.Parent("frameBOMSettings")
+Gui.FormSettings.chkBOMCreateParts.Caption("Create Parts if they don't exist")
+Gui.FormSettings.chkBOMCreateParts.Enabled(False)
+Gui.FormSettings.chkStandaloneBOMUpload.Create(CheckBox)
+Gui.FormSettings.chkStandaloneBOMUpload.Size(2880,360)
+Gui.FormSettings.chkStandaloneBOMUpload.Position(7920,120)
+Gui.FormSettings.chkStandaloneBOMUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandaloneBOMUpload.Caption("Enable BOM Upload")
+Gui.FormSettings.chkStandaloneBOMUpload.Event(Click,chkStandaloneBOMUpload_Click)
+Gui.FormSettings.chkStandaloneRouterUpload.Create(CheckBox)
+Gui.FormSettings.chkStandaloneRouterUpload.Size(2880,360)
+Gui.FormSettings.chkStandaloneRouterUpload.Position(7920,1020)
+Gui.FormSettings.chkStandaloneRouterUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandaloneRouterUpload.Caption("Enable Router Upload")
+Gui.FormSettings.chkStandaloneRouterUpload.Event(Click,chkStandaloneRouterUpload_Click)
+Gui.FormSettings.frameRouterSettings.Create(Frame)
+Gui.FormSettings.frameRouterSettings.Size(3105,525)
+Gui.FormSettings.frameRouterSettings.Position(7920,1395)
+Gui.FormSettings.frameRouterSettings.Parent("frameUploader")
+Gui.FormSettings.chkAllowRouterUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowRouterUpdate.Size(2160,360)
+Gui.FormSettings.chkAllowRouterUpdate.Position(75,120)
+Gui.FormSettings.chkAllowRouterUpdate.Parent("frameRouterSettings")
+Gui.FormSettings.chkAllowRouterUpdate.Caption("Allow Router Update")
+Gui.FormSettings.chkStandalonePartUpload.Create(CheckBox)
+Gui.FormSettings.chkStandalonePartUpload.Size(2880,360)
+Gui.FormSettings.chkStandalonePartUpload.Position(7920,1935)
+Gui.FormSettings.chkStandalonePartUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandalonePartUpload.Caption("Enable Part Upload")
+Gui.FormSettings.chkStandalonePartUpload.Event(Click,chkStandalonePartUpload_Click)
+Gui.FormSettings.framePartSettings.Create(Frame)
+Gui.FormSettings.framePartSettings.Size(3105,540)
+Gui.FormSettings.framePartSettings.Position(7875,2310)
+Gui.FormSettings.framePartSettings.Parent("frameUploader")
+Gui.FormSettings.chkAllowPartUpdate.Create(CheckBox)
+Gui.FormSettings.chkAllowPartUpdate.Size(2160,360)
+Gui.FormSettings.chkAllowPartUpdate.Position(60,150)
+Gui.FormSettings.chkAllowPartUpdate.Parent("framePartSettings")
+Gui.FormSettings.chkAllowPartUpdate.Caption("Allow Part Update")
+Gui.FormSettings.chkStandalonePartCrossReferenceUpload.Create(CheckBox)
+Gui.FormSettings.chkStandalonePartCrossReferenceUpload.Size(3225,360)
+Gui.FormSettings.chkStandalonePartCrossReferenceUpload.Position(7845,2865)
+Gui.FormSettings.chkStandalonePartCrossReferenceUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandalonePartCrossReferenceUpload.Caption("Enable Part Cross Reference Upload")
+Gui.FormSettings.chkStandaloneDocumentControlUpload.Create(CheckBox)
+Gui.FormSettings.chkStandaloneDocumentControlUpload.Size(3225,360)
+Gui.FormSettings.chkStandaloneDocumentControlUpload.Position(7845,3240)
+Gui.FormSettings.chkStandaloneDocumentControlUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandaloneDocumentControlUpload.Caption("Enable Document Control Upload")
+Gui.FormSettings.chkStandaloneDiscountUpload.Create(CheckBox)
+Gui.FormSettings.chkStandaloneDiscountUpload.Size(3225,360)
+Gui.FormSettings.chkStandaloneDiscountUpload.Position(7845,3615)
+Gui.FormSettings.chkStandaloneDiscountUpload.Parent("frameUploader")
+Gui.FormSettings.chkStandaloneDiscountUpload.Caption("Enable Discount Upload")
+Gui.FormSettings.chkShipToUpload.Create(CheckBox)
+Gui.FormSettings.chkShipToUpload.Size(2880,360)
+Gui.FormSettings.chkShipToUpload.Position(7845,4050)
+Gui.FormSettings.chkShipToUpload.Parent("frameUploader")
+Gui.FormSettings.chkShipToUpload.Caption("Enable Ship To Upload")
+Gui.FormSettings.chkShipToUpload.Event(Click,chkShipToUpload_Click)
+Gui.FormSettings.frameShipToSettings.Create(Frame)
+Gui.FormSettings.frameShipToSettings.Size(3105,510)
+Gui.FormSettings.frameShipToSettings.Position(7845,4425)
+Gui.FormSettings.frameShipToSettings.Parent("frameUploader")
+Gui.FormSettings.chkShipToUpdate.Create(CheckBox)
+Gui.FormSettings.chkShipToUpdate.Size(2130,330)
+Gui.FormSettings.chkShipToUpdate.Position(75,120)
+Gui.FormSettings.chkShipToUpdate.Parent("frameShipToSettings")
+Gui.FormSettings.chkShipToUpdate.Caption("Allow Ship To Update")
+Gui.FormSettings.chkLogCustomerDeletions.Create(CheckBox)
+Gui.FormSettings.chkLogCustomerDeletions.Size(2220,360)
+Gui.FormSettings.chkLogCustomerDeletions.Position(45,360)
+Gui.FormSettings.chkLogCustomerDeletions.Parent("tabOptions",1)
+Gui.FormSettings.chkLogCustomerDeletions.Caption("Log Customer Deletions")
+Gui.FormSettings.chkLogCustomerDeletions.Event(Click,chkLogCustomerDeletions_Click)
+Gui.FormSettings.chkLogShipToDeletions.Create(CheckBox)
+Gui.FormSettings.chkLogShipToDeletions.Size(2205,360)
+Gui.FormSettings.chkLogShipToDeletions.Position(45,825)
+Gui.FormSettings.chkLogShipToDeletions.Parent("tabOptions",1)
+Gui.FormSettings.chkLogShipToDeletions.Caption("Log Ship To Deletions")
+Gui.FormSettings.chkLogShipToDeletions.Event(Click,chkLogShipToDeletions_Click)
+Gui.FormSettings.chkLogContactDeletions.Create(CheckBox)
+Gui.FormSettings.chkLogContactDeletions.Size(2220,360)
+Gui.FormSettings.chkLogContactDeletions.Position(45,1290)
+Gui.FormSettings.chkLogContactDeletions.Parent("tabOptions",1)
+Gui.FormSettings.chkLogContactDeletions.Caption("Log Contact Deletions")
+Gui.FormSettings.chkLogContactDeletions.Event(Click,chkLogContactDeletions_Click)
+Gui.FormSettings.lblDataToWriteToLogTable.Create(Label,"Data to write to log table:",True,2040,255,0,45,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblDataToWriteToLogTable.Parent("tabOptions",1)
+Gui.FormSettings.lblData1.Create(Label,"DATA_1",True,750,255,0,2670,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblData1.Parent("tabOptions",1)
+Gui.FormSettings.lblData2.Create(Label,"DATA_2",True,750,255,0,4260,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblData2.Parent("tabOptions",1)
+Gui.FormSettings.lblData3.Create(Label,"DATA_3",True,750,255,0,5850,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblData3.Parent("tabOptions",1)
+Gui.FormSettings.lblData4.Create(Label,"DATA_4",True,750,255,0,7440,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblData4.Parent("tabOptions",1)
+Gui.FormSettings.lblData5.Create(Label,"DATA_5",True,750,255,0,9030,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblData5.Parent("tabOptions",1)
+Gui.FormSettings.ddlCustomerData1.Create(DropDownList)
+Gui.FormSettings.ddlCustomerData1.Size(1500,330)
+Gui.FormSettings.ddlCustomerData1.Position(2295,375)
+Gui.FormSettings.ddlCustomerData1.Parent("tabOptions",1)
+Gui.FormSettings.ddlCustomerData1.Enabled(False)
+Gui.FormSettings.ddlCustomerData2.Create(DropDownList)
+Gui.FormSettings.ddlCustomerData2.Size(1500,330)
+Gui.FormSettings.ddlCustomerData2.Position(3885,375)
+Gui.FormSettings.ddlCustomerData2.Parent("tabOptions",1)
+Gui.FormSettings.ddlCustomerData3.Create(DropDownList)
+Gui.FormSettings.ddlCustomerData3.Size(1500,330)
+Gui.FormSettings.ddlCustomerData3.Position(5475,375)
+Gui.FormSettings.ddlCustomerData3.Parent("tabOptions",1)
+Gui.FormSettings.ddlCustomerData4.Create(DropDownList)
+Gui.FormSettings.ddlCustomerData4.Size(1500,330)
+Gui.FormSettings.ddlCustomerData4.Position(7065,375)
+Gui.FormSettings.ddlCustomerData4.Parent("tabOptions",1)
+Gui.FormSettings.ddlCustomerData5.Create(DropDownList)
+Gui.FormSettings.ddlCustomerData5.Size(1500,330)
+Gui.FormSettings.ddlCustomerData5.Position(8655,375)
+Gui.FormSettings.ddlCustomerData5.Parent("tabOptions",1)
+Gui.FormSettings.ddlShipToData1.Create(DropDownList)
+Gui.FormSettings.ddlShipToData1.Size(1500,330)
+Gui.FormSettings.ddlShipToData1.Position(2295,840)
+Gui.FormSettings.ddlShipToData1.Parent("tabOptions",1)
+Gui.FormSettings.ddlShipToData1.Enabled(False)
+Gui.FormSettings.ddlContactData1.Create(DropDownList)
+Gui.FormSettings.ddlContactData1.Size(1500,330)
+Gui.FormSettings.ddlContactData1.Position(2295,1305)
+Gui.FormSettings.ddlContactData1.Parent("tabOptions",1)
+Gui.FormSettings.ddlContactData1.Enabled(False)
+Gui.FormSettings.ddlShipToData2.Create(DropDownList)
+Gui.FormSettings.ddlShipToData2.Size(1500,330)
+Gui.FormSettings.ddlShipToData2.Position(3885,840)
+Gui.FormSettings.ddlShipToData2.Parent("tabOptions",1)
+Gui.FormSettings.ddlShipToData2.Enabled(False)
+Gui.FormSettings.ddlContactData2.Create(DropDownList)
+Gui.FormSettings.ddlContactData2.Size(1500,330)
+Gui.FormSettings.ddlContactData2.Position(3885,1305)
+Gui.FormSettings.ddlContactData2.Parent("tabOptions",1)
+Gui.FormSettings.ddlContactData2.Enabled(False)
+Gui.FormSettings.ddlShipToData3.Create(DropDownList)
+Gui.FormSettings.ddlShipToData3.Size(1500,330)
+Gui.FormSettings.ddlShipToData3.Position(5475,840)
+Gui.FormSettings.ddlShipToData3.Parent("tabOptions",1)
+Gui.FormSettings.ddlContactData3.Create(DropDownList)
+Gui.FormSettings.ddlContactData3.Size(1500,330)
+Gui.FormSettings.ddlContactData3.Position(5475,1305)
+Gui.FormSettings.ddlContactData3.Parent("tabOptions",1)
+Gui.FormSettings.ddlShipToData4.Create(DropDownList)
+Gui.FormSettings.ddlShipToData4.Size(1500,330)
+Gui.FormSettings.ddlShipToData4.Position(7065,840)
+Gui.FormSettings.ddlShipToData4.Parent("tabOptions",1)
+Gui.FormSettings.ddlContactData4.Create(DropDownList)
+Gui.FormSettings.ddlContactData4.Size(1500,330)
+Gui.FormSettings.ddlContactData4.Position(7065,1305)
+Gui.FormSettings.ddlContactData4.Parent("tabOptions",1)
+Gui.FormSettings.ddlShipToData5.Create(DropDownList)
+Gui.FormSettings.ddlShipToData5.Size(1500,330)
+Gui.FormSettings.ddlShipToData5.Position(8655,840)
+Gui.FormSettings.ddlShipToData5.Parent("tabOptions",1)
+Gui.FormSettings.ddlContactData5.Create(DropDownList)
+Gui.FormSettings.ddlContactData5.Size(1500,330)
+Gui.FormSettings.ddlContactData5.Position(8655,1305)
+Gui.FormSettings.ddlContactData5.Parent("tabOptions",1)
+Gui.FormSettings.chkLogPartPriceChanges.Create(CheckBox)
+Gui.FormSettings.chkLogPartPriceChanges.Size(2220,360)
+Gui.FormSettings.chkLogPartPriceChanges.Position(60,60)
+Gui.FormSettings.chkLogPartPriceChanges.Parent("tabOptions",2)
+Gui.FormSettings.chkLogPartPriceChanges.Caption("Log Part Price Changes")
+Gui.FormSettings.lblOLUStatus.Create(Label,"Online Update Status: ",True,1695,255,0,8445,510,True,0,"Arial",8,-2147483633,0)
+Gui.FormSettings.lblOLUActualStatus.Create(Label,"Not Running",True,990,255,0,10125,510,True,2,"Arial",8,-2147483633,0)
+Gui.FormSettings.timerOLUCheck.Create(Timer)
+Gui.FormSettings.timerOLUCheck.Enabled(False)
+Gui.FormSettings.timerOLUCheck.Size(495,495)
+Gui.FormSettings.timerOLUCheck.Position(105,6480)
+Gui.FormSettings.timerOLUCheck.Event(Timer,timerOLUCheck_Timer)
+Gui.FormSettings.cmdHelp.Create(Button)
+Gui.FormSettings.cmdHelp.Size(855,375)
+Gui.FormSettings.cmdHelp.Position(8265,30)
+Gui.FormSettings.cmdHelp.Anchor(9)
+Gui.FormSettings.cmdHelp.Caption("Help")
+Gui.FormSettings.cmdHelp.Event(Click,cmdHelp_Click)
+Gui.FormAdvancedOptions..Create
+Gui.FormAdvancedOptions..Caption("Advanced Options")
+Gui.FormAdvancedOptions..Size(6630,4905)
+Gui.FormAdvancedOptions..MinX(0)
+Gui.FormAdvancedOptions..MinY(0)
+Gui.FormAdvancedOptions..Position(0,0)
+Gui.FormAdvancedOptions..BackColor(-2147483633)
+Gui.FormAdvancedOptions..MousePointer(0)
+Gui.FormAdvancedOptions..Event(UnLoad,FormAdvancedOptions_UnLoad)
+Gui.FormAdvancedOptions..AlwaysOnTop(True)
+Gui.FormAdvancedOptions.chkSalesOrderFromQuote.Create(CheckBox)
+Gui.FormAdvancedOptions.chkSalesOrderFromQuote.Size(4230,360)
+Gui.FormAdvancedOptions.chkSalesOrderFromQuote.Position(60,510)
+Gui.FormAdvancedOptions.chkSalesOrderFromQuote.Caption("Enable Sales Order generation from Quote [JRM]")
+Gui.FormAdvancedOptions.lblWarning.Create(Label,"Warning: These are advanced customer specific options and it is not recommended ",True,6315,300,0,60,60,True,0,"Arial",8,-2147483633,0)
+Gui.FormAdvancedOptions.lblWarning.FontStyle(False,True,False,False,False)
+Gui.FormAdvancedOptions.lblWarning.ForeColor(255)
+Gui.FormAdvancedOptions.cmdOpenProjectDirectory.Create(Button)
+Gui.FormAdvancedOptions.cmdOpenProjectDirectory.Size(1485,375)
+Gui.FormAdvancedOptions.cmdOpenProjectDirectory.Position(5010,4140)
+Gui.FormAdvancedOptions.cmdOpenProjectDirectory.Caption("Project Directory")
+Gui.FormAdvancedOptions.cmdOpenProjectDirectory.Event(Click,cmdOpenProjectDirectory_Click)
+Gui.FormAdvancedOptions.cmdWebImporterOptions.Create(Button)
+Gui.FormAdvancedOptions.cmdWebImporterOptions.Size(1890,375)
+Gui.FormAdvancedOptions.cmdWebImporterOptions.Position(3105,4140)
+Gui.FormAdvancedOptions.cmdWebImporterOptions.Caption("Web Importer Options")
+Gui.FormAdvancedOptions.cmdWebImporterOptions.Event(Click,cmdWebImporterOptions_Click)
+Gui.FormAdvancedOptions.chkHODWEBCustomer.Create(CheckBox)
+Gui.FormAdvancedOptions.chkHODWEBCustomer.Size(4875,360)
+Gui.FormAdvancedOptions.chkHODWEBCustomer.Position(60,870)
+Gui.FormAdvancedOptions.chkHODWEBCustomer.Caption("Use WEB + Ship To State code as Customer Number [HOD]")
+Gui.FormAdvancedOptions.lblWarning2.Create(Label,"to modify them without confirmation from Global Shop",True,6315,270,0,60,300,True,0,"Arial",8,-2147483633,0)
+Gui.FormAdvancedOptions.lblWarning2.ForeColor(255)
+Gui.FormAdvancedOptions.lblWarning2.FontStyle(False,True,False,False,False)
+Gui.FormAdvancedOptions.chkDPIGLAccounts.Create(CheckBox)
+Gui.FormAdvancedOptions.chkDPIGLAccounts.Size(5775,360)
+Gui.FormAdvancedOptions.chkDPIGLAccounts.Position(60,1230)
+Gui.FormAdvancedOptions.chkDPIGLAccounts.Caption("Dynamically select GL and PL Account based on User field 1 and GL .dat file [DPI]")
+Gui.FormAdvancedOptions.chkDPIGLAccounts.ToolTip("If this box is checked, the program will look for the GCG_5807_DOP_GL_CODES.dat file in the Global\Custom\5807\ccc directory and use this to select the GL accounts based off of the User Field 1 value.")
+Gui.FormAdvancedOptions.chkDPILocation.Create(CheckBox)
+Gui.FormAdvancedOptions.chkDPILocation.Size(5775,360)
+Gui.FormAdvancedOptions.chkDPILocation.Position(60,1590)
+Gui.FormAdvancedOptions.chkDPILocation.Caption("Dynamically select location based on Shipping Address [DPI]")
+Gui.FormAdvancedOptions.chkDPIBOMLocation.Create(CheckBox)
+Gui.FormAdvancedOptions.chkDPIBOMLocation.Size(5025,360)
+Gui.FormAdvancedOptions.chkDPIBOMLocation.Position(60,1950)
+Gui.FormAdvancedOptions.chkDPIBOMLocation.Caption("Dynamically select location for Exploded BOM Components [DPI]")
+Gui.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Create(CheckBox)
+Gui.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Size(6270,480)
+Gui.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Position(60,2325)
+Gui.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Caption("Override Lot/Bin, Warranty, Source, User Defined 1, and Serialize field for Configured Parts [JMP]")
+Gui.FormAdvancedOptions.chkAdjustMQDs.Create(CheckBox)
+Gui.FormAdvancedOptions.chkAdjustMQDs.Size(6270,360)
+Gui.FormAdvancedOptions.chkAdjustMQDs.Position(60,2820)
+Gui.FormAdvancedOptions.chkAdjustMQDs.Caption("Adjust MQD Records Down on Price Import [ZEP]")
+Gui.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Create(CheckBox)
+Gui.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Size(6270,360)
+Gui.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Position(60,3195)
+Gui.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Caption("Ignore Customer Part in Key in XRef Upload [ZEP]")
+Gui.FormAdvancedOptions.chkTaxOverride.Create(CheckBox)
+Gui.FormAdvancedOptions.chkTaxOverride.Size(4515,360)
+Gui.FormAdvancedOptions.chkTaxOverride.Position(60,3570)
+Gui.FormAdvancedOptions.chkTaxOverride.Caption("Override Customer Tax Authority Based On Ship To [MIT]")
+Gui.FormAdvancedOptions.chkTaxOverride.Event(Click,chkTaxOverride_Click)
+Gui.FormAdvancedOptions.cmdTaxOverrides.Create(Button)
+Gui.FormAdvancedOptions.cmdTaxOverrides.Size(1290,375)
+Gui.FormAdvancedOptions.cmdTaxOverrides.Position(4620,3520)
+Gui.FormAdvancedOptions.cmdTaxOverrides.Caption("Tax Overrides")
+Gui.FormAdvancedOptions.cmdTaxOverrides.Event(Click,cmdTaxOverrides_Click)
+Gui.FormWebImporterOptions..Create
+Gui.FormWebImporterOptions..Caption("Web Importer Options")
+Gui.FormWebImporterOptions..Size(7650,2310)
+Gui.FormWebImporterOptions..MinX(0)
+Gui.FormWebImporterOptions..MinY(0)
+Gui.FormWebImporterOptions..Position(0,0)
+Gui.FormWebImporterOptions..BackColor(-2147483633)
+Gui.FormWebImporterOptions..MousePointer(0)
+Gui.FormWebImporterOptions..Event(UnLoad,FormWebImporterOptions_UnLoad)
+Gui.FormWebImporterOptions.lblWatchFolder.Create(Label,"Watch Folder :",True,1170,255,0,0,120,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.txtWatchFolder.Create(TextBox,"",True,6030,300,0,1440,30,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtWatchFolder.MaxLength(100)
+Gui.FormWebImporterOptions.txtWatchFolder.TabStop(True)
+Gui.FormWebImporterOptions.txtWatchFolder.TabIndex(1)
+Gui.FormWebImporterOptions.lblErrorFolder.Create(Label,"Error Folder :",True,1170,255,0,0,450,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.txtErrorFolder.Create(TextBox,"",True,6030,300,0,1440,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtErrorFolder.MaxLength(100)
+Gui.FormWebImporterOptions.txtErrorFolder.TabStop(True)
+Gui.FormWebImporterOptions.txtErrorFolder.TabIndex(2)
+Gui.FormWebImporterOptions.lblConvertedFolder.Create(Label,"Converted Folder :",True,1410,255,0,0,780,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.txtConvertedFolder.Create(TextBox,"",True,6030,300,0,1440,690,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtConvertedFolder.MaxLength(100)
+Gui.FormWebImporterOptions.txtConvertedFolder.TabStop(True)
+Gui.FormWebImporterOptions.txtConvertedFolder.TabIndex(3)
+Gui.FormWebImporterOptions.lblUploadedFolder.Create(Label,"Uploaded Folder :",True,1320,255,0,0,1110,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.txtUploadedFolder.Create(TextBox,"",True,6030,300,0,1440,1020,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtUploadedFolder.MaxLength(100)
+Gui.FormWebImporterOptions.txtUploadedFolder.TabStop(True)
+Gui.FormWebImporterOptions.txtUploadedFolder.TabIndex(4)
+Gui.FormWebImporterOptions.lblEmailFrom.Create(Label,"Email From :",True,1170,255,0,0,1440,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.lblEmailTo.Create(Label,"Email To:",True,1170,255,0,0,1770,True,0,"Arial",8,-2147483633,0)
+Gui.FormWebImporterOptions.txtEmailFrom.Create(TextBox,"",True,6030,300,0,1440,1350,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtEmailFrom.MaxLength(100)
+Gui.FormWebImporterOptions.txtEmailFrom.TabStop(True)
+Gui.FormWebImporterOptions.txtEmailFrom.TabIndex(5)
+Gui.FormWebImporterOptions.txtEmailTo.Create(TextBox,"",True,6030,300,0,1440,1680,True,0,"Arial",8,-2147483643,1)
+Gui.FormWebImporterOptions.txtEmailTo.MaxLength(100)
+Gui.FormWebImporterOptions.txtEmailTo.TabStop(True)
+Gui.FormWebImporterOptions.txtEmailTo.TabIndex(6)
+Gui.FormTaxOverrides..Create
+Gui.FormTaxOverrides..Caption("Customer Upload Tax Overrides [5807]")
+Gui.FormTaxOverrides..Size(4260,2760)
+Gui.FormTaxOverrides..MinX(0)
+Gui.FormTaxOverrides..MinY(0)
+Gui.FormTaxOverrides..Position(0,0)
+Gui.FormTaxOverrides..BackColor(-2147483633)
+Gui.FormTaxOverrides..MaxButton(False)
+Gui.FormTaxOverrides..MinButton(False)
+Gui.FormTaxOverrides..MousePointer(0)
+Gui.FormTaxOverrides..Sizeable(False)
+Gui.FormTaxOverrides..AlwaysOnTop(True)
+Gui.FormTaxOverrides..Event(UnLoad,FormTaxOverrides_UnLoad)
+Gui.FormTaxOverrides.lblShipState.Create(Label,"Ship State",True,885,255,0,90,150,True,0,"Arial",8,-2147483633,0)
+Gui.FormTaxOverrides.lblShipZip.Create(Label,"Ship Zip",True,885,255,0,1035,150,True,0,"Arial",8,-2147483633,0)
+Gui.FormTaxOverrides.lblTaxCodeOverride.Create(Label,"Tax Code Override",True,1830,255,0,2565,150,True,0,"Arial",8,-2147483633,0)
+Gui.FormTaxOverrides.txtShipState1.Create(TextBox,"",True,600,300,0,90,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipState1.MaxLength(2)
+Gui.FormTaxOverrides.txtShipZip1.Create(TextBox,"",True,1305,300,0,1035,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipZip1.MaxLength(15)
+Gui.FormTaxOverrides.txtTaxCode1.Create(TextBox,"",True,675,300,0,2565,360,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtTaxCode1.MaxLength(2)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser1.Create(Button)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser1.Size(375,375)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser1.Position(3300,330)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser1.Caption("^")
+Gui.FormTaxOverrides.cmdTaxCodeBrowser1.Event(Click,cmdTaxCodeBrowser1_Click)
+Gui.FormTaxOverrides.txtShipState2.Create(TextBox,"",True,600,300,0,90,765,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipState2.MaxLength(2)
+Gui.FormTaxOverrides.txtShipZip2.Create(TextBox,"",True,1305,300,0,1035,765,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipZip2.MaxLength(15)
+Gui.FormTaxOverrides.txtTaxCode2.Create(TextBox,"",True,675,300,0,2565,765,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtTaxCode2.MaxLength(2)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser2.Create(Button)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser2.Size(375,375)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser2.Position(3300,735)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser2.Caption("^")
+Gui.FormTaxOverrides.cmdTaxCodeBrowser2.Event(Click,cmdTaxCodeBrowser1_Click)
+Gui.FormTaxOverrides.txtShipState3.Create(TextBox,"",True,600,300,0,90,1170,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipState3.MaxLength(2)
+Gui.FormTaxOverrides.txtShipZip3.Create(TextBox,"",True,1305,300,0,1035,1170,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipZip3.MaxLength(15)
+Gui.FormTaxOverrides.txtTaxCode3.Create(TextBox,"",True,675,300,0,2565,1170,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtTaxCode3.MaxLength(2)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser3.Create(Button)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser3.Size(375,375)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser3.Position(3300,1140)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser3.Caption("^")
+Gui.FormTaxOverrides.cmdTaxCodeBrowser3.Event(Click,cmdTaxCodeBrowser1_Click)
+Gui.FormTaxOverrides.txtShipState4.Create(TextBox,"",True,600,300,0,90,1575,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipState4.MaxLength(2)
+Gui.FormTaxOverrides.txtShipZip4.Create(TextBox,"",True,1305,300,0,1035,1575,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipZip4.MaxLength(15)
+Gui.FormTaxOverrides.txtTaxCode4.Create(TextBox,"",True,675,300,0,2565,1575,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtTaxCode4.MaxLength(2)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser4.Create(Button)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser4.Size(375,375)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser4.Position(3300,1545)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser4.Caption("^")
+Gui.FormTaxOverrides.cmdTaxCodeBrowser4.Event(Click,cmdTaxCodeBrowser1_Click)
+Gui.FormTaxOverrides.txtShipState5.Create(TextBox,"",True,600,300,0,90,1995,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipState5.MaxLength(2)
+Gui.FormTaxOverrides.txtShipZip5.Create(TextBox,"",True,1305,300,0,1035,1995,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtShipZip5.MaxLength(15)
+Gui.FormTaxOverrides.txtTaxCode5.Create(TextBox,"",True,675,300,0,2565,1995,True,0,"Arial",8,-2147483643,1)
+Gui.FormTaxOverrides.txtTaxCode5.MaxLength(2)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser5.Create(Button)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser5.Size(375,375)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser5.Position(3300,1950)
+Gui.FormTaxOverrides.cmdTaxCodeBrowser5.Caption("^")
+Gui.FormTaxOverrides.cmdTaxCodeBrowser5.Event(Click,cmdTaxCodeBrowser1_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+
+'options
+V.Global.sCallback.Declare(String, "FormSettings_UnLoad")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Maintenance Menu")
+V.Global.bUnattended.Declare(Boolean, False)
+V.Global.bSQLLogging.Declare(Boolean, False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_OrderUploaderSettings
+'Trey S
+'December 17th, 2019
+'This program is the maintenance program for what is intended to be the standard
+'soap order uploader
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+'screen set up
+F.Intrinsic.Control.CallSub(LoadDropDowns)
+F.Intrinsic.Control.CallSub(LoadDeletionDropDowns)
+F.Intrinsic.Control.CallSub(FixLabels)
+
+'load settings
+F.Intrinsic.Control.CallSub(LoadSettings)
+F.Intrinsic.Control.CallSub(LoadWebImporterOptions)
+
+'check OLU
+F.Intrinsic.Control.CallSub(timerOLUCheck_Timer)
+
+GUI.FormSettings.tabOptions.SetTab(0)
+GUI.FormSettings..Show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.FormSettings_UnLoad.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormSettings_UnLoad.End
+
+Program.Sub.FixLabels.Start
+F.Intrinsic.Control.Try
+
+V.Local.sLabel.Declare(String)
+
+F.Intrinsic.String.Build("Override Lot/Bin, Warranty, Source, User Defined 1, and Serialize field for{0}Configured Parts [JMP]", V.Ambient.NewLine, V.Local.sLabel)
+GUI.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Caption(V.Local.sLabel)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FixLabels.End
+
+Program.Sub.chkEnabled_Click.Start
+F.Intrinsic.Control.Try
+
+gui.FormSettings.frameUploader.Enabled(V.Screen.FormSettings!chkEnabled.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkEnabled_Click.End
+
+Program.Sub.LoadDropDowns.Start
+F.Intrinsic.Control.Try
+
+'tax options
+GUI.FormSettings.ddlTaxes.AddItem("Ignore taxes")
+GUI.FormSettings.ddlTaxes.AddItem("Use Global Shop taxes")
+GUI.FormSettings.ddlTaxes.AddItem("Add taxes as extra line")
+
+'external order number options
+GUI.FormSettings.ddlExternalOrder.AddItem("Customer PO")
+GUI.FormSettings.ddlExternalOrder.AddItem("Order Sort")
+GUI.FormSettings.ddlExternalOrder.AddItem("Order Sort 2")
+GUI.FormSettings.ddlExternalOrder.AddItem("User Field 1")
+GUI.FormSettings.ddlExternalOrder.AddItem("User Field 2")
+GUI.FormSettings.ddlExternalOrder.AddItem("User Field 3")
+GUI.FormSettings.ddlExternalOrder.AddItem("User Field 4")
+GUI.FormSettings.ddlExternalOrder.AddItem("User Field 5")
+GUI.FormSettings.ddlExternalOrder.AddItem("Do Not Store")
+
+'upload intervals
+GUI.FormSettings.ddlUploadInterval.AddItem("Second(s)")
+GUI.FormSettings.ddlUploadInterval.AddItem("Minute(s)")
+GUI.FormSettings.ddlUploadInterval.AddItem("Hour(s)")
+GUI.FormSettings.ddlUploadInterval.AddItem("Day(s)")
+
+'external customer number options
+GUI.FormSettings.ddlExternalCustomer.AddItem("Sort")
+GUI.FormSettings.ddlExternalCustomer.AddItem("External ID")
+GUI.FormSettings.ddlExternalCustomer.AddItem("Alpha Sort")
+GUI.FormSettings.ddlExternalCustomer.AddItem("Do Not Store")
+
+'external contact ID options
+GUI.FormSettings.ddlExternalContact.AddItem("Field 9")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 10")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 11")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 12")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 13")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 14")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 15")
+GUI.FormSettings.ddlExternalContact.AddItem("Field 16")
+GUI.FormSettings.ddlExternalContact.AddItem("Do Not Store")
+
+'quote status
+GUI.FormSettings.ddlQuoteStatus.AddItem("Do Not Override")
+GUI.FormSettings.ddlQuoteStatus.AddItem("In Process")
+GUI.FormSettings.ddlQuoteStatus.AddItem("Submitted")
+GUI.FormSettings.ddlQuoteStatus.AddItem("Approved")
+GUI.FormSettings.ddlQuoteStatus.AddItem("Sent")
+
+'Order comments
+GUI.FormSettings.ddlOrderHeaderCommentsPosition.AddItem("Footer")
+GUI.FormSettings.ddlOrderHeaderCommentsPosition.AddItem("Header")
+
+'invoice delivery
+GUI.FormSettings.ddlOverrideInvoiceDelivery.AddItem("")
+GUI.FormSettings.ddlOverrideInvoiceDelivery.AddItem("PRINT")
+GUI.FormSettings.ddlOverrideInvoiceDelivery.AddItem("EMAIL")
+GUI.FormSettings.ddlOverrideInvoiceDelivery.AddItem("BOTH")
+
+'primary group
+GUI.FormSettings.ddlOverridePrimaryGroup.AddItem("")
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.CreateFromSQL("dtGroups", "Con", "select IF(RTRIM(DESCR) = '', RTRIM(CD), RTRIM(CD) + ' - ' + RTRIM(DESCR)) as G from V_OE_GROUPS")
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+GUI.FormSettings.ddlOverridePrimaryGroup.AddItems("DataTable", "dtGroups", "G", "G")
+F.Data.DataTable.Close("dtGroups")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDropDowns.End
+
+Program.Sub.LoadSettings.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+
+F.Intrinsic.Control.BlockEvents
+
+'load settings from the settings table
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.CreateFromSQL("dtSettings", "Con", "select RTRIM(TYPE) TYPE, RTRIM(NAME) NAME, RTRIM(VALUE) VALUE from GCG_5807_SETTINGS", True)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataView.Create("dtSettings", "dvSettings", 22)
+
+'set values
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'UPLOADER' and NAME = 'ENABLED'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkEnabled.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkEnabled.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkEnabled_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'ENABLED'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkOrderUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'ALLOW_UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowOrderUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowOrderUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'CREATE_AT_ORDER_TIME'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkCreateCustomersAtOrderTime.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkCreateCustomersAtOrderTime.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkCreateCustomersAtOrderTime_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'STANDALONE_UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneCustomerCreation.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneCustomerCreation.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkStandaloneCustomerCreation_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'ALLOW_UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowCustomerUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowCustomerUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'CREATE_AT_ORDER_TIME'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkCreateContactAtOrderTime.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkCreateContactAtOrderTime.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkCreateContactAtOrderTime_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'STANDALONE_UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneContactUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneContactUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkStandaloneContactUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'ALLOW_UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowContactUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowContactUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'OVERRIDE_E_INVOICING'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideEInvoicing.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideEInvoicing.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'OVERRIDE_E_ACKNOWLEDGEMENT'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideEAcknowledgement.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideEAcknowledgement.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'OVERRIDE_E_STATEMENT'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideEStatement.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideEStatement.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'OVERRIDE_E_CREDIT_MEMO'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideECreditMemo.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideECreditMemo.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'TAX_CALCULATION'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlTaxes.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlTaxes.ListIndex(-1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'ALLOW_QUOTE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowQuoteCreation.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowQuoteCreation.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkAllowQuoteCreation_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'ALLOW_PROSPECT'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowProspectCreation.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowProspectCreation.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'STORE_EXTERNAL_ORDER'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlExternalOrder.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlExternalOrder.ListIndex(-1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'ALLOW_CORE_PRICING'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowGSSPricing.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowGSSPricing.Value(1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'UPLOAD_INTERVAL_UNIT'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlUploadInterval.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlUploadInterval.Text("Second(s)")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'UPLOAD_INTERVAL'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.txtUploadInterval.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.txtUploadInterval.Text(10)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'ALLOW_DUPLICATE_NAME'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowDuplicateCustomerNames.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowDuplicateCustomerNames.Value(True)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'STORE_EXTERNAL_ID'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlExternalCustomer.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlExternalCustomer.ListIndex(-1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'JRM_ORDER_CREATION'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkSalesOrderFromQuote.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkSalesOrderFromQuote.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'EMAIL_SALESPERSON'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkEmailSalesperson.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkEmailSalesperson.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CONTACT' and NAME = 'STORE_EXTERNAL_ID'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlExternalContact.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlExternalContact.ListIndex(-1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'QUOTE' and NAME = 'OVERRIDE_STATUS'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlQuoteStatus.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlQuoteStatus.ListIndex(-1)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_SET_CREDIT_HOLD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideSetCreditHold.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideSetCreditHold.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_SHIP_HOLD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideSetShippingHold.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideSetShippingHold.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_ORDER_HOLD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideOrderLevelShippingHold.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideOrderLevelShippingHold.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_CREDIT_HOLD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideCreditHold.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideCreditHold.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_SUPPRESS_INVOICE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOverrideSuppressInvoice.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOverrideSuppressInvoice.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_INVOICE_DELIVERY'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlOverrideInvoiceDelivery.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlOverrideInvoiceDelivery.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CUSTOMER' and NAME = 'OVERRIDE_PRIMARY_GROUP'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, =, "")
+		V.Local.sRet.Set("")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+		F.Intrinsic.String.Build("select RTRIM(DESCR) from V_OE_GROUPS where CD = '{0}'", V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+		
+		F.Intrinsic.Control.If(V.Local.sRet.Trim, =, "")
+			V.Local.sRet.Set(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("{0} - {1}", V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, V.Local.sRet, V.Local.sRet)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	GUI.FormSettings.ddlOverridePrimaryGroup.Text(V.Local.sRet)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlOverridePrimaryGroup.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'REQUIRE_REVIEW'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkRequireReview.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkRequireReview.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_POSITION'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlOrderHeaderCommentsPosition.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlOrderHeaderCommentsPosition.Text("Footer")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_SALES_ORDER'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderHeaderCommentsSalesOrder.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderHeaderCommentsSalesOrder.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_INVOICE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderHeaderCommentsInvoice.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderHeaderCommentsInvoice.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_QUOTE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderHeaderCommentsQuote.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderHeaderCommentsQuote.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_PACK_LIST'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderHeaderCommentsPackingList.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderHeaderCommentsPackingList.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ORDER' and NAME = 'COMMENTS_BOL'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkOrderHeaderCommentsBOL.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkOrderHeaderCommentsBOL.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'HOD_CUSTOMER_NUMBER'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkHODWEBCustomer.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkHODWEBCustomer.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'DPI_OVERRIDE_GL'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkDPIGLAccounts.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkDPIGLAccounts.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'DPI_SET_LOCATION'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkDPILocation.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkDPILocation.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'DPI_BOM_LOCATION'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkDPIBOMLocation.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkDPIBOMLocation.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'JMP_OVERRIDE_CONFIGURED_PART'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkOverrideConfiguredPartOptions.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'ZEP_ADJUST_MATERIAL_DISCOUNTS'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkAdjustMQDs.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkAdjustMQDs.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'ZEP_IGNORE_XREF_CUSTOMER_PART'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkIgnoreXrefCustomerPart.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormAdvancedOptions.chkTaxOverride.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormAdvancedOptions.chkTaxOverride.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkTaxOverride_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY_1'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.String.Split(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, "-", V.Local.sRet)
+	GUI.FormTaxOverrides.txtShipState1.Text(V.Local.sRet(0))
+	GUI.FormTaxOverrides.txtShipZip1.Text(V.Local.sRet(1))
+	GUI.FormTaxOverrides.txtTaxCode1.Text(V.Local.sRet(2))
+	V.Local.sRet.Redim(0, 0)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY_2'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.String.Split(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, "-", V.Local.sRet)
+	GUI.FormTaxOverrides.txtShipState2.Text(V.Local.sRet(0))
+	GUI.FormTaxOverrides.txtShipZip2.Text(V.Local.sRet(1))
+	GUI.FormTaxOverrides.txtTaxCode2.Text(V.Local.sRet(2))
+	V.Local.sRet.Redim(0, 0)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY_3'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.String.Split(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, "-", V.Local.sRet)
+	GUI.FormTaxOverrides.txtShipState3.Text(V.Local.sRet(0))
+	GUI.FormTaxOverrides.txtShipZip3.Text(V.Local.sRet(1))
+	GUI.FormTaxOverrides.txtTaxCode3.Text(V.Local.sRet(2))
+	V.Local.sRet.Redim(0, 0)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY_4'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.String.Split(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, "-", V.Local.sRet)
+	GUI.FormTaxOverrides.txtShipState4.Text(V.Local.sRet(0))
+	GUI.FormTaxOverrides.txtShipZip4.Text(V.Local.sRet(1))
+	GUI.FormTaxOverrides.txtTaxCode4.Text(V.Local.sRet(2))
+	V.Local.sRet.Redim(0, 0)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ADVANCED' and NAME = 'MIT_OVERRIDE_TAX_AUTHORITY_5'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	F.Intrinsic.String.Split(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim, "-", V.Local.sRet)
+	GUI.FormTaxOverrides.txtShipState5.Text(V.Local.sRet(0))
+	GUI.FormTaxOverrides.txtShipZip5.Text(V.Local.sRet(1))
+	GUI.FormTaxOverrides.txtTaxCode5.Text(V.Local.sRet(2))
+	V.Local.sRet.Redim(0, 0)
+F.Intrinsic.Control.EndIf
+
+'BOM options
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'BOM' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneBOMUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneBOMUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkStandaloneBOMUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'BOM' and NAME = 'UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowBOMUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowBOMUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'BOM' and NAME = 'CREATE_PARTS'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkBOMCreateParts.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkBOMCreateParts.Value(False)
+F.Intrinsic.Control.EndIf
+
+'part options
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'PART' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandalonePartUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandalonePartUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkStandalonePartUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'PART' and NAME = 'UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowPartUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowPartUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+'ship to options
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'SHIP_TO' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkShipToUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkShipToUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkShipToUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'SHIP_TO' and NAME = 'ALLOW_UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkShipToUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkShipToUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+'router options
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ROUTER' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneRouterUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneRouterUpload.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkStandaloneRouterUpload_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'ROUTER' and NAME = 'UPDATE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkAllowRouterUpdate.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkAllowRouterUpdate.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'PART_CROSS_REFERENCE' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandalonePartCrossReferenceUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandalonePartCrossReferenceUpload.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DOCUMENT_CONTROL' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneDocumentControlUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneDocumentControlUpload.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DISCOUNT' and NAME = 'UPLOAD'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkStandaloneDiscountUpload.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldVal)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkStandaloneDiscountUpload.Value(False)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(LoadDeletionOptions)
+F.Intrinsic.Control.CallSub(LoadChangeOptions)
+
+F.Data.DataView.Close("dtSettings", "dvSettings")
+F.Data.DataTable.Close("dtSettings")
+
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadSettings.End
+
+Program.Sub.cmdSave_Click.Start
+'save all options to GCG_5807_SETTINGS
+
+F.Intrinsic.Control.Try
+
+V.Local.sTemp.Declare(String)
+
+GUI.FormSettings..Enabled(False)
+
+'build settings datatable
+F.Data.DataTable.Create("dtSave", True)
+F.Data.DataTable.AddColumn("dtSave", "TYPE", "String", "")
+F.Data.DataTable.AddColumn("dtSave", "NAME", "String", "")
+F.Data.DataTable.AddColumn("dtSave", "VALUE", "String", "")
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "UPLOADER", "NAME", "ENABLED", "VALUE", V.Screen.FormSettings!chkEnabled.CheckedAsBoolean)
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "ENABLED", "VALUE", V.Screen.FormSettings!chkOrderUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "ALLOW_UPDATE", "VALUE", V.Screen.FormSettings!chkAllowOrderUpdate.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "STORE_EXTERNAL_ORDER", "VALUE", V.Screen.FormSettings!ddlExternalOrder.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "UPLOAD_INTERVAL_UNIT", "VALUE", V.Screen.FormSettings!ddlUploadInterval.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "UPLOAD_INTERVAL", "VALUE", V.Screen.FormSettings!txtUploadInterval.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "TAX_CALCULATION", "VALUE", V.Screen.FormSettings!ddlTaxes.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "ALLOW_QUOTE", "VALUE", V.Screen.FormSettings!chkAllowQuoteCreation.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "EMAIL_SALESPERSON", "VALUE", V.Screen.FormSettings!chkEmailSalesperson.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "REQUIRE_REVIEW", "VALUE", V.Screen.FormSettings!chkRequireReview.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_POSITION", "VALUE", V.Screen.FormSettings!ddlOrderHeaderCommentsPosition.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_SALES_ORDER", "VALUE", V.Screen.FormSettings!chkOrderHeaderCommentsSalesOrder.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_INVOICE", "VALUE", V.Screen.FormSettings!chkOrderHeaderCommentsInvoice.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_QUOTE", "VALUE", V.Screen.FormSettings!chkOrderHeaderCommentsQuote.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_PACK_LIST", "VALUE", V.Screen.FormSettings!chkOrderHeaderCommentsPackingList.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "COMMENTS_BOL", "VALUE", V.Screen.FormSettings!chkOrderHeaderCommentsBOL.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ORDER", "NAME", "ALLOW_CORE_PRICING", "VALUE", V.Screen.FormSettings!chkAllowGSSPricing.CheckedAsBoolean)
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "QUOTE", "NAME", "OVERRIDE_STATUS", "VALUE", V.Screen.FormSettings!ddlQuoteStatus.Text.Trim)
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "CREATE_AT_ORDER_TIME", "VALUE", V.Screen.FormSettings!chkCreateCustomersAtOrderTime.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "STANDALONE_UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneCustomerCreation.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "ALLOW_UPDATE", "VALUE", V.Screen.FormSettings!chkAllowCustomerUpdate.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "ALLOW_PROSPECT", "VALUE", V.Screen.FormSettings!chkAllowProspectCreation.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "ALLOW_DUPLICATE_NAME", "VALUE", V.Screen.FormSettings!chkAllowDuplicateCustomerNames.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "STORE_EXTERNAL_ID", "VALUE", V.Screen.FormSettings!ddlExternalCustomer.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SET_CREDIT_HOLD", "VALUE", V.Screen.FormSettings!chkOverrideSetCreditHold.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SHIP_HOLD", "VALUE", V.Screen.FormSettings!chkOverrideSetShippingHold.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_ORDER_HOLD", "VALUE", V.Screen.FormSettings!chkOverrideOrderLevelShippingHold.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_CREDIT_HOLD", "VALUE", V.Screen.FormSettings!chkOverrideCreditHold.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_SUPPRESS_INVOICE", "VALUE", V.Screen.FormSettings!chkOverrideSuppressInvoice.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_INVOICE_DELIVERY", "VALUE", V.Screen.FormSettings!ddlOverrideInvoiceDelivery.Text.Trim)
+
+'this one we only save the group
+F.Intrinsic.String.Split(V.Screen.FormSettings!ddlOverridePrimaryGroup.Text.Trim, " - ", V.Local.sTemp)
+V.Local.sTemp.RedimPreserve(0, 1)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CUSTOMER", "NAME", "OVERRIDE_PRIMARY_GROUP", "VALUE", V.Local.sTemp(0).Trim)
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "CREATE_AT_ORDER_TIME", "VALUE", V.Screen.FormSettings!chkCreateContactAtOrderTime.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "STANDALONE_UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneContactUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "ALLOW_UPDATE", "VALUE", V.Screen.FormSettings!chkAllowContactUpdate.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "STORE_EXTERNAL_ID", "VALUE", V.Screen.FormSettings!ddlExternalContact.Text.Trim)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "OVERRIDE_E_INVOICING", "VALUE", V.Screen.FormSettings!chkOverrideEInvoicing.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "OVERRIDE_E_ACKNOWLEDGEMENT", "VALUE", V.Screen.FormSettings!chkOverrideEAcknowledgement.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "OVERRIDE_E_STATEMENT", "VALUE", V.Screen.FormSettings!chkOverrideEStatement.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CONTACT", "NAME", "OVERRIDE_E_CREDIT_MEMO", "VALUE", V.Screen.FormSettings!chkOverrideECreditMemo.CheckedAsBoolean)
+
+'BOM options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "BOM", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneBOMUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "BOM", "NAME", "UPDATE", "VALUE", V.Screen.FormSettings!chkAllowBOMUpdate.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "BOM", "NAME", "CREATE_PARTS", "VALUE", V.Screen.FormSettings!chkBOMCreateParts.CheckedAsBoolean)
+
+'router options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ROUTER", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneRouterUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ROUTER", "NAME", "UPDATE", "VALUE", V.Screen.FormSettings!chkAllowRouterUpdate.CheckedAsBoolean)
+
+'part options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "PART", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandalonePartUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "PART", "NAME", "UPDATE", "VALUE", V.Screen.FormSettings!chkAllowPartUpdate.CheckedAsBoolean)
+
+'ship to options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "SHIP_TO", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkShipToUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "SHIP_TO", "NAME", "ALLOW_UPDATE", "VALUE", V.Screen.FormSettings!chkShipToUpdate.CheckedAsBoolean)
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "PART_CROSS_REFERENCE", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandalonePartCrossReferenceUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DOCUMENT_CONTROL", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneDocumentControlUpload.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DISCOUNT", "NAME", "UPLOAD", "VALUE", V.Screen.FormSettings!chkStandaloneDiscountUpload.CheckedAsBoolean)
+
+'advanced options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "JRM_ORDER_CREATION", "VALUE", V.Screen.FormAdvancedOptions!chkSalesOrderFromQuote.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "HOD_CUSTOMER_NUMBER", "VALUE", V.Screen.FormAdvancedOptions!chkHODWEBCustomer.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "DPI_OVERRIDE_GL", "VALUE", V.Screen.FormAdvancedOptions!chkDPIGLAccounts.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "DPI_SET_LOCATION", "VALUE", V.Screen.FormAdvancedOptions!chkDPILocation.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "DPI_BOM_LOCATION", "VALUE", V.Screen.FormAdvancedOptions!chkDPIBOMLocation.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "JMP_OVERRIDE_CONFIGURED_PART", "VALUE", V.Screen.FormAdvancedOptions!chkOverrideConfiguredPartOptions.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "ZEP_ADJUST_MATERIAL_DISCOUNTS", "VALUE", V.Screen.FormAdvancedOptions!chkAdjustMQDs.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "ZEP_IGNORE_XREF_CUSTOMER_PART", "VALUE", V.Screen.FormAdvancedOptions!chkIgnoreXrefCustomerPart.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY", "VALUE", V.Screen.FormAdvancedOptions!chkTaxOverride.CheckedAsBoolean)
+
+F.Intrinsic.String.Build("{0}-{1}-{2}", V.Screen.FormTaxOverrides!txtShipState1.Text.Trim, V.Screen.FormTaxOverrides!txtShipZip1.Text.Trim, V.Screen.FormTaxOverrides!txtTaxCode1.Text.Trim, V.Local.sTemp)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_1", "VALUE", V.Local.sTemp)
+F.Intrinsic.String.Build("{0}-{1}-{2}", V.Screen.FormTaxOverrides!txtShipState2.Text.Trim, V.Screen.FormTaxOverrides!txtShipZip2.Text.Trim, V.Screen.FormTaxOverrides!txtTaxCode2.Text.Trim, V.Local.sTemp)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_2", "VALUE", V.Local.sTemp)
+F.Intrinsic.String.Build("{0}-{1}-{2}", V.Screen.FormTaxOverrides!txtShipState3.Text.Trim, V.Screen.FormTaxOverrides!txtShipZip3.Text.Trim, V.Screen.FormTaxOverrides!txtTaxCode3.Text.Trim, V.Local.sTemp)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_3", "VALUE", V.Local.sTemp)
+F.Intrinsic.String.Build("{0}-{1}-{2}", V.Screen.FormTaxOverrides!txtShipState4.Text.Trim, V.Screen.FormTaxOverrides!txtShipZip4.Text.Trim, V.Screen.FormTaxOverrides!txtTaxCode4.Text.Trim, V.Local.sTemp)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_4", "VALUE", V.Local.sTemp)
+F.Intrinsic.String.Build("{0}-{1}-{2}", V.Screen.FormTaxOverrides!txtShipState5.Text.Trim, V.Screen.FormTaxOverrides!txtShipZip5.Text.Trim, V.Screen.FormTaxOverrides!txtTaxCode5.Text.Trim, V.Local.sTemp)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "ADVANCED", "NAME", "MIT_OVERRIDE_TAX_AUTHORITY_5", "VALUE", V.Local.sTemp)
+
+F.Intrinsic.Control.CallSub(SaveDeletionOptions)
+F.Intrinsic.Control.CallSub(SaveChangeOptions)
+
+'now save to GCG_5807_SETTINGS
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Data.DataTable.SaveToDB("dtSave", "Con", "GCG_5807_SETTINGS", "TYPE*!*NAME", 256)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataTable.Close("dtSave")
+
+F.Intrinsic.Control.CallSub(SaveWebImporterOptions)
+F.Intrinsic.Control.CallSub(CheckDeletionHooks)
+F.Intrinsic.Control.CallSub(CheckChangeHooks)
+
+GUI.FormSettings..Enabled(True)
+GUI.FormSettings..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.chkStandaloneCustomerCreation_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkOrderUpload.CheckedAsBoolean)
+	F.Intrinsic.Control.If(V.Screen.FormSettings!chkCreateCustomersAtOrderTime.CheckedAsBoolean, =, False)
+		GUI.FormSettings.frameCustomerSettings.Enabled(V.Screen.FormSettings!chkStandaloneCustomerCreation.CheckedAsBoolean)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	GUI.FormSettings.frameCustomerSettings.Enabled(V.Screen.FormSettings!chkStandaloneCustomerCreation.CheckedAsBoolean)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkStandaloneCustomerCreation_Click.End
+
+Program.Sub.chkCreateCustomersAtOrderTime_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkStandaloneCustomerCreation.CheckedAsBoolean, =, False)
+	GUI.FormSettings.frameCustomerSettings.Enabled(V.Screen.FormSettings!chkCreateCustomersAtOrderTime.CheckedAsBoolean)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkCreateCustomersAtOrderTime_Click.End
+
+Program.Sub.chkCreateContactAtOrderTime_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkStandaloneContactUpload.CheckedAsBoolean, =, False)
+	GUI.FormSettings.frameContactSettings.Enabled(V.Screen.FormSettings!chkCreateContactAtOrderTime.CheckedAsBoolean)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkCreateContactAtOrderTime_Click.End
+
+Program.Sub.chkStandaloneContactUpload_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkOrderUpload.CheckedAsBoolean)
+	F.Intrinsic.Control.If(V.Screen.FormSettings!chkCreateContactAtOrderTime.CheckedAsBoolean, =, False)
+		GUI.FormSettings.frameContactSettings.Enabled(V.Screen.FormSettings!chkStandaloneContactUpload.CheckedAsBoolean)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	GUI.FormSettings.frameContactSettings.Enabled(V.Screen.FormSettings!chkStandaloneContactUpload.CheckedAsBoolean)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkStandaloneContactUpload_Click.End
+
+Program.Sub.chkOrderUpload_Click.Start
+F.Intrinsic.Control.Try
+
+gui.FormSettings.frameOrderSettings.Enabled(V.Screen.FormSettings!chkOrderUpload.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkOrderUpload_Click.End
+
+Program.Sub.cmdAdvanced_Click.Start
+'show the advanced option screen
+
+F.Intrinsic.Control.Try
+
+GUI.FormSettings..Enabled(False)
+GUI.FormAdvancedOptions..Visible(True)
+GUI.FormAdvancedOptions..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdAdvanced_Click.End
+
+Program.Sub.FormAdvancedOptions_UnLoad.Start
+'close the advanced options screen, go back to main screen
+
+F.Intrinsic.Control.Try
+
+GUI.FormAdvancedOptions..Visible(False)
+GUI.FormSettings..Enabled(True)
+GUI.FormSettings..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormAdvancedOptions_UnLoad.End
+
+Program.Sub.cmdOpenProjectDirectory_Click.Start
+'open the GLOBAL\CUSTOM\5807\ccc directory
+
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+
+F.Intrinsic.String.Build("{0}\Custom\5807\{1}", V.Caller.GlobalDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+
+F.Intrinsic.Task.ShellExec(0, "", V.Local.sPath, "", "", 0)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdOpenProjectDirectory_Click.End
+
+Program.Sub.FormWebImporterOptions_UnLoad.Start
+'close the web importer option screen, go back to advanced option screen
+
+F.Intrinsic.Control.Try
+
+GUI.FormWebImporterOptions..Visible(False)
+GUI.FormAdvancedOptions..Enabled(True)
+GUI.FormAdvancedOptions..SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormWebImporterOptions_UnLoad.End
+
+Program.Sub.cmdWebImporterOptions_Click.Start
+'bring up the web importer options screen
+
+F.Intrinsic.Control.Try
+
+GUI.FormAdvancedOptions..Enabled(False)
+GUI.FormWebImporterOptions..Visible(True)
+GUI.FormWebImporterOptions..SetFocus
+GUI.FormWebImporterOptions.lblWatchFolder.SetFocus
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdWebImporterOptions_Click.End
+
+Program.Sub.LoadWebImporterOptions.Start
+'load the web importer file parameters onto the screen
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(CheckORDUPLParameterFile)
+F.Intrinsic.Control.CallSub(GetWebImporterParameters)
+
+GUI.FormWebImporterOptions.txtWatchFolder.Text(V.Args.ORDER_DIRECTORY.Trim)
+GUI.FormWebImporterOptions.txtErrorFolder.Text(V.Args.ERROR_DIRECTORY.Trim)
+GUI.FormWebImporterOptions.txtConvertedFolder.Text(V.Args.CONVERTED_DIRECTORY.Trim)
+GUI.FormWebImporterOptions.txtUploadedFolder.Text(V.Args.UPLOADED_DIRECTORY.Trim)
+GUI.FormWebImporterOptions.txtEmailFrom.Text(V.Args.EMAIL_FROM.Trim)
+GUI.FormWebImporterOptions.txtEmailTo.Text(V.Args.EMAIL_TO.Trim)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadWebImporterOptions.End
+
+Program.Sub.SaveWebImporterOptions.Start
+'save the webimporter file as set on the web importer option screen
+
+F.Intrinsic.Control.Try
+
+V.Local.sParams.Declare(String)
+V.Local.sPath.Declare(String)
+
+F.Intrinsic.Control.If(V.Screen.FormWebImporterOptions!txtEmailFrom.Text.Trim, !=, "")
+	F.Intrinsic.String.Build("WEB ORDER DIRECTORY   = {1}{0}WEB ERROR DIRECTORY   = {2}{0}WEB CONVERTED DIR     = {3}{0}WEB UPLOADED DIRECTORY= {4}{0}EMAIL FROM ADDRESS    = {5}{0}EMAIL TO ADDRESS      = {6}", V.Ambient.NewLine, V.Screen.FormWebImporterOptions!txtWatchFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtErrorFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtConvertedFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtUploadedFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtEmailFrom.Text.Trim, V.Screen.FormWebImporterOptions!txtEmailTo.Text.Trim,  V.Local.sParams)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("WEB ORDER DIRECTORY   = {1}{0}WEB ERROR DIRECTORY   = {2}{0}WEB CONVERTED DIR     = {3}{0}WEB UPLOADED DIRECTORY= {4}", V.Ambient.NewLine, V.Screen.FormWebImporterOptions!txtWatchFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtErrorFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtConvertedFolder.Text.Trim, V.Screen.FormWebImporterOptions!txtUploadedFolder.Text.Trim,  V.Local.sParams)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("{0}\GSSPARAM{1}.txt", V.Caller.FilesDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.File.String2File(V.Local.sPath, V.Local.sParams)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveWebImporterOptions.End
+
+Program.Sub.LoadDeletionDropDowns.Start
+'initial deletion table data drop items
+
+F.Intrinsic.Control.Try
+
+V.Local.sContactFields.Declare(String, "*!*Type*!*Name*!*Field 1*!*Field 2*!*Field 3*!*Field 4*!*Field 5*!*Field 6*!*Field 7*!*Field 8*!*Field 9*!*Field 10*!*Field 11*!*Field 12*!*Field 13*!*Field 14*!*Field 15*!*Field 16")
+V.Local.sCustomerFields.Declare(String, "*!*Name*!*Alpha Sort*!*Sort")
+V.Local.sShipToFields.Declare(String, "*!*Name")
+
+F.Data.DataTable.CreateFromString("dtContactFields", V.Local.sContactFields, "Field", "String", "***NODELIMITER***", "*!*")
+GUI.FormSettings.ddlContactData3.AddItems("DataTable", "dtContactFields", "Field", "Field")
+GUI.FormSettings.ddlContactData4.AddItems("DataTable", "dtContactFields", "Field", "Field")
+GUI.FormSettings.ddlContactData5.AddItems("DataTable", "dtContactFields", "Field", "Field")
+F.Data.DataTable.Close("dtContactFields")
+
+F.Data.DataTable.CreateFromString("dtCustomerFields", V.Local.sCustomerFields, "Field", "String", "***NODELIMITER***", "*!*")
+GUI.FormSettings.ddlCustomerData2.AddItems("DataTable", "dtCustomerFields", "Field", "Field")
+GUI.FormSettings.ddlCustomerData3.AddItems("DataTable", "dtCustomerFields", "Field", "Field")
+GUI.FormSettings.ddlCustomerData4.AddItems("DataTable", "dtCustomerFields", "Field", "Field")
+GUI.FormSettings.ddlCustomerData5.AddItems("DataTable", "dtCustomerFields", "Field", "Field")
+F.Data.DataTable.Close("dtCustomerFields")
+
+F.Data.DataTable.CreateFromString("dtShipToFields", V.Local.sShipToFields, "Field", "String", "***NODELIMITER***", "*!*")
+GUI.FormSettings.ddlShipToData3.AddItems("DataTable", "dtShipToFields", "Field", "Field")
+GUI.FormSettings.ddlShipToData4.AddItems("DataTable", "dtShipToFields", "Field", "Field")
+GUI.FormSettings.ddlShipToData5.AddItems("DataTable", "dtShipToFields", "Field", "Field")
+F.Data.DataTable.Close("dtShipToFields")
+
+'set default locked fields
+GUI.FormSettings.ddlContactData1.AddItem("Contact ID")
+GUI.FormSettings.ddlContactData1.Text("Contact ID")
+GUI.FormSettings.ddlContactData2.AddItem("Customer ID")
+GUI.FormSettings.ddlContactData2.Text("Customer ID")
+
+GUI.FormSettings.ddlCustomerData1.AddItem("Customer ID")
+GUI.FormSettings.ddlCustomerData1.Text("Customer ID")
+
+GUI.FormSettings.ddlShipToData1.AddItem("Ship To ID")
+GUI.FormSettings.ddlShipToData1.Text("Ship To ID")
+GUI.FormSettings.ddlShipToData2.AddItem("Customer ID")
+GUI.FormSettings.ddlShipToData2.Text("Customer ID")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDeletionDropDowns.End
+
+Program.Sub.LoadDeletionOptions.Start
+'load deletion tab options from GCG_5807_SETTINGS
+
+F.Intrinsic.Control.Try
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CONTACT_DATA_3'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlContactData3.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlContactData3.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CONTACT_DATA_4'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlContactData4.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlContactData4.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CONTACT_DATA_5'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlContactData5.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlContactData5.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CUSTOMER_DATA_2'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlCustomerData2.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlCustomerData2.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CUSTOMER_DATA_3'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlCustomerData3.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlCustomerData3.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CUSTOMER_DATA_4'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlCustomerData4.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlCustomerData4.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'CUSTOMER_DATA_5'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlCustomerData5.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlCustomerData5.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'SHIP_TO_DATA_3'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlShipToData3.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlShipToData3.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'SHIP_TO_DATA_4'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlShipToData4.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlShipToData4.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'SHIP_TO_DATA_5'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.ddlShipToData5.Text(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.ddlShipToData5.Text("")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'LOG_CONTACT'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkLogContactDeletions.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkLogContactDeletions.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkLogContactDeletions_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'LOG_CUSTOMER'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkLogCustomerDeletions.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkLogCustomerDeletions.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkLogCustomerDeletions_Click)
+
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'DELETION' and NAME = 'LOG_SHIP_TO'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkLogShipToDeletions.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkLogShipToDeletions.Value(False)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.CallSub(chkLogShipToDeletions_Click)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDeletionOptions.End
+
+Program.Sub.SaveDeletionOptions.Start
+'add deletion tab options to dtSave so they get saved to GCG_5807_SETTINGS
+
+F.Intrinsic.Control.Try
+
+'log deletion options
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "LOG_CONTACT", "VALUE", V.Screen.FormSettings!chkLogContactDeletions.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "LOG_CUSTOMER", "VALUE", V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "LOG_SHIP_TO", "VALUE", V.Screen.FormSettings!chkLogShipToDeletions.CheckedAsBoolean)
+
+'contact deletion fields
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CONTACT_DATA_3", "VALUE", V.Screen.FormSettings!ddlContactData3.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CONTACT_DATA_4", "VALUE", V.Screen.FormSettings!ddlContactData4.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CONTACT_DATA_5", "VALUE", V.Screen.FormSettings!ddlContactData5.Text)
+
+'customer deletion fields
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_2", "VALUE", V.Screen.FormSettings!ddlCustomerData2.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_3", "VALUE", V.Screen.FormSettings!ddlCustomerData3.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_4", "VALUE", V.Screen.FormSettings!ddlCustomerData4.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "CUSTOMER_DATA_5", "VALUE", V.Screen.FormSettings!ddlCustomerData5.Text)
+
+'ship to deletion fields
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_3", "VALUE", V.Screen.FormSettings!ddlShipToData3.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_4", "VALUE", V.Screen.FormSettings!ddlShipToData4.Text)
+F.Data.DataTable.AddRow("dtSave", "TYPE", "DELETION", "NAME", "SHIP_TO_DATA_5", "VALUE", V.Screen.FormSettings!ddlShipToData5.Text)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveDeletionOptions.End
+
+Program.Sub.chkLogCustomerDeletions_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.ddlCustomerData2.Enabled(V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlCustomerData3.Enabled(V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlCustomerData4.Enabled(V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlCustomerData5.Enabled(V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkLogCustomerDeletions_Click.End
+
+Program.Sub.chkLogShipToDeletions_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.ddlShipToData3.Enabled(V.Screen.FormSettings!chkLogShipToDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlShipToData4.Enabled(V.Screen.FormSettings!chkLogShipToDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlShipToData5.Enabled(V.Screen.FormSettings!chkLogShipToDeletions.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkLogShipToDeletions_Click.End
+
+Program.Sub.chkLogContactDeletions_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.ddlContactData3.Enabled(V.Screen.FormSettings!chkLogContactDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlContactData4.Enabled(V.Screen.FormSettings!chkLogContactDeletions.CheckedAsBoolean)
+GUI.FormSettings.ddlContactData5.Enabled(V.Screen.FormSettings!chkLogContactDeletions.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkLogContactDeletions_Click.End
+
+Program.Sub.CheckDeletionHooks.Start
+F.Intrinsic.Control.Try
+
+'CRM contact post delete hook
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkLogContactDeletions.CheckedAsBoolean)
+	F.Intrinsic.Control.CallSub(AddHookAssociation, "HOOK", 51037, "SCRIPT", "GCG_5807_DeletionLogging.g2u", "ASYNCHRONOUS", False)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(RemoveHookSequence, "HOOK", 51037, "SCRIPT", "GCG_5807_DeletionLogging.g2u")
+F.Intrinsic.Control.EndIf
+
+'customer master post delete
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkLogCustomerDeletions.CheckedAsBoolean)
+	F.Intrinsic.Control.CallSub(AddHookAssociation, "HOOK", 14386, "SCRIPT", "GCG_5807_DeletionLogging.g2u", "ASYNCHRONOUS", False)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(RemoveHookSequence, "HOOK", 14386, "SCRIPT", "GCG_5807_DeletionLogging.g2u")
+F.Intrinsic.Control.EndIf
+
+'ship to post save
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkLogShipToDeletions.CheckedAsBoolean)
+	F.Intrinsic.Control.CallSub(AddHookAssociation, "HOOK", 14443, "SCRIPT", "GCG_5807_DeletionLogging.g2u", "ASYNCHRONOUS", False)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(RemoveHookSequence, "HOOK", 14443, "SCRIPT", "GCG_5807_DeletionLogging.g2u")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckDeletionHooks.End
+
+Program.Sub.AddHookAssociation.Start
+'add hook sequence
+'pass HOOK, SCRIPT, ASYNCHRONOUS
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sHook.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sSeq.Declare(String)
+V.Local.sSync.Declare(String)
+V.Local.sVersion.Declare(String)
+V.Local.sExtension.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.ASYNCHRONOUS)
+	V.Local.sSync.Set("A")
+F.Intrinsic.Control.Else
+	V.Local.sSync.Set("S")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.File.GetExtensionComponent(V.Args.Script, V.Local.sExtension)
+F.Intrinsic.Control.If(V.Local.sExtension.UCase, =, "GAS")
+	V.Local.sVersion.Set("1.00")
+F.Intrinsic.Control.Else
+	V.Local.sVersion.Set("2.00")
+F.Intrinsic.Control.EndIf
+
+'first check if the script is already on the hook
+F.Intrinsic.String.LPad(V.Args.HOOK, "0", 9, V.Local.sHook)
+F.Intrinsic.String.Build("select RTRIM(SEQ) SEQ from V_HOOK_ASSOCIATION where ID = '{0}' and SCRIPT_NAME = '{1}'", V.Local.sHook, V.Args.Script, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	'grab top sequence
+	F.Intrinsic.String.Build("select top 1 RTRIM(SEQ) from V_HOOK_ASSOCIATION where ID = '{0}'", V.Local.sHook, V.Local.sSQL)
+	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		V.Local.sSeq.Set("000100")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Math.Add(V.Local.sRet.Long, 100, V.Local.sSeq)
+		F.Intrinsic.String.LPad(V.Local.sSeq, "0", 6, V.Local.sSeq)
+	F.Intrinsic.Control.EndIf
+	
+	'add sequence
+	'add hook sequence association does not work for some hooks for some reason
+	'F.Global.Hook.AddHookSequenceAssociation(V.Local.sHook, "S", "#SCRIPT-PATH#", V.Local.sScript, False, G, 2, "", "0", V.Local.sRet)
+	F.Intrinsic.String.Build("insert into HOOK_ASSOCIATION (ID, SEQ, ACTIVE_FLAG, SYNC_FLAG, SCRIPT_PATH, SCRIPT_NAME, TRACE_FLAG, SCRIPT_TYPE, RUNTIME_VER) Values ('{0}', '{1}', 'A', '{2}', '#SCRIPT-PATH#', '{3}', 'N', 'G', '{4}')", V.Local.sHook, V.Local.sSeq, V.Local.sSync, V.Args.Script, V.Local.sVersion, V.Local.sSQL)
+F.Intrinsic.Control.Else
+	V.Local.sSeq.Set(V.Local.sRet)
+	
+	'sequence already exists, make sure it's active
+	'UpdateHookAssociation causes problems as well.
+	F.Intrinsic.String.Build("update HOOK_ASSOCIATION set ACTIVE_FLAG = 'A' where ID = '{0}' and SEQ = '{1}'", V.Local.sHook, V.Local.sSeq, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+
+'make sure header is active
+F.Intrinsic.String.Build("select HOOK from V_HOOK_HEADER where HOOK = '{0}'", V.Local.sHook, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	F.Intrinsic.String.Build("insert into HOOK_HEADER (HOOK, ACTIVE_FLAG, TRACE_FLAG) values ('{0}', 'A', 'N')", V.Local.sHook, V.Local.sSQL)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("update HOOK_HEADER set ACTIVE_FLAG = 'A' where HOOK = '{0}'", V.Local.sHook, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddHookAssociation.End
+
+Program.Sub.RemoveHookSequence.Start
+'pass hook, script
+'will remove the script from that hook and deactivate if necessary
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sHook.Declare(String)
+
+'remove any sequences with the passed script on the passed hook
+F.Intrinsic.String.LPad(V.Args.Hook, "0", 9, V.Local.sHook)
+F.Intrinsic.String.Build("delete from HOOK_ASSOCIATION where ID = '{0}' and SCRIPT_NAME = '{1}'", V.Local.sHook, V.Args.Script, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+
+'if there are no active sequences on the hook, deactivate it
+F.Intrinsic.String.Build("select ID from HOOK_ASSOCIATION where ID = '{0}' and ACTIVE_FLAG = 'A'", V.Local.sHook, V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	F.Intrinsic.String.Build("update HOOK_HEADER set ACTIVE_FLAG = 'N' where HOOK = '{0}'", V.Local.sHook, V.Local.sSQL)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.RemoveHookSequence.End
+
+Program.Sub.LoadChangeOptions.Start
+F.Data.DataView.SetFilter("dtSettings", "dvSettings", "TYPE = 'CHANGE_LOG' and NAME = 'LOG_PART_PRICE'")
+F.Intrinsic.Control.If(V.DataView.dtSettings!dvSettings.RowCount, >, 0)
+	GUI.FormSettings.chkLogPartPriceChanges.Value(V.DataView.dtSettings!dvSettings(0).Value!FieldValTrim)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.chkLogPartPriceChanges.Value(False)
+F.Intrinsic.Control.EndIf
+Program.Sub.LoadChangeOptions.End
+
+Program.Sub.SaveChangeOptions.Start
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.AddRow("dtSave", "TYPE", "CHANGE_LOG", "NAME", "LOG_PART_PRICE", "VALUE", V.Screen.FormSettings!chkLogPartPriceChanges.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveChangeOptions.End
+
+Program.Sub.CheckChangeHooks.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.FormSettings!chkLogPartPriceChanges.CheckedAsBoolean)
+	F.Intrinsic.Control.CallSub(AddHookAssociation, "HOOK", 10185, "SCRIPT", "GCG_5807_ChangeLogging.g2u", "ASYNCHRONOUS", False)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(RemoveHookSequence, "HOOK", 10185, "SCRIPT", "GCG_5807_ChangeLogging.g2u")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckChangeHooks.End
+
+Program.Sub.chkAllowQuoteCreation_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.ddlQuoteStatus.Enabled(V.Screen.FormSettings!chkAllowQuoteCreation.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkAllowQuoteCreation_Click.End
+
+Program.Sub.timerOLUCheck_Timer.Start
+F.Intrinsic.Control.Try
+
+V.Local.bRunning.Declare(Boolean, False)
+
+GUI.FormSettings.timerOLUCheck.Enabled(False)
+
+F.Global.General.IsOLURunning(V.Local.bRunning)
+F.Intrinsic.Control.If(V.Local.bRunning)
+	GUI.FormSettings.lblOLUActualStatus.Caption("Running")
+	GUI.FormSettings.lblOLUActualStatus.ForeColor(V.Color.Green)
+F.Intrinsic.Control.Else
+	GUI.FormSettings.lblOLUActualStatus.Caption("Not Running")
+	GUI.FormSettings.lblOLUActualStatus.ForeColor(V.Color.Red)
+F.Intrinsic.Control.EndIf
+
+GUI.FormSettings.timerOLUCheck.Interval(30000)
+GUI.FormSettings.timerOLUCheck.Enabled(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.timerOLUCheck_Timer.End
+
+Program.Sub.chkStandaloneBOMUpload_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.frameBOMSettings.Enabled(V.Screen.FormSettings!chkStandaloneBOMUpload.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkStandaloneBOMUpload_Click.End
+
+Program.Sub.chkStandaloneRouterUpload_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.frameRouterSettings.Enabled(V.Screen.FormSettings!chkStandaloneRouterUpload.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkStandaloneRouterUpload_Click.End
+
+Program.Sub.chkStandalonePartUpload_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.framePartSettings.Enabled(V.Screen.FormSettings!chkStandalonePartUpload.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkStandalonePartUpload_Click.End
+
+Program.Sub.FormTaxOverrides_UnLoad.Start
+F.Intrinsic.Control.Try
+
+GUI.FormTaxOverrides..Visible(False)
+GUI.FormAdvancedOptions..Enabled(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.FormTaxOverrides_UnLoad.End
+
+Program.Sub.cmdTaxCodeBrowser1_Click.Start
+F.Intrinsic.Control.Try
+
+V.Local.sRet.Declare(String)
+V.Local.sControl.Declare(String)
+V.Local.sTitles.Declare(String, "Zone*!*Auth*!*Description*!*Rate")
+V.Local.sWidths.Declare(String, "80*!*80*!*200*!*60")
+
+F.Intrinsic.String.Split(V.Local.sTitles, "*!*", V.Local.sTitles)
+F.Intrinsic.String.Split(V.Local.sWidths, "*!*", V.Local.sWidths)
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+F.Intrinsic.UI.Browser("Tax Codes", "Con", "select RTRIM(ZONE) ZONE, RTRIM(AUTH) CODE, RTRIM(DESCR) DESCRIPTION, RATE from V_AR_TAX_TABLES order by ZONE, AUTH", V.Local.sTitles, V.Local.sWidths, V.Local.sRet)
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.If(V.Local.sRet.IsNotCancel)
+	F.Intrinsic.String.Split(V.Local.sRet, "*!*", V.Local.sRet)
+	F.Intrinsic.String.Build("txtTaxCode{0}", V.Args.ControlName.Right1, V.Local.sControl)
+	GUI.FormTaxOverrides.[V.Local.sControl].Text(V.Local.sRet(1).Trim)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdTaxCodeBrowser1_Click.End
+
+Program.Sub.cmdTaxOverrides_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormAdvancedOptions..Enabled(False)
+GUI.FormTaxOverrides..Visible(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdTaxOverrides_Click.End
+
+Program.Sub.chkTaxOverride_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormAdvancedOptions.cmdTaxOverrides.Enabled(V.Screen.FormAdvancedOptions!chkTaxOverride.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkTaxOverride_Click.End
+
+Program.Sub.cmdHelp_Click.Start
+'open the project help page
+'https://docs.gss-service.com/arc/5807
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Task.ShellExec(V.Ambient.InstanceHandle, "", "https://docs.gss-service.com/arc/5807", "", "", 1)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdHelp_Click.End
+
+Program.Sub.chkShipToUpload_Click.Start
+F.Intrinsic.Control.Try
+
+GUI.FormSettings.frameShipToSettings.Enabled(V.Screen.FormSettings!chkShipToUpload.CheckedAsBoolean)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.chkShipToUpload_Click.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214160832340$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4sQEoW5clk3e0RvImGf8jvg=
+Program.Sub.Comments.End
