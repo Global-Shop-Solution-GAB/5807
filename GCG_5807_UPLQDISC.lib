@@ -1,0 +1,109 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sUPLQDISCError.Declare(String, "")
+V.Global.sUPLQDISCFile.Declare(String, "")
+
+F.Data.DataTable.Create("dtUPLQDISC", True)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtUPLQDISC", "LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_1", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_1", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_2", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_2", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_3", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_3", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_4", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_4", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_5", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_5", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_6", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_6", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_7", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_7", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_8", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_8", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "QUANTITY_9", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PRICE_9", "Float", 0)
+F.Data.DataTable.AddColumn("dtUPLQDISC", "PART_DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLQDISC", "DATE_ENTERED", "Date", "1900-01-01")
+Program.Sub.Preflight.End
+
+'Program.Sub.Main.Start
+''for testing
+'F.Data.DataTable.AddRow("dtUPLQDISC", "PART", "0025", "DATE_ENTERED", V.Ambient.Date, "QUANTITY_1", 1, "PRICE_1", 11)
+'F.Intrinsic.Control.CallSub(UPLQDISC)
+'Program.Sub.Main.End
+
+Program.Sub.UPLQDISC.Start
+'this is a library for help with using the UPLQDISC oneshot to upload discount pricing
+'add data to the dtUPLQDISC datatable and then call the UPLQDISC subroutine to run the upload
+
+V.Local.iCounter.Declare(Long)
+V.Local.sFields.Declare(String, "PART*!*LOCATION*!*QUANTITY_1*!*PRICE_1*!*QUANTITY_2*!*PRICE_2*!*QUANTITY_3*!*PRICE_3*!*QUANTITY_4*!*PRICE_4*!*QUANTITY_5*!*PRICE_5*!*QUANTITY_6*!*PRICE_6*!*QUANTITY_7*!*PRICE_7*!*QUANTITY_8*!*PRICE_8*!*QUANTITY_9*!*PRICE_9*!*PART_DESCRIPTION*!*DATE_ENTERED_FORMAT")
+V.Local.sLengths.Declare(String, "20*!*2*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*16*!*31*!*6")
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.sFile.Declare(String)
+
+F.Intrinsic.Control.Try
+
+V.Global.sUPLQDISCError.Set("")
+
+'format dates
+F.Data.DataTable.AddColumn("dtUPLQDISC", "DATE_ENTERED_FORMAT", "String", "")
+F.Data.DataTable.SetValueFormat("dtUPLQDISC", -1, "DATE_ENTERED", "DATE_ENTERED_FORMAT", "MMDDYY")
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLQDISC", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLQDISC", "ID", 0, 1)
+
+'now create file from datatable
+F.Data.DataView.Create("dtUPLQDISC", "dvUPLQDISCFile", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("strbUPLQDISC")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLQDISC.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLQDISC", "dvUPLQDISCFile", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLQDISC", "dvUPLQDISCFile", V.Local.sFields, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("strbUPLQDISC", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("strbUPLQDISC", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("strbUPLQDISC")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+F.Data.DataView.Close("dtUPLQDISC", "dvUPLQDISCFile")
+
+'clean up main DT
+F.Data.DataTable.RemoveColumn("dtUPLQDISC", "DATE_ENTERED_FORMAT")
+F.Data.DataTable.RemoveColumn("dtUPLQDISC", "ID")
+F.Data.DataTable.DeleteRow("dtUPLQDISC")
+F.Data.DataTable.AcceptChanges("dtUPLQDISC")
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\QTYDISC.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+V.Global.sUPLQDISCFile.Set(V.Local.sFile)
+
+'Upload
+F.Global.General.CallWrapperSync(50, "UPLQDISC/U")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLQDISCError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLQDISC.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8312.21889$}$1
+${$6$}$rseddon$}$20221006110746857$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbNm1iPOqB2RiDFhg9j0FA3AWnp0THUSmErZ+fY8AjDkQ=
+Program.Sub.Comments.End
