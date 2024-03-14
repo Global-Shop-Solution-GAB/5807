@@ -1,0 +1,342 @@
+Program.Sub.Preflight.Start
+V.Global.sUPLCNTCTError.Declare(String, "")
+F.Data.DataTable.Create("dtUPLCNTCT", True)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "COMPANY_ID", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "CONTACT_TYPE", "String", "C")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "CONTACT_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SEQUENCE", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "NAME_PREFIX", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "FIRST_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "MIDDLE_INITIAL", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "LAST_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "NAME_SUFFIX", "Long", 0)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PREFERRED_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "BIRTHDAY", "Date")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "AFFILIATION", "Boolean", True)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_PHONE_TYPE", "Long", 5)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_PHONE_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_PHONE_EXTENSION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SECONDARY_PHONE_TYPE", "Long", 5)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SECONDARY_PHONE_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SECONDARY_PHONE_EXTENSION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "EMAIL", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS", "Boolean", False)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ADDRESS_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_CITY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_STATE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_COUNTRY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ID", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_PRIMARY_CONTACT", "Boolean", False)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ADDRESS_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_CITY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_STATE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_ZIP", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SHIP_TO_COUNTRY", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_1_TYPE", "Long", 5)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_1_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_1_EXTENSION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_2_TYPE", "Long", 5)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_2_NUMBER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ADDITIONAL_PHONE_2_EXTENSION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SECONDARY_EMAIL", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "SPOUSE_NAME", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "JOB_TITLE", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "JOB_FUNCTION", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "MANAGER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ASSISTANT_MANAGER", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "INTERCEPT", "Boolean", False)
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_1", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_2", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_3", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_4", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_5", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_6", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_7", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_8", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_9", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_10", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_11", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_12", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_13", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_14", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_15", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "USER_FIELD_16", "String", "")
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "PRIMARY_CONTACT", "Boolean", False)
+Program.Sub.Preflight.End
+
+Program.Sub.UPLCNTCT.Start
+'GCG_5807_UPLCNTCT.lib
+'Trey S
+'February 12th, 2020
+'This is a library for creating contacts using the core contact Upload, UPLCNTCT
+'Documentation for the contact upload program is on the GSS Help Site Additional References > Data Conversion Upload Tables > Contact Master
+'This is used by adding contact records to the dtUPLCNTCT datatable and then calling the UPLCNTCT subroutine when ready to upload
+'Below are the fields in the contact upload datatable. Fields with a * are required.
+'For UPLCNTCT to upload the values that go in CRM_UF_VALUE and CRM_CONTACT_AUX (user fields, address lines 3-5), the script PPT_Contact_Upload.gas needs to be added to hook 45619
+'this library checks and enables the hook/script
+
+'NAME							Type		Size	Description
+'----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'COMPANY_ID*					String		6		ID of the customer/vendor/prospect/suspect/oppurtunity
+'CONTACT_TYPE					String		1		Type of company this contact is related to. V - Vendor, C - Customer, P - Prospect, S - Suspect, O - Oppurtunity. Default is C.
+'CONTACT_NAME*					String		30		Full contact name
+'SEQUENCE						Long		0-99	Count of this customer / name combination
+'NAME_PREFIX					Long		0-4		0 - No prefix, 1 - Miss, 2 - Mrs., 3 - Mr., 4 - Ms. Default is 0.
+'FIRST_NAME						String		25		
+'MIDDLE_INITIAL					String		1
+'LAST_NAME*						String		25
+'NAME_SUFFIX					Long		0-5		0 - No Suffix, 1 - II, 2 - III, 3 - IV, 4- Jr., 5 - Sr. Default is 0.
+'PREFERRED_NAME					String		30
+'BIRTHDAY						Date		
+'AFFILIATION					Boolean				True if affiliated with a company, false if not. Default is True.
+'PRIMARY_PHONE_TYPE				Long		0-5		0 - Home, 1 - Fax, 2 - Mobile, 3 - Office, 4 - Pager, 5 - No Phone type. Default is 5.
+'PRIMARY_PHONE_NUMBER			String		20
+'PRIMARY_PHONE_EXTENSION		String		5
+'SECONDARY_PHONE_TYPE			Long				0 - Home, 1 - Fax, 2 - Mobile, 3 - Office, 4 - Pager, 5 - No Phone type. Default is 5.
+'SECONDARY_PHONE_NUMBER			String		20
+'SECONDARY_PHONE_EXTENSION		String		5
+'EMAIL							String		100
+'PRIMARY_ADDRESS				Boolean				True if this address is the primary address for the company. Default is false.
+'PRIMARY_ADDRESS_1				String		50
+'PRIMARY_ADDRESS_2				String		50
+'PRIMARY_ADDRESS_3				String		50
+'PRIMARY_ADDRESS_4				String		50
+'PRIMARY_ADDRESS_5				String		50
+'PRIMARY_CITY					String		15
+'PRIMARY_STATE					String		10
+'PRIMARY_ZIP					String		15
+'PRIMARY_COUNTRY				String		12
+'SHIP_TO_ID						String		6
+'SHIP_TO_ADDRESS_DESCRIPTION	String		30
+'SHIP_TO_PRIMARY_CONTACT		Boolean				True if this is the primary contact for this ship to location. Default is false.
+'SHIP_TO_ADDRESS_1				String		50
+'SHIP_TO_ADDRESS_2				String		50
+'SHIP_TO_ADDRESS_3				String		50
+'SHIP_TO_ADDRESS_4				String		50
+'SHIP_TO_ADDRESS_5				String		50
+'SHIP_TO_CITY					String		15
+'SHIP_TO_STATE					String		10
+'SHIP_TO_ZIP					String		15
+'SHIP_TO_COUNTRY				String		12
+'ADDITIONAL_PHONE_1_TYPE		Long		0-5		0 - Home, 1 - Fax, 2 - Mobile, 3 - Office, 4 - Pager, 5 - No Phone type. Default is 5.
+'ADDITIONAL_PHONE_1_NUMBER		String		20
+'ADDITIONAL_PHONE_1_EXTENSION	String		5
+'ADDITIONAL_PHONE_2_TYPE		Long		0-5		0 - Home, 1 - Fax, 2 - Mobile, 3 - Office, 4 - Pager, 5 - No Phone type. Default is 5.
+'ADDITIONAL_PHONE_2_NUMBER		String		20
+'ADDITIONAL_PHONE_2_EXTENSION	String		5
+'SECONDARY_EMAIL				String		100
+'SPOUSE_NAME					String		50
+'JOB_TITLE						String		50
+'JOB_FUNCTION					String		50
+'MANAGER						String		50
+'ASSISTANT_MANAGER				String		50
+'INTERCEPT						Boolean				Not currently used apparently, but still part of upload. Default is false.
+'USER_FIELD_1					String		30
+'USER_FIELD_2					String		30
+'USER_FIELD_3					String		30
+'USER_FIELD_4					String		30
+'USER_FIELD_5					String		30
+'USER_FIELD_6					String		30
+'USER_FIELD_7					String		30
+'USER_FIELD_8					String		30
+'USER_FIELD_9					String		30
+'USER_FIELD_10					String		30
+'USER_FIELD_11					String		30
+'USER_FIELD_12					String		30
+'USER_FIELD_13					String		30
+'USER_FIELD_14					String		30
+'USER_FIELD_15					String		30
+'USER_FIELD_16					String		30
+'PRIMARY_CONTACT				Boolean				True if this contact is the primary contact for this company. Default is false.
+'----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+F.Intrinsic.Control.Try
+
+V.Local.sFile.Declare(String)
+V.Local.sContents.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sTemp.Declare(String)
+V.Local.sSplitTemp.Declare(String)
+V.Local.iLengths.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sMap.Declare(String, "COMPANY_ID*!*FINAL_CONTACT_TYPE*!*CONTACT_NAME*!*FINAL_SEQUENCE*!*NAME_PREFIX*!*FIRST_NAME*!*MIDDLE_INITIAL*!*LAST_NAME*!*NAME_SUFFIX*!*PREFERRED_NAME*!*FINAL_BIRTHDAY*!*FINAL_AFFILIATION*!*PRIMARY_PHONE_TYPE*!*PRIMARY_PHONE_NUMBER*!*PRIMARY_PHONE_EXTENSION*!*SECONDARY_PHONE_TYPE*!*SECONDARY_PHONE_NUMBER*!*SECONDARY_PHONE_EXTENSION*!*EMAIL*!*FINAL_PRIMARY_ADDRESS*!*PRIMARY_ADDRESS_1*!*PRIMARY_ADDRESS_2*!*PRIMARY_CITY*!*PRIMARY_STATE*!*PRIMARY_ZIP*!*SHIP_TO_ADDRESS_DESCRIPTION*!*SHIP_TO_ADDRESS_1*!*SHIP_TO_ADDRESS_2*!*SHIP_TO_CITY*!*SHIP_TO_STATE*!*SHIP_TO_ZIP*!*ADDITIONAL_PHONE_1_TYPE*!*ADDITIONAL_PHONE_1_NUMBER*!*ADDITIONAL_PHONE_1_EXTENSION*!*ADDITIONAL_PHONE_2_TYPE*!*ADDITIONAL_PHONE_2_NUMBER*!*ADDITIONAL_PHONE_2_EXTENSION*!*SECONDARY_EMAIL*!*SPOUSE_NAME*!*JOB_TITLE*!*JOB_FUNCTION*!*MANAGER*!*ASSISTANT_MANAGER*!*SHIP_TO_ID*!*FINAL_SHIP_TO_PRIMARY_CONTACT*!*PRIMARY_ADDRESS_3*!*PRIMARY_ADDRESS_4*!*PRIMARY_ADDRESS_5*!*PRIMARY_COUNTRY*!*SHIP_TO_ADDRESS_3*!*SHIP_TO_ADDRESS_4*!*SHIP_TO_ADDRESS_5*!*SHIP_TO_COUNTRY*!*FINAL_INTERCEPT*!*USER_FIELD_1*!*USER_FIELD_2*!*USER_FIELD_3*!*USER_FIELD_4*!*USER_FIELD_5*!*USER_FIELD_6*!*USER_FIELD_7*!*USER_FIELD_8*!*USER_FIELD_9*!*USER_FIELD_10*!*USER_FIELD_11*!*USER_FIELD_12*!*USER_FIELD_13*!*USER_FIELD_14*!*USER_FIELD_15*!*USER_FIELD_16*!*FINAL_PRIMARY_CONTACT")
+V.Local.sLengths.Declare(String, "6*!*1*!*30*!*2*!*1*!*25*!*1*!*25*!*1*!*30*!*10*!*1*!*1*!*20*!*5*!*1*!*20*!*5*!*100*!*1*!*50*!*50*!*15*!*10*!*15*!*30*!*50*!*50*!*15*!*10*!*15*!*1*!*20*!*5*!*1*!*20*!*5*!*100*!*50*!*50*!*50*!*50*!*50*!*6*!*1*!*50*!*50*!*50*!*12*!*50*!*50*!*50*!*12*!*1*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*30*!*1")
+
+'check if there are contacts to upload
+F.Intrinsic.Control.If(V.DataTable.dtUPLCNTCT.RowCount, <, 1)
+	V.Global.sUPLCNTCTError.Set("The contact upload was unable to process because no records were added to dtUPLCNTCT datatable.")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+'reset error variable
+V.Global.sUPLCNTCTError.Set("")
+
+'flags, defaults
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_CONTACT_TYPE", "String", "IIF([CONTACT_TYPE] = 'O', ' ', [CONTACT_TYPE])")
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_AFFILIATION", "Long", "IIF([AFFILIATION], 0, 1)")
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_PRIMARY_ADDRESS", "String", "IIF([PRIMARY_ADDRESS], 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_SHIP_TO_PRIMARY_CONTACT", "String", "IIF([SHIP_TO_PRIMARY_CONTACT], 'Y', 'N')")
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_INTERCEPT", "Long", "IIF([INTERCEPT], 1, 0)")
+F.Data.DataTable.AddExpressionColumn("dtUPLCNTCT", "FINAL_PRIMARY_CONTACT", "String", "IIF([PRIMARY_CONTACT], 'Y', 'N')")
+
+'date formatting
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "FINAL_BIRTHDAY", "String", "")
+F.Data.DataTable.SetValueFormat("dtUPLCNTCT", -1, "BIRTHDAY", "FINAL_BIRTHDAY", "MM/DD/YYYY")
+
+'number formatting
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "FINAL_SEQUENCE", "String", "")
+F.Data.DataTable.SetValueFormat("dtUPLCNTCT", -1, "SEQUENCE", "FINAL_SEQUENCE", "00")
+
+'unique column
+F.Data.DataTable.AddColumn("dtUPLCNTCT", "ID", "Long", 0)
+F.Data.DataTable.SetSeries("dtUPLCNTCT", "ID", 0, 1)
+
+'for each record, grab the line and format it, then add it to the text file string
+F.Data.DataView.Create("dtUPLCNTCT", "dvUPLCNTCT", 22)
+F.Intrinsic.String.Split(V.Local.sLengths, "*!*", V.Local.iLengths)
+F.Intrinsic.StringBuilder.Create("ContactString")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtUPLCNTCT.RowCount--, 1)
+	'grab line
+	F.Intrinsic.String.Build("ID = {0}", V.Local.iCounter, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtUPLCNTCT", "dvUPLCNTCT", V.Local.sFilter)
+	F.Data.DataView.ToString("dtUPLCNTCT", "dvUPLCNTCT", V.Local.sMap, "*!*", "***NODELIMITER***", V.Local.sTemp)
+	
+	'format it, add to file string
+	F.Intrinsic.String.Split(V.Local.sTemp, "*!*", V.Local.sSplitTemp)
+	F.Intrinsic.String.PositionalString(V.Local.sSplitTemp, V.Local.iLengths, V.Local.sTemp)
+	F.Intrinsic.StringBuilder.AppendLine("ContactString", V.Local.sTemp)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+'finalize string, cleanup
+F.Intrinsic.StringBuilder.ToString("ContactString", V.Local.sContents)
+F.Intrinsic.StringBuilder.Dispose("ContactString")
+F.Data.DataView.Close("dtUPLCNTCT", "dvUPLCNTCT")
+V.Local.iLengths.Redim(0, 0)
+V.Local.sSplitTemp.Redim(0, 0)
+
+'create the upload file
+F.Intrinsic.String.Build("{0}\CONTACT.txt", V.Caller.FilesDir, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+
+'remove added columns to avoid issues running again
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_CONTACT_TYPE")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_AFFILIATION")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_PRIMARY_ADDRESS")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_SHIP_TO_PRIMARY_CONTACT")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_INTERCEPT")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_PRIMARY_CONTACT")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_BIRTHDAY")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "FINAL_SEQUENCE")
+F.Data.DataTable.RemoveColumn("dtUPLCNTCT", "ID")
+
+'clean up
+F.Data.DataTable.DeleteRow("dtUPLCNTCT")
+F.Data.DataTable.AcceptChanges("dtUPLCNTCT")
+
+'make sure hook is attached
+F.Intrinsic.Control.CallSub(UPLCNTCTCheckUploadScript)
+
+'run contact upload
+F.Global.General.CallWrapperSync(50, "UPLCNTCT/U")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLCNTCTError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLCNTCT.End
+
+Program.Sub.UPLCNTCTCheckUploadScript.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(UPLCNTCTAddHookAssociation, "HOOK", "45619", "SCRIPT", "PPT_Contact_Upload.gas", "ASYNCHRONOUS", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLCNTCTError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLCNTCTCheckUploadScript.End
+
+Program.Sub.UPLCNTCTAddHookAssociation.Start
+'add hook sequence
+'pass HOOK, SCRIPT, ASYNCHRONOUS
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sHook.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sSeq.Declare(String)
+V.Local.sSync.Declare(String)
+V.Local.sVersion.Declare(String)
+V.Local.sExtension.Declare(String)
+
+F.Intrinsic.Control.If(V.Args.ASYNCHRONOUS)
+	V.Local.sSync.Set("A")
+F.Intrinsic.Control.Else
+	V.Local.sSync.Set("S")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.File.GetExtensionComponent(V.Args.Script, V.Local.sExtension)
+F.Intrinsic.Control.If(V.Local.sExtension.UCase, =, "GAS")
+	V.Local.sVersion.Set("1.00")
+F.Intrinsic.Control.Else
+	V.Local.sVersion.Set("2.00")
+F.Intrinsic.Control.EndIf
+
+'first check if the script is already on the hook
+F.Intrinsic.String.LPad(V.Args.HOOK, "0", 9, V.Local.sHook)
+F.Intrinsic.String.Build("select RTRIM(SEQ) SEQ from V_HOOK_ASSOCIATION where ID = '{0}' and SCRIPT_NAME = '{1}'", V.Local.sHook, V.Args.Script, V.Local.sSQL)
+
+F.ODBC.Connection!UPLCNTCTHookCheck.OpenCompanyConnection
+
+F.ODBC.Connection!UPLCNTCTHookCheck.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	'grab top sequence
+	F.Intrinsic.String.Build("select top 1 RTRIM(SEQ) from V_HOOK_ASSOCIATION where ID = '{0}'", V.Local.sHook, V.Local.sSQL)
+	F.ODBC.Connection!UPLCNTCTHookCheck.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		V.Local.sSeq.Set("000100")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Math.Add(V.Local.sRet.Long, 100, V.Local.sSeq)
+		F.Intrinsic.String.LPad(V.Local.sSeq, "0", 6, V.Local.sSeq)
+	F.Intrinsic.Control.EndIf
+	
+	'add sequence
+	'add hook sequence association does not work for some hooks for some reason
+	'F.Global.Hook.AddHookSequenceAssociation(V.Local.sHook, "S", "#SCRIPT-PATH#", V.Local.sScript, False, G, 2, "", "0", V.Local.sRet)
+	F.Intrinsic.String.Build("insert into HOOK_ASSOCIATION (ID, SEQ, ACTIVE_FLAG, SYNC_FLAG, SCRIPT_PATH, SCRIPT_NAME, TRACE_FLAG, SCRIPT_TYPE, RUNTIME_VER) Values ('{0}', '{1}', 'A', '{2}', '#SCRIPT-PATH#', '{3}', 'N', 'G', '{4}')", V.Local.sHook, V.Local.sSeq, V.Local.sSync, V.Args.Script, V.Local.sVersion, V.Local.sSQL)
+F.Intrinsic.Control.Else
+	V.Local.sSeq.Set(V.Local.sRet)
+	
+	'sequence already exists, make sure it's active
+	'UpdateHookAssociation causes problems as well.
+	F.Intrinsic.String.Build("update HOOK_ASSOCIATION set ACTIVE_FLAG = 'A' where ID = '{0}' and SEQ = '{1}'", V.Local.sHook, V.Local.sSeq, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!UPLCNTCTHookCheck.Execute(V.Local.sSQL)
+
+'make sure header is active
+F.Intrinsic.String.Build("select HOOK from V_HOOK_HEADER where HOOK = '{0}'", V.Local.sHook, V.Local.sSQL)
+F.ODBC.Connection!UPLCNTCTHookCheck.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	F.Intrinsic.String.Build("insert into HOOK_HEADER (HOOK, ACTIVE_FLAG, TRACE_FLAG) values ('{0}', 'A', 'N')", V.Local.sHook, V.Local.sSQL)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("update HOOK_HEADER set ACTIVE_FLAG = 'A' where HOOK = '{0}'", V.Local.sHook, V.Local.sSQL)
+F.Intrinsic.Control.EndIf
+F.ODBC.Connection!UPLCNTCTHookCheck.Execute(V.Local.sSQL)
+
+F.ODBC.Connection!UPLCNTCTHookCheck.Close
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("{0}*!*{1}*!*{2}", V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sUPLCNTCTError)
+F.Intrinsic.Control.EndTry
+Program.Sub.UPLCNTCTAddHookAssociation.End
