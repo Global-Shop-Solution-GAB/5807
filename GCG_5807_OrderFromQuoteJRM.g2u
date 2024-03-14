@@ -1,0 +1,866 @@
+﻿Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_5807_SharedFunctions.lib")
+Program.External.Include.Library("3500.lib")
+Program.External.Include.Library("GCG_5807_7020.lib")
+Program.External.Include.Library("910050.lib")
+V.Global.bRunUploader.Declare(Boolean, False)
+
+'options
+V.Global.sCallback.Declare(String, "Exit")
+V.Global.sProject.Declare(String, "5807")
+V.Global.sProjectTitle.Declare(String, "Standardized E-Commerce/CRM/Quoting Integration - Order From Quote [JRM]")
+V.Global.bUnattended.Declare(Boolean, True)
+V.Global.bSQLLogging.Declare(Boolean, False)
+
+V.Global.sQuotes.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5807_OrderFromQuoteJRM.g2u
+'Trey S
+'February 3rd, 2020
+'for Justrite Manufacuring
+'This script is an add on the the standard SOAP uploader project 5807
+'Justrite creates sales orders with special part numbers that represent many items on a quote
+'The standard uploader will create the quotes, and this custom script will be called to create the sales orders and parts on them
+'This will use the standard uploader to create the sales orders
+'will be passed list of quotes in V.Passed.Quotes
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetLibraryLoggingVariables, "Project", V.Global.sProject, "ProjectTitle", V.Global.sProjectTitle, "CallBack", V.Global.sCallback, "Unattended", V.Global.bUnattended, "SQLLogging", V.Global.bSQLLogging)
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Launching from order uploader.")
+
+'for testing
+V.Global.sQuotes.Set(V.Passed.Quotes)
+'F.Intrinsic.Control.If(V.Ambient.IsInIDE)
+'	'V.Global.sQuotes.Set("0000067##True::0000091##False")
+'	'V.Global.sQuotes.Set("0000067##True")
+'	V.Global.sQuotes.Set("0000091##False")
+'	'V.Global.sQuotes.Set("0009328##False")
+'F.Intrinsic.Control.EndIf
+
+'check if anything passed
+F.Intrinsic.Control.If(V.Global.sQuotes.Trim, =, "")
+	F.Intrinsic.Control.CallSub(AddLog, "Message", "Error: No quotes passed. Exiting...")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+'load quotes
+F.Intrinsic.Control.CallSub(LoadQuotes)
+
+'create parts
+F.Intrinsic.Control.CallSub(CreateParts)
+
+'save to staging table
+F.Intrinsic.Control.CallSub(StageOrders)
+F.Data.DataTable.Close("dtNewParts")
+
+'upload (maybe just run it next time?)
+F.Intrinsic.Control.If(V.Global.bRunUploader)
+	F.Intrinsic.Control.CallSub(UploadOrders)
+	
+	'grab feedback?
+	F.Intrinsic.Control.CallSub(GrabFeedback)
+F.Intrinsic.Control.EndIf
+
+'clean up, exit
+F.Intrinsic.Control.CallSub(Exit)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.LoadQuotes.Start
+'load the quote information passed from GCG_5807_OrderUploader.g2u
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sParent.Declare(String, "")
+V.Local.iIndex.Declare(Long)
+
+F.Data.DataTable.CreateFromString("dtQuotes", V.Global.sQuotes, "QUOTE*!*UPDATE", "String*!*Boolean", "##", "::", True)
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtQuotes", "Field", "QUOTE")
+
+F.Intrinsic.String.Build("{0} passed quotes found to create/update orders from. [{1}]", V.DataTable.dtQuotes.RowCount, V.Global.sQuotes, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+F.Intrinsic.String.Build("select A.QUOTE_NO, A.CUSTOMER, A.DATE_DUE, A.SALESPERSON, A.USER_1, A.USER_2, A.USER_3, A.USER_4, A.USER_5, B.SHIP_ID, B.NAME_CUSTOMER_SHIP, B.ADDRESS_1_SHIP, B.ADDRESS_2_SHIP, B.ADDRESS_3_SHIP, B.CITY_SHIP, B.STATE_SHIP, B.CODE_ZIP_SHIP, B.COUNTRY_SHIP, B.ATTENTION_SHIP, C.NAME_CUSTOMER, C.ADDRESS_1, C.ADDRESS_2, C.ADDRESS_3, C.ADDRESS_4, C.ADDRESS_5, C.CITY, C.STATE, C.ZIP_CODE, C.COUNTRY, C.ATTENTION, A.CODE_SORT, A.QUOTE_SORT_2, A.TERMS, C.CONTACT, C.CONTACT_PHONE, C.CONTACT_EMAIL, A.MARK_INFO, A.SHIP_VIA, A.CUSTOMER_PO from V_QUOTE_HEADER A left join V_QUOTE_SHIP_TO B on A.QUOTE_NO = B.QUOTE_NO left join V_QUOTE_BILL_TO C on A.QUOTE_NO = C.QUOTE_NO where A.QUOTE_NO in ('{0}')", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtQuoteHeader", "Con", V.Local.sSQL, True)
+F.Data.DataTable.AddColumn("dtQuoteHeader", "FAILED", "Boolean", False)
+
+F.Intrinsic.String.Build("select RTRIM(QUOTE_NO) QUOTE_NO, RTRIM(RECORD_NO) RECORD_NO, UPPER(RTRIM(PART)) PART, RTRIM(DESCRIPTION) DESCRIPTION, PRICE, QTY_QUOTED, EXTENSION, PRODUCT_LINE from V_QUOTE_LINES where QUOTE_NO in ('{0}') and UPPER(DESCRIPTION) <> 'PRODUCT LINE' order by QUOTE_NO, RECORD_NO", V.Args.Filter, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtQuoteLines", "Con", V.Local.sSQL, True)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+'add parent/item logic
+'F.Data.DataTable.AddColumn("dtQuoteLines", "FINAL_PARENT", "String", "")
+'F.Data.DataView.Create("dtQuoteLines", "dvQuoteLines", 22, "[PART] <> 'FREIGHT'", "")
+'F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtQuoteLines!dvQuoteLines.RowCount--, 1)
+'	F.Intrinsic.Control.CallSub(CheckModelNumber, "PART", V.DataView.dtQuoteLines!dvQuoteLines(V.Local.iCounter).PART!FieldValTrim, "PRODUCT_LINE", V.DataView.dtQuoteLines!dvQuoteLines(V.Local.iCounter).PRODUCT_LINE!FieldValTrim)
+'	F.Intrinsic.Control.If(V.Args.Model)
+'		F.Data.DataView.SetValue("dtQuoteLines", "dvQuoteLines", V.Local.iCounter, "FINAL_PARENT", V.DataView.dtQuoteLines!dvQuoteLines(V.Local.iCounter).PART!FieldValTrim)
+'		V.Local.sParent.Set(V.DataView.dtQuoteLines!dvQuoteLines(V.Local.iCounter).PART!FieldValTrim)
+'	F.Intrinsic.Control.Else
+'		F.Intrinsic.Control.If(V.Local.sParent.Trim, !=, "")
+'			F.Data.DataView.SetValue("dtQuoteLines", "dvQuoteLines", V.Local.iCounter, "FINAL_PARENT", V.Local.sParent)
+'		F.Intrinsic.Control.EndIf
+'	F.Intrinsic.Control.EndIf
+'F.Intrinsic.Control.Next(V.Local.iCounter)
+'F.Data.DataView.Close("dtQuoteLines", "dvQuoteLines")
+
+'so instead, they only want EL parts added as their own line
+'now we grab the parent from the first line
+F.Data.DataTable.AddColumn("dtQuoteLines", "FINAL_PARENT", "String", "")
+F.Intrinsic.Control.If(V.DataTable.dtQuoteLines.RowCount, >, 0)
+	F.Data.DataTable.SetValue("dtQuoteLines", -1, "FINAL_PARENT", V.DataTable.dtQuoteLines(0).PART!FieldValTrim)
+	
+	'now check any EL parts
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtQuoteLines.RowCount--, 1)
+		F.Intrinsic.Control.If(V.DataTable.dtQuoteLines(V.Local.iCounter).PART!FieldValTrim, !=, "FREIGHT")
+			F.Intrinsic.Control.CallSub(CheckModelNumber, "PART", V.DataTable.dtQuoteLines(V.Local.iCounter).PART!FieldValTrim, "PRODUCT_LINE", V.DataTable.dtQuoteLines(V.Local.iCounter).PRODUCT_LINE!FieldValTrim)
+			F.Intrinsic.Control.If(V.Args.Model)
+				F.Data.DataTable.SetValue("dtQuoteLines", V.Local.iCounter, "FINAL_PARENT", V.DataTable.dtQuoteLines(V.Local.iCounter).PART!FieldValTrim)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadQuotes.End
+
+Program.Sub.CheckModelNumber.Start
+F.Intrinsic.Control.Try
+
+'pass PART, PRODUCT_LINE
+
+V.Local.bInString.Declare(Boolean, False)
+V.Local.sTemp.Declare(String)
+V.Local.iLength.Declare(Long)
+'V.Local.sProductLines.Declare(String, "CL*!*C2*!*FL*!*F2*!*SL*!*S2*!*DL*!*DS*!*EL")
+V.Local.sProductLines.Declare(String, "EL")
+V.Local.bReturn.Declare(Boolean, False)
+
+'parents will be any parts that A. Are, in product lines  CL ,  C2 ,  FL ,  F2 ,  SL ,  S2 ,  DL ,  DS ,  EL 
+'or B. Are blank product lines and Start with one of those..... this is kinda bad though
+F.Intrinsic.Control.If(V.Args.Product_Line.Trim, !=, "")
+	F.Intrinsic.String.IsInString(V.Local.sProductLines, V.Args.Product_Line, True, V.Local.bInString)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.bInString)
+	V.Local.bReturn.Set(True)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.If(V.Args.Product_Line, =, "")
+		F.Intrinsic.String.Left(V.Args.Part, 2, V.Local.sTemp)
+		F.Intrinsic.String.IsInString(V.Local.sProductLines, V.Local.sTemp, True, V.Local.bInString)
+		F.Intrinsic.Control.If(V.Local.bInString)
+			F.Intrinsic.Math.Sub(V.Args.Part.Length, 2, V.Local.iLength)
+			F.Intrinsic.String.Mid(V.Args.Part, 3, V.Local.iLength, V.Local.sTemp)
+			F.Intrinsic.Control.If(V.Local.sTemp.IsNumeric)
+				V.Local.bReturn.Set(True)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("MODEL", V.Local.bReturn)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckModelNumber.End
+
+Program.Sub.CreateParts.Start
+'create the parts for the order
+'part will be Model number (first line of quote) + quote number (minus first 0)
+
+F.Intrinsic.Control.Try
+
+V.Local.sPart.Declare(String)
+V.Local.sQuoteNumber.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.fPrice.Declare(Float)
+V.Local.sMessage.Declare(String)
+V.Local.fFreight.Declare(Float)
+V.Local.sProductLine.Declare(String)
+V.Local.iParent.Declare(Long)
+
+F.Data.DataTable.Create("dtNewParts", True)
+F.Data.DataTable.AddColumn("dtNewParts", "CREATED_PART", "String", "")
+F.Data.DataTable.AddColumn("dtNewParts", "TOTAL_PRICE", "Float", 0)
+F.Data.DataTable.AddColumn("dtNewParts", "PART_QUANTITY", "Float", 0)
+F.Data.DataTable.AddColumn("dtNewParts", "QUOTE_NO", "String", "")
+
+F.Data.DataTable.AddColumn("dtQuoteHeader", "NEW_FREIGHT", "Float", 0)
+F.Data.DataView.Create("dtQuoteLines", "dvQuoteLines", 22, "", "RECORD_NO")
+F.Data.DataView.ToDataTableDistinct("dtQuoteLines", "dvQuoteLines", "dtParents", "QUOTE_NO*!*FINAL_PARENT")
+F.Data.DataView.Create("dtParents", "dvParents", 22)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtQuoteHeader.RowCount--, 1)
+	F.Intrinsic.String.Build("[QUOTE_NO] = '{0}' and FINAL_PARENT <> ''", V.DataTable.dtQuoteHeader(V.Local.iCounter).QUOTE_NO!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtParents", "dvParents", V.Local.sFilter)
+	F.Intrinsic.Control.For(V.Local.iParent, 0, V.DataView.dtParents!dvParents.RowCount--, 1)
+		
+		F.Intrinsic.String.Build("[QUOTE_NO] = '{0}' and [FINAL_PARENT] = '{1}'", V.DataView.dtParents!dvParents(V.Local.iParent).QUOTE_NO!FieldValTrim, V.DataView.dtParents!dvParents(V.Local.iParent).FINAL_PARENT!FieldValTrim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtQuoteLines", "dvQuoteLines", V.Local.sFilter)
+		F.Intrinsic.Control.If(V.DataView.dtQuoteLines!dvQuoteLines.RowCount, >, 0)
+			F.Data.DataTable.Compute("dtQuoteLines", "Sum(EXTENSION)", V.Local.sFilter, V.Local.fPrice)
+			
+			V.Local.sQuoteNumber.Set(V.DataView.dtQuoteLines!dvQuoteLines(0).QUOTE_NO!FieldValTrim)
+			F.Intrinsic.Control.If(V.Local.sQuoteNumber.Left1, =, "0")
+				V.Local.sQuoteNumber.Set(V.Local.sQuoteNumber.Right6)
+			F.Intrinsic.Control.EndIf
+			
+			'calculate price
+			F.Intrinsic.Math.Div(V.Local.fPrice, V.DataView.dtQuoteLines!dvQuoteLines(0).QTY_QUOTED!FieldValFloat, V.Local.fPrice)
+			
+			'build part number
+			F.Intrinsic.String.Build("{0}-{1}", V.DataView.dtQuoteLines!dvQuoteLines(0).PART!FieldValTrim, V.Local.sQuoteNumber, V.Local.sPart)
+			
+			'check if part exists
+			F.Global.Inventory.GetPartInfo(V.Local.sPart, "", V.Local.sRet)
+			F.Intrinsic.Control.If(V.Local.sRet.Trim, =, "***NOPARTFOUND***")
+				'create part
+				F.Intrinsic.String.Build("Creating part {0} for quote {1}.", V.Local.sPart, V.DataView.dtQuoteLines!dvQuoteLines(0).QUOTE_NO!FieldValTrim, V.Local.sMessage)
+				
+				'generate product line
+				F.Intrinsic.Control.If(V.Local.sPart.Length, >, 1)
+					F.Intrinsic.Control.SelectCase(V.Local.sPart.Left2)
+						F.Intrinsic.Control.Case("CL")
+							V.Local.sProductLine.Set("C2")
+						F.Intrinsic.Control.Case("FL")
+							V.Local.sProductLine.Set("F2")
+						F.Intrinsic.Control.Case("SL")
+							V.Local.sProductLine.Set("S2")
+						F.Intrinsic.Control.Case("DL")
+							V.Local.sProductLine.Set("DL")
+						F.Intrinsic.Control.Case("DS")
+							V.Local.sProductLine.Set("DS")
+						F.Intrinsic.Control.Case("EL")
+							V.Local.sProductLine.Set("EL")
+						F.Intrinsic.Control.CaseElse
+							V.Local.sProductLine.Set("FG")
+					F.Intrinsic.Control.EndSelect
+				F.Intrinsic.Control.Else
+					V.Local.sProductLine.Set("FG")
+				F.Intrinsic.Control.EndIf
+				
+				F.Global.Inventory.CreatePart(V.Local.sPart, "EA", V.DataView.dtQuoteLines!dvQuoteLines(0).DESCRIPTION!FieldValTrim, "", V.Local.sProductLine, "M", "", "", V.Local.fPrice, "UPLOADED")
+			F.Intrinsic.Control.Else
+				'update part
+				F.Intrinsic.String.Build("Updating part {0} for quote {1}.", V.Local.sPart, V.DataView.dtQuoteLines!dvQuoteLines(0).QUOTE_NO!FieldValTrim, V.Local.sMessage)
+				
+				F.Intrinsic.String.Build("update INVENTORY_MSTR set AMT_PRICE = '{0}' where PART = '{1}' and LOCATION = '{2}'", V.Local.fPrice, V.Local.sPart, "", V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+				F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+				F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+				F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			
+			F.Data.DataTable.AddRow("dtNewParts", "QUOTE_NO", V.DataView.dtQuoteLines!dvQuoteLines(0).QUOTE_NO!FieldValTrim, "CREATED_PART", V.Local.sPart, "TOTAL_PRICE", V.Local.fPrice, "PART_QUANTITY", V.DataView.dtQuoteLines!dvQuoteLines(0).QTY_QUOTED!FieldValFloat)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iParent)
+	
+	'grab freight
+	F.Intrinsic.String.Build("[QUOTE_NO] = '{0}' and [PART] = 'FREIGHT'", V.DataTable.dtQuoteHeader(V.Local.iCounter).QUOTE_NO!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtQuoteLines", "dvQuoteLines", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtQuoteLines!dvQuoteLines.RowCount, >, 0)
+		F.Data.DataTable.Compute("dtQuoteLines", "Sum(EXTENSION)", V.Local.sFilter, V.Local.fFreight)
+		F.Data.DataTable.SetValue("dtQuoteHeader", V.Local.iCounter, "NEW_FREIGHT", V.Local.fFreight)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtParents", "dvParents")
+F.Data.DataTable.Close("dtParents")
+F.Data.DataView.Close("dtQuoteLines", "dvQuoteLines")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateParts.End
+
+Program.Sub.StageOrders.Start
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sSQL.Declare(String, "select Order_No_External, GSS_CustomerNo, Ext_CustomerNO, GSS_PartNumber, QtyOrdered, LineUnitPrice, OrderDueDate, OrderDate, CustomerPO, SalespersonCode, UserField1Head, UserField2Head, UserField3Head, UserField4Head, UserField5Head, ShipToID, ShipToName, ShipToAddress1, ShipToAddress2, ShipToAddress3, ShipToCity, ShipToState, ShipToZip, ShipToCountry, ShipToAttention, BillToName, BillToAddress1, BillToAddress2, BillToAddress3, BillToAddress4, BillToAddress5, BillToCity, BillToState, BillToZip, BillToCountry, BillToAttention, OrderSort, OrderSort2, Freight, Terms, ShipVia, ShipToContactName, ShipToContactEmail, ShipToContactPhone, MarkShipment, LineType, LineOrderDate, LinePromiseDate, RECORD_TIMESTAMP from GCG_5807_ORDER_STAGE where ORDER_NO_EXTERNAL = ''")
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+
+'create empty base datatable
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtStage", "Con", V.Local.sSQL, True)
+F.Data.DataTable.DeleteRow("dtStage")
+F.Data.DataTable.AcceptChanges("dtStage")
+
+F.Intrinsic.Control.CallSub(GetExternalIDField, "Type", "ORDER")
+
+'all we really need is customer, external order, part, quantity, due date
+F.Data.DataView.Create("dtQuotes", "dvQuotes", 22)
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtQuoteHeader.RowCount--, 1)
+	
+	F.Intrinsic.Control.If(V.DataTable.dtQuoteHeader(V.Local.iCounter).FAILED!FieldVal, =, False)
+		F.Intrinsic.String.Build("[QUOTE] = '{0}'", V.DataTable.dtQuoteHeader(V.Local.iCounter).QUOTE_NO!FieldValTrim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtQuotes", "dvQuotes", V.Local.sFilter)
+		
+		F.Intrinsic.Control.If(V.DataView.dtQuotes!dvQuotes.RowCount, >, 0)
+			F.Intrinsic.Control.If(V.DataView.dtQuotes!dvQuotes(0).UPDATE!FieldVal)
+				'run some checks and update
+				F.Intrinsic.Control.CallSub(UpdateOrder, "INDEX", V.Local.iCounter, "CORE_FIELD", V.Args.CORE_FIELD)
+			F.Intrinsic.Control.Else
+				'add to the staging table
+				F.Intrinsic.Control.CallSub(AddOrderToStagingTable, "INDEX", V.Local.iCounter, "ORDER", "")
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Error: Quote records not found for quote {0}", V.DataTable.dtQuoteHeader(V.Local.iCounter).QUOTE_NO!FieldValTrim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtQuotes", "dvQuotes")
+
+'save back to staging table
+F.Intrinsic.Control.If(V.DataTable.dtStage.RowCount, >, 0)
+	F.Data.DataTable.SetValue("dtStage", -1, "RECORD_TIMESTAMP", V.Ambient.Now)
+	F.Intrinsic.Control.CallSub(BackUpDataTable, "DataTable", "dtStage", "Type", "OrderToQuoteJRM", "Name", "OrdersToStage", "DataView", "")
+	V.Global.bRunUploader.Set(True)
+	F.Data.DataTable.SaveToDB("dtStage", "Con", "GCG_5807_ORDER_STAGE", "Order_No_External*!*GSS_PartNumber", 128)
+	F.Data.DataTable.Close("dtStage")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.StageOrders.End
+
+Program.Sub.AddOrderToStagingTable.Start
+'add the record to the staging table
+'pass INDEX, optional ORDER_NUMBER
+
+F.Intrinsic.Control.Try
+
+V.Local.sQuote.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sPO.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+
+F.Intrinsic.String.Build("Adding order from quote {0} to staging table.", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'they require customer PO on sales orders, so create one if it's empty
+F.Intrinsic.String.Build("Quote:{0}", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sQuote)
+F.Intrinsic.Control.If(V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER_PO!FieldValTrim, !=, "")
+	V.Local.sPO.Set(V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER_PO!FieldValTrim)
+F.Intrinsic.Control.Else
+	V.Local.sPO.Set(V.Local.sQuote)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("QUOTE_NO = '{0}'", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sFilter)
+F.Data.DataView.Create("dtNewParts", "dvNewParts", 22, V.Local.sFilter, "")
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtNewParts!dvNewparts.RowCount--, 1)
+	F.Data.DataTable.AddRow("dtStage", "Order_No_External", V.Local.sQuote, "GSS_CustomerNo", V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER!FieldValTrim, "Ext_CustomerNO", V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER!FieldValTrim, "GSS_PartNumber", V.DataView.dtNewParts!dvNewParts(V.Local.iCounter).CREATED_PART!FieldValTrim, "QtyOrdered", V.DataView.dtNewParts!dvNewParts(V.Local.iCounter).PART_QUANTITY!FieldValFloat, "LineUnitPrice", V.DataView.dtNewParts!dvNewParts(V.Local.iCounter).TOTAL_PRICE!FieldValTrim, "OrderDueDate", V.DataTable.dtQuoteHeader(V.Args.Index).DATE_DUE!FieldVal, "OrderDate", V.Ambient.Date, "CustomerPO", V.Local.sPO, "SalespersonCode", V.DataTable.dtQuoteHeader(V.Args.Index).SALESPERSON!FieldValTrim, "UserField1Head", V.DataTable.dtQuoteHeader(V.Args.Index).USER_1!FieldValTrim, "UserField2Head",  V.DataTable.dtQuoteHeader(V.Args.Index).USER_2!FieldValTrim, "UserField3Head",  V.DataTable.dtQuoteHeader(V.Args.Index).USER_3!FieldValTrim, "UserField4Head",  V.DataTable.dtQuoteHeader(V.Args.Index).USER_4!FieldValTrim, "UserField5Head",  V.DataTable.dtQuoteHeader(V.Args.Index).USER_5!FieldValTrim, "ShipToID", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_ID!FieldValTrim, "ShipToName", V.DataTable.dtQuoteHeader(V.Args.Index).NAME_CUSTOMER_SHIP!FieldValTrim, "ShipToAddress1", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_1_SHIP!FieldValTrim, "ShipToAddress2", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_2_SHIP!FieldValTrim, "ShipToAddress3", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_3_SHIP!FieldValTrim, "ShipToCity", V.DataTable.dtQuoteHeader(V.Args.Index).CITY_SHIP!FieldValTrim, "ShipToState", V.DataTable.dtQuoteHeader(V.Args.Index).STATE_SHIP!FieldValTrim, "ShipToZip", V.DataTable.dtQuoteHeader(V.Args.Index).CODE_ZIP_SHIP!FieldValTrim, "ShipToCountry", V.DataTable.dtQuoteHeader(V.Args.Index).COUNTRY_SHIP!FieldValTrim, "ShipToAttention", V.DataTable.dtQuoteHeader(V.Args.Index).ATTENTION_SHIP!FieldValTrim, "BillToName",V.DataTable.dtQuoteHeader(V.Args.Index).NAME_CUSTOMER!FieldValTrim, "BillToAddress1", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_1!FieldValTrim, "BillToAddress2", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_2!FieldValTrim, "BillToAddress3", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_3!FieldValTrim, "BillToAddress4", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_4!FieldValTrim, "BillToAddress5", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_5!FieldValTrim, "BillToCity", V.DataTable.dtQuoteHeader(V.Args.Index).CITY!FieldValTrim, "BillToState", V.DataTable.dtQuoteHeader(V.Args.Index).STATE!FieldValTrim, "BillToZip", V.DataTable.dtQuoteHeader(V.Args.Index).ZIP_CODE!FieldValTrim, "BillToCountry", V.DataTable.dtQuoteHeader(V.Args.Index).COUNTRY!FieldValTrim, "BillToAttention", V.DataTable.dtQuoteHeader(V.Args.Index).ATTENTION!FieldValTrim, "OrderSort", V.DataTable.dtQuoteHeader(V.Args.Index).CODE_SORT!FieldValTrim, "OrderSort2", V.DataTable.dtQuoteHeader(V.Args.Index).QUOTE_SORT_2!FieldValTrim, "Freight", V.DataTable.dtQuoteHeader(V.Args.Index).NEW_FREIGHT!FieldValFloat, "Terms", V.DataTable.dtQuoteHeader(V.Args.Index).TERMS!FieldValTrim, "ShipVia", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_VIA!FieldValTrim, "ShipToContactName", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT!FieldValTrim, "ShipToContactEmail", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT_EMAIL!FieldValTrim, "ShipToContactPhone", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT_PHONE!FieldValTrim, "MarkShipment", V.DataTable.dtQuoteHeader(V.Args.Index).MARK_INFO!FieldValTrim, "LineType", "S", "LineOrderDate", V.Ambient.Date, "LinePromiseDate", V.DataTable.dtQuoteHeader(V.Args.Index).DATE_DUE!FieldVal)
+	
+	F.Intrinsic.Control.If(V.Args.Order.Trim, !=, "")
+		F.Data.DataTable.SetValue("dtStage", V.DataTable.dtStage.RowCount--, "OrderNumber", V.Args.Order)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtNewParts", "dvNewParts")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddOrderToStagingTable.End
+
+Program.Sub.UpdateOrder.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sQuote.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sOrders.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sLine.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.sOrder.Declare(String)
+V.Local.fOnhand.Declare(Float)
+
+F.Intrinsic.String.Build("Attempting to update order from quote {0}.", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'grab the original sales order
+F.Intrinsic.String.Build("Quote:{0}", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sQuote)
+F.Intrinsic.String.Build("select RTRIM(A.PART), RTRIM(A.ORDER_NO), RTRIM(A.RECORD_NO) from V_ORDER_LINES A left join V_ORDER_HEADER B on A.ORDER_NO = B.ORDER_NO where B.{0} = '{1}' and A.LINE_TYPE = 'S'", V.Args.CORE_FIELD, V.Local.sQuote, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+
+F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	F.Intrinsic.String.Build("Could not find previosly created sales order from quote {0}. Creating new sales order.", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+	'could not find correct old sales order, nothing we can do other than create new
+	F.Intrinsic.Control.CallSub(AddOrderToStagingTable, "INDEX", V.Args.Index, "ORDER", "")
+	
+F.Intrinsic.Control.Else
+	
+	'so, first, delete all lines
+	F.Data.DataView.Create("dtNewParts", "dvNewParts", 22)
+	F.Intrinsic.String.Split(V.Local.sRet, "#$#", V.Local.sOrders)
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sOrders.UBound, 1)
+		'check if the part is one of the new parts
+		F.Intrinsic.String.Split(V.Local.sOrders(V.Local.iCounter), "*!*", V.Local.sRet)
+		V.Local.sOrder.Set(V.Local.sRet(1).Trim)
+		F.Intrinsic.String.Build("QUOTE_NO = '{0}' and CREATED_PART = '{1}'", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sRet(0).Trim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtNewParts", "dvNewParts", V.Local.sFilter)
+		
+		'if it's not, delete it
+		F.Intrinsic.Control.If(V.DataView.dtNewParts!dvNewParts.RowCount, =, 0)
+			F.Intrinsic.String.Build("select QTY_ONHAND from V_INVENTORY_MSTR where PART = '{0}'", V.Local.sRet(0).Trim, V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.fOnHand)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+				F.Intrinsic.Control.If(V.Local.fOnhand, =, 0)
+					F.Intrinsic.Control.CallSub(DeletePart, "PART", V.Local.sRet(0).Trim, "LOCATION", "")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.String.Left(V.Local.sRet(2), 3, V.Local.sLine)
+		
+		'now delete the line
+		'so before we were reuploading the order entirely
+		'but because they invoice their progress bill lines this causes issues
+		'instead we will update the item line and any header information, and leave other progress bill lines intact
+		F.Intrinsic.String.Build("Previosly created sales order {0} from quote {1} found. Deleting line {2} for re-upload.", V.Local.sOrder, V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sLine.Long, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		
+		'first delete the line in question
+		F.Intrinsic.String.Build("Running callwrapper Sales.DeleteSalesOrder for order {0} line {1}...",  V.Local.sOrder, V.Local.sLine.Long, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		F.Global.Callwrapper.New("DeleteSalesOrder", "Sales.DeleteSalesOrder")
+		F.Global.Callwrapper.SetProperty("DeleteSalesOrder", "SalesOrderNumber", V.Local.sOrder)
+		F.Global.Callwrapper.SetProperty("DeleteSalesOrder", "SalesOrderLineNumber", V.Local.sLine.Long)
+		F.Global.Callwrapper.Run("DeleteSalesOrder")
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	
+	'okay, now all standard lines have been deleted
+	'so now we need to add back all the new parts
+	F.Intrinsic.String.Build("QUOTE_NO = '{0}'", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtNewParts", "dvNewParts", V.Local.sFilter)
+	F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataView.dtNewParts!dvNewParts.RowCount--, 1)
+		'grab the next line on the order
+		F.Intrinsic.String.Build("select top 1 RECORD_NO from V_ORDER_LINES where LINE_TYPE = 'S' and ORDER_NO = '{0}' order by RECORD_NO desc", V.Local.sOrder, V.Local.sSQL)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sLine)
+		F.Intrinsic.String.Left(V.Local.sLine, 3, V.Local.sLine)
+		F.Intrinsic.Math.Add(V.Local.sLine.Long, 1, V.Local.sLine)
+		
+		'now reupload the line
+		F.Intrinsic.Control.CallSub(AddOrderLine, "Index", V.Args.Index, "Order", V.Local.sOrder, "PART", V.DataView.dtNewParts!dvNewParts(V.Local.iCounter).CREATED_PART!FieldValTrim, "Line", V.Local.sLine)
+	F.Intrinsic.Control.Next(V.Local.iCounter)
+	F.Data.DataView.Close("dtNewParts", "dvNewParts")
+	
+	'now update any header info
+	F.Intrinsic.Control.CallSub(UpdateOrderHeaderInfo, "Index", V.Args.Index, "Order", V.Local.sRet(1).Trim)
+	
+	'now update freight line
+	F.Intrinsic.Control.CallSub(UpdateFreightLine, "Index", V.Args.Index, "Order", V.Local.sRet(1).Trim)
+	
+	'email salesperson if that option is on
+	F.Intrinsic.Control.CallSub(GetSetting, "TYPE", "ORDER", "NAME", "EMAIL_SALESPERSON")
+	F.Intrinsic.Control.If(V.Args.Setting.Trim, !=, "")
+		F.Intrinsic.Control.If(V.Args.Setting)
+			'currently justrite is putting the external order number in the header user field 1, need some way to account for this in other cases
+			F.Intrinsic.Control.CallSub(EmailOrderToSalesperson, "ORDER", V.Local.sRet(1).Trim, "SALESPERSON", V.DataTable.dtQuoteHeader(V.Args.Index).SALESPERSON!FieldValTrim, "EXTERNAL_ORDER", V.DataTable.dtQuoteHeader(V.Args.Index).USER_2!FieldValTrim)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UpdateOrder.End
+
+Program.Sub.AddOrderLine.Start
+'pass V.Args.Index for index of the line in the dtQuoteHeader table
+'pass V.Args.Order for the order number
+'pass PART for the part number
+'pass LINE for line number
+
+F.Intrinsic.Control.Try
+
+V.Local.sPrice.Declare(String)
+V.Local.sQuantity.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sFilter.Declare(String)
+
+F.Intrinsic.String.Build("CREATED_PART = '{0}'", V.Args.PART, V.Local.sFilter)
+F.Data.DataView.Create("dtNewParts", "dvAddLine", 22, V.Local.sFilter, "")
+F.Intrinsic.Control.If(V.DataView.dtNewParts!dvAddLine.RowCount, >, 0)
+	F.Intrinsic.Control.CallSub(FormatCallwrapperDecimal, "VALUE", V.DataView.dtNewParts!dvAddLine(0).TOTAL_PRICE!FieldValTrim, "BEFORE_DECIMAL", 10, "AFTER_DECIMAL", 6)
+	V.Local.sPrice.Set(V.Args.CALLWRAPPER_DECIMAL)
+	
+	F.Intrinsic.Control.CallSub(FormatCallwrapperDecimal, "VALUE", V.DataView.dtNewParts!dvAddLine(0).PART_QUANTITY!FieldValTrim, "BEFORE_DECIMAL", 9, "AFTER_DECIMAL", 4)
+	V.Local.sQuantity.Set(V.Args.CALLWRAPPER_DECIMAL)
+	
+	'maybe need to grab user fields?
+	F.Data.DataTable.AddRow("ORDADLN", "RECTYPE", "O", "CUSTOMER", V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER!FieldValTrim, "ORDERNO", V.Args.Order, "PART", V.DataView.dtNewParts!dvAddLine(0).CREATED_PART!FieldValTrim, "LINENO", V.Args.Line, "LINETYPE", "S", "QTYORDER", V.Local.sQuantity, "QUOTEDPRICE", V.Local.sPrice)
+	
+	'run the callwrapper
+	F.Intrinsic.String.Build("Running callwrapper 7020 (ORDADLN) for order {0} line {1} using library GCG_5807_7020.lib", V.Args.Order, V.Args.Line, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(7020Sync, "ORDER", V.Args.Order, "TYPE", "O")
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Could not find part [{0}] information for re-adding line for order [{1}]. Line will not be re-added.", V.Args.Part, V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+F.Data.DataView.Close("dtNewParts", "dvAddLine")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.AddOrderLine.End
+
+Program.Sub.UpdateOrderHeaderInfo.Start
+'pass ORDER, Index
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sQuote.Declare(String)
+V.Local.sPO.Declare(String)
+V.Local.sDate.Declare(String)
+V.Local.sTable.Declare(String)
+
+F.Intrinsic.String.Build("Updating header information for order {0}", V.Args.Order, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'they require customer PO on sales orders, so create one if it's empty
+F.Intrinsic.String.Build("Quote:{0}", V.DataTable.dtQuoteHeader(V.Args.Index).Quote_No!FieldValTrim, V.Local.sQuote)
+F.Intrinsic.Control.If(V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER_PO!FieldValTrim, !=, "")
+	V.Local.sPO.Set(V.DataTable.dtQuoteHeader(V.Args.Index).CUSTOMER_PO!FieldValTrim)
+F.Intrinsic.Control.Else
+	V.Local.sPO.Set(V.Local.sQuote)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+
+'order_header - ship id, due date, customer po, mark shipment, terms, sort, user 1, user 2, user 3, user 4, user 5, salesperson, ship via, order sort 2
+'grab base table
+F.Intrinsic.String.Build("select ORDER_NO, RECORD_TYPE, SHIP_ID, DATE_DUE, CUSTOMER_PO, MARK_INFO, TERMS, CODE_SORT, ORDER_SORT_2, USER_1, USER_2, USER_3, USER_4, USER_5, SALESPERSON, SHIP_VIA from V_ORDER_HEADER where ORDER_NO = '{0}'", V.Args.Order, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtOrderHeader", "Con", V.Local.sSQL)
+
+F.Intrinsic.Control.If(V.DataTable.dtOrderHeader.RowCount, >, 0)
+	F.Intrinsic.String.Format(V.DataTable.dtQuoteHeader(V.Args.Index).DATE_DUE!FieldVal, "MMDDYY", V.Local.sDate)
+	F.Data.DataTable.RemoveColumn("dtOrderHeader", "DATE_DUE")
+	F.Data.DataTable.AddColumn("dtOrderHeader", "DATE_DUE", "String", V.Local.sDate)
+	
+	F.Data.DataTable.SetValue("dtOrderHeader", 0, "SHIP_ID", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_ID!FieldValTrim, "DATE_DUE", V.Local.sDate, "CUSTOMER_PO", V.Local.sPO, "MARK_INFO", V.DataTable.dtQuoteHeader(V.Args.Index).MARK_INFO!FieldValTrim, "TERMS", V.DataTable.dtQuoteHeader(V.Args.Index).TERMS!FieldValTrim, "CODE_SORT", V.DataTable.dtQuoteHeader(V.Args.Index).CODE_SORT!FieldValTrim, "ORDER_SORT_2", V.DataTable.dtQuoteHeader(V.Args.Index).QUOTE_SORT_2!FieldValTrim, "USER_1", V.DataTable.dtQuoteHeader(V.Args.Index).USER_1!FieldValTrim, "USER_2", V.DataTable.dtQuoteHeader(V.Args.Index).USER_2!FieldValTrim, "USER_3", V.DataTable.dtQuoteHeader(V.Args.Index).USER_3!FieldValTrim, "USER_4", V.DataTable.dtQuoteHeader(V.Args.Index).USER_4!FieldValTrim, "USER_5", V.DataTable.dtQuoteHeader(V.Args.Index).USER_5!FieldValTrim, "SALESPERSON", V.DataTable.dtQuoteHeader(V.Args.Index).SALESPERSON!FieldValTrim, "SHIP_VIA", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_VIA!FieldValTrim)
+	
+	F.Intrinsic.String.Build("Running SaveToDB on ORDER_HEADER for order {0}", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Data.DataTable.SaveToDB("dtOrderHeader", "Con", "ORDER_HEADER", "ORDER_NO*!*RECORD_TYPE", 256)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Error: ORDER_HEADER record for order {0} not found.", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("dtOrderHeader")
+
+'order_ship_to - ship id, ship name, ship address 1, ship address 2, ship address 3, ship address 4, ship address 5, ship city, ship state, ship country, ship attention, ship via
+F.Intrinsic.String.Build("select ORDER_NO, RECORD_TYPE, ORDER_SHIP_ID, SHIP_ID, NAME_CUSTOMER_SHIP, ADDRESS_1_SHIP, ADDRESS_2_SHIP, ADDRESS_3_SHIP, CITY_SHIP, STATE_SHIP, CODE_ZIP_SHIP, COUNTRY_SHIP, ATTENTION_SHIP, SHIP_VIA_SHIP from V_ORDER_SHIP_TO where ORDER_NO = '{0}'", V.Args.Order, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtOrderShipTo", "Con", V.Local.sSQL)
+
+F.Intrinsic.Control.If(V.DataTable.dtOrderShipTo.RowCount, >, 0)
+	F.Data.DataTable.SetValue("dtOrderShipTo", 0, "ORDER_SHIP_ID", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_ID!FieldValTrim, "SHIP_ID", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_ID!FieldValTrim, "NAME_CUSTOMER_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).NAME_CUSTOMER_SHIP!FieldValTrim, "ADDRESS_1_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_1_SHIP!FieldValTrim, "ADDRESS_2_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_2_SHIP!FieldValTrim, "ADDRESS_3_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_3_SHIP!FieldValTrim , "CITY_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).CITY_SHIP!FieldValTrim, "STATE_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).STATE_SHIP!FieldValTrim, "CODE_ZIP_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).CODE_ZIP_SHIP!FieldValTrim, "COUNTRY_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).COUNTRY_SHIP!FieldValTrim, "ATTENTION_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).ATTENTION_SHIP!FieldValTrim, "SHIP_VIA_SHIP", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_VIA!FieldValTrim)
+	
+	F.Intrinsic.String.Build("Running SaveToDB on ORDER_SHIP_TO for order {0}", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Data.DataTable.SaveToDB("dtOrderShipTo", "Con", "ORDER_SHIP_TO", "ORDER_NO*!*RECORD_TYPE", 256)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Error: ORDER_SHIP_TO record for order {0} not found.", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("dtOrderShipTo")
+
+'order_bill_to - ship id, bill name, bill address 1, bill address 2, bill address 3, bill address 4, bill address 5, bill city, bill state, bill zip, bill country, bill attention, contact name, phone, email
+F.Intrinsic.String.Build("select ORDER_NO, RECORD_TYPE, SHIP_ID, NAME_CUSTOMER, ADDRESS_1, ADDRESS_2, ADDRESS_3, ADDRESS_4, ADDRESS_5, CITY, STATE, ZIP_CODE, COUNTRY, ATTENTION, CONTACT, CONTACT_PHONE, CONTACT_EMAIL from V_ORDER_BILL_TO where ORDER_NO = '{0}'", V.Args.Order, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtOrderBillTo", "Con", V.Local.sSQL)
+
+F.Intrinsic.Control.If(V.DataTable.dtOrderBillTo.RowCount, >, 0)
+	F.Data.DataTable.SetValue("dtOrderBillTo", 0, "SHIP_ID", V.DataTable.dtQuoteHeader(V.Args.Index).SHIP_ID!FieldValTrim, "NAME_CUSTOMER", V.DataTable.dtQuoteHeader(V.Args.Index).NAME_CUSTOMER!FieldValTrim, "ADDRESS_1", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_1!FieldValTrim, "ADDRESS_2", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_2!FieldValTrim, "ADDRESS_3", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_3!FieldValTrim, "ADDRESS_4", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_4!FieldValTrim, "ADDRESS_5", V.DataTable.dtQuoteHeader(V.Args.Index).ADDRESS_5!FieldValTrim, "CITY", V.DataTable.dtQuoteHeader(V.Args.Index).CITY!FieldValTrim, "STATE", V.DataTable.dtQuoteHeader(V.Args.Index).STATE!FieldValTrim, "ZIP_CODE", V.DataTable.dtQuoteHeader(V.Args.Index).ZIP_CODE!FieldValTrim, "COUNTRY", V.DataTable.dtQuoteHeader(V.Args.Index).COUNTRY!FieldValTrim, "ATTENTION", V.DataTable.dtQuoteHeader(V.Args.Index).ATTENTION!FieldValTrim, "CONTACT", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT!FieldValTrim, "CONTACT_PHONE", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT_PHONE!FieldValTrim, "CONTACT_EMAIL", V.DataTable.dtQuoteHeader(V.Args.Index).CONTACT_EMAIL!FieldValTrim)
+	
+	F.Intrinsic.String.Build("Running SaveToDB on ORDER_BILL_TO for order {0}", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Data.DataTable.SaveToDB("dtOrderBillTo", "Con", "ORDER_BILL_TO", "ORDER_NO*!*RECORD_TYPE", 256)
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Error: ORDER_BILL_TO record for order {0} not found.", V.Args.Order, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("dtOrderBillTo")
+
+'fix external ID
+F.Intrinsic.Control.CallSub(GetExternalIDField, "Type", "ORDER")
+F.Intrinsic.String.Replace(V.Args.Core_Table, "V_", "", V.Local.sTable)
+F.Intrinsic.String.Build("update {0} set {1} = '{2}' where RECORD_TYPE = 'A' and ORDER_NO = '{3}'", V.Local.sTable, V.Args.CORE_FIELD, V.Local.sQuote, V.Args.Order, V.Local.sSQL)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UpdateOrderHeaderInfo.End
+
+Program.Sub.UpdateFreightLine.Start
+'manually update the freight line
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+V.Local.sParams.Declare(String)
+
+F.Intrinsic.String.Build("Running callwrapper 203000 to update Freight for order {0}", V.Args.Order, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+'try to use callwrapper, if not then SQL
+'CALLING-PROGRAM, FILE-TYPE, MODE, PASS-ORDER, PASS-MSG, FRT, FRT-COST, GL-ACCT, TAX-FLAG, SET-FRT-ONLY-FLAG, RETURN, FILE-NAME
+F.Intrinsic.String.ConcatCallWrapperArgs("SYS050", "O", "S", V.Args.Order, "", V.DataTable.dtQuoteHeader(V.Args.Index).NEW_FREIGHT!FieldValFloat, V.DataTable.dtQuoteHeader(V.Args.Index).NEW_FREIGHT!FieldValFloat, "", "", "N", "", "", V.Local.sParams)
+Function.Global.General.CallWrapperSync(203000,V.Local.sParams)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UpdateFreightLine.End
+
+Program.Sub.DeletePart.Start
+'pass PART, LOCATION
+'Deletes the passed part using the 3500 library
+
+F.Intrinsic.Control.Try
+
+V.Local.sMessage.Declare(String)
+
+F.Intrinsic.String.Build("Deleting part {0}", V.Args.Part.Trim, V.Local.sMessage)
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Data.DataTable.AddRow("3500", "CompanyCode", V.Caller.CompanyCode, "Mode", "D", "Switch2", "N", "Part", V.Args.Part.Trim, "Loc", V.Args.Location.Trim)
+F.Intrinsic.Control.CallSub(3500Sync)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.DeletePart.End
+
+Program.Sub.UploadOrders.Start
+F.Intrinsic.Control.Try
+
+V.Local.sPath.Declare(String)
+
+'call order uploader
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Running order uploader...")
+F.Intrinsic.String.Build("{0}\GCG_5807_OrderUploader.g2u", V.Ambient.ScriptPath, V.Local.sPath)
+F.Global.General.CallSyncGAS(V.Local.sPath, V.Caller.Switches)
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Order uploader processing finished.")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadOrders.End
+
+Program.Sub.GrabFeedback.Start
+'check if orders uploaded successfully
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sMessage.Declare(String)
+V.Local.sQuote.Declare(String)
+V.Local.sType.Declare(String)
+V.Local.sFilter.Declare(String)
+
+F.Data.DataTable.AddExpressionColumn("dtQuotes", "EXTERNAL_ORDER", "String", "'Quote:' + [QUOTE]")
+F.Intrinsic.Control.CallSub(GetFilter, "DataTable", "dtQuotes", "Field", "EXTERNAL_ORDER")
+
+'this will create duplicates if the order was processed multiple times...
+F.Intrinsic.String.Build("select distinct RTRIM(Order_No_External) Order_No_External, RTRIM(ORDERNUMBER) ORDERNUMBER, Failed, RTRIM(Feedback) Feedback, Update_Order, PROCESSED_TIMESTAMP from GCG_5807_ORDER_STAGE where Order_No_External in ('{0}') and PROCESSED = 1", V.Args.Filter, V.Local.sSQL)
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtFeedback", "Con", V.Local.sSQL)
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+
+F.Data.DataView.Create("dtFeedback", "dvFeedback", 22, "", "PROCESSED_TIMESTAMP desc")
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtFeedback.RowCount--, 1)
+	F.Intrinsic.String.Build("ORDER_NO_EXTERNAL = '{0}'", V.DataTable.dtFeedback(V.Local.iCounter).Order_No_External!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtFeedback", "dvFeedback", V.Local.sFilter)
+	F.Intrinsic.Control.If(V.DataView.dtFeedback!dvFeedback.RowCount, >, 0)
+		V.Local.sQuote.Set(V.DataView.dtFeedback!dvFeedback(0).Order_No_External!FieldValTrim)
+		F.Intrinsic.String.Replace(V.Local.sQuote, "Quote:", "", V.Local.sQuote)
+		
+		F.Intrinsic.Control.If(V.DataView.dtFeedback!dvFeedback(0).Update_Order!FieldVal)
+			V.Local.sType.Set("update")
+		F.Intrinsic.Control.Else
+			V.Local.sType.Set("upload")
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(V.DataView.dtFeedback!dvFeedback(0).Failed!FieldVal)
+			F.Intrinsic.String.Build("Quote {0} failed to {2} with message [{1}].", V.Local.sQuote, V.DataView.dtFeedback!dvFeedback(0).Feedback!FieldValTrim, V.Local.sType, V.Local.sMessage)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("{2} of Quote {0} as Order {1} successful.", V.Local.sQuote, V.DataView.dtFeedback!dvFeedback(0).ORDERNUMBER!FieldValTrim, V.Local.sType, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataView.Close("dtFeedback", "dvFeedback")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.GrabFeedback.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", "Processing complete. Exiting...")
+
+F.Intrinsic.Control.If(V.DataTable.dtQuoteHeader.Exists)
+	F.Data.DataTable.Close("dtQuoteHeader")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtQuoteLines.Exists)
+	F.Data.DataTable.Close("dtQuoteLines")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtQuotes.Exists)
+	F.Data.DataTable.Close("dtQuotes")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.EmailOrderToSalesperson.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sParameters.Declare(String)
+V.Local.sPath.Declare(String)
+V.Local.iBIRun.Declare(Long)
+V.Local.iBILog.Declare(Long)
+V.Local.iBIRet.Declare(Long)
+V.Local.sSubject.Declare(String)
+V.Local.sBody.Declare(String, "Order Acknowledgement attached.")
+V.Local.sSender.Declare(String)
+V.Local.sAttachment.Declare(String)
+V.Local.sParameterNames.Declare(String, "TERMINAL*!*REPORTID*!*INCLUDESTAX*!*DEC*!*COMMENTS*!*LOGO")
+V.Local.bExists.Declare(Boolean)
+V.Local.sFile.Declare(String)
+V.Local.sMessage.Declare(String)
+V.Local.sRecipient.Declare(String)
+
+F.Global.BI.GetRunID(V.Local.iBIRun)
+F.Global.BI.StartLogging(V.Local.iBIRun, 52, -1, "", V.Local.iBILog)
+
+'use 910050 library to generate sales order data, use crystal override so it does not print
+'could also use CallWrapperSyncBIO instead of library with crystal override
+F.Data.DataTable.AddRow("910050", "ORDER", V.Args.ORDER, "MODE", "P", "FILLER", "|~|CRYSTAL-OVERRIDE|~|")
+F.Intrinsic.Control.CallSub(910050Sync)
+
+'build path to store pdf
+F.Intrinsic.String.Build("{0}\CUSTOM\5807\{1}\Order Acknowledgements", V.Caller.GlobalDir, V.Caller.CompanyCode, V.Local.sPath)
+F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
+F.Intrinsic.String.Build("{0}\{1}.pdf", V.Local.sPath, V.Args.Order, V.Local.sFile)
+
+'build parameters
+F.Intrinsic.String.Build("{0}*!*000052*!**!**!**!*", V.Caller.Terminal, V.Local.sParameters)
+
+'print report
+F.Global.BI.StopLogging(V.Local.iBILog)
+F.Global.BI.RunReportPreProcessor(V.Local.iBIRun, V.Local.iBILog, V.Local.sParameterNames, V.Local.sParameters, "", 4, True, "", 5, "", 0, V.Local.sFile, "", V.Local.iBIRet)
+
+'if successful, send email
+F.Intrinsic.File.Exists(V.Local.sFile, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	F.Intrinsic.Control.If(V.Args.SalesPerson.Trim, !=, "")
+		'grab salesperson email
+		F.Intrinsic.String.Build("select RTRIM(NAME), RTRIM(EMAIL) from V_SALESPERSONS where ID = '{0}'", V.Args.SalesPerson.Trim, V.Local.sSQL)
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", True)
+		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+		F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
+		
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+			F.Intrinsic.String.Split(V.Local.sRet, "*!*", V.Local.sRet)
+			
+			F.Intrinsic.Control.If(V.Local.sRet(1).Trim, !=, "")
+			
+				'build Subject
+				F.Intrinsic.String.Build("Global Shop Order {0} created from Salesforce Quote {1}.", V.Args.Order.Trim, V.Args.External_Order.Trim, V.Local.sSubject)
+				
+				'build sender / receipient.
+				F.Intrinsic.String.Build("{0}*!*{1}", V.Local.sRet(1).Trim, V.Local.sRet(0).Trim, V.Local.sSender)
+				F.Intrinsic.String.Build("{0}*!*{1}", V.Local.sRet(0).Trim, V.Local.sRet(1).Trim, V.Local.sRecipient)
+				
+				'build attachment
+				F.Intrinsic.File.GetFileNameFromFQN(V.Local.sFile, V.Local.sFile)
+				F.Intrinsic.String.Build("{0}*!*{1}", V.Local.sFile, V.Local.sPath, V.Local.sAttachment)
+				
+				'send email
+				F.Intrinsic.String.Build("Emailing order acknowledgement of order {0} to {1}.", V.Args.Order.Trim, V.Local.sRet(1).Trim, V.Local.sMessage)
+				F.Global.Messaging.QueueMessage(V.Caller.CompanyCode, 0, "5807 Uploader", V.Local.sSubject, V.Local.sSender, V.Local.sRecipient, V.Local.sBody, -1, "", False, "", "", "", "", "", "", "", V.Local.sAttachment, False)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("Failed to email order acknowledgement of order {0} because salesperson {1} has no email set up.", V.Args.Order.Trim, V.Args.Salesperson.Trim, V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Failed to email order acknowledgement of order {0} because salesperson {1} was not found.", V.Args.Order.Trim, V.Args.Salesperson.Trim, V.Local.sMessage)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("Failed to email order acknowledgement of order {0} because no salesperson was passed.", V.Args.Order.Trim, V.Local.sMessage)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("Failed to email order acknowledgement of order {0} because report failed to print.", V.Args.Order.Trim, V.Local.sMessage)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.EmailOrderToSalesperson.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rseddon$}$20240214160535855$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QOlbx+MMTu4oxdxcmlFMgZccKuVcWd/jk=
+Program.Sub.Comments.End
