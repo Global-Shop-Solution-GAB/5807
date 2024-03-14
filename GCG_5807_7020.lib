@@ -1,0 +1,224 @@
+'Library for ORDADLN
+'all columns are set with a default value so spacing comes out correctly.
+'TABLE LAYOUT
+
+'FIELD NAME			DB FIELD		LENGTH/FORMAT	DESCRIPTION
+'================================================================================================================================
+'RECTYPE							1  Q/O			Pass Q for Quote, O for Order
+'CUSTOMER			CUSTOMER		CHAR(7)			7 DIGIT CUSTOMER NUMBER
+'ORDERNO			ORDER_NO		CHAR(7)			7 Digit Quote or Order number, leave blank if auto numbering
+'PART				PART			CHAR(20)		20 Character part number.  If using Revision Part = 17 char and Rev = 3.  Use GSSPartString(part,rev,gsspart)
+'FILLER				NOT USED		CHAR(18)		'Not used
+'LOCATION			LOCATION		CHAR(2)			Inventory Part Location
+'PRODUCTLINE		PRODUCT_LINE	CHAR(5)			Right Pad the 2 digit product line with spaces to a max of 5 characters
+'DESCRIPTION		DESCRIPTION		CHAR(30)		Part Description up to 30 characters
+'LINENO				RECORD_NO		CHAR(3)			Left Pad with 0's up to a max of 3 characters
+'LINETYPE			LINE_TYPE		CHAR(1)			S will be entered by default, change to X invoice only, D drop ship
+'QTYORDER			QTY_ORDERED		CHAR(13)		9.4 format, no decimal.  12.50 would be entered as 0000000125000
+'WEIGHT				WEIGHT			CHAR(10)		7.3 format, no decimal,  12.50 would be entered as 0000012500
+'QUOTEDPRICE		QUOTED			CHAR(16)		10.6 format, no decimal, 12.50 would be entered as 0000000012500000
+'USER1				USER_1			CHAR(30)		All 5 user fields have default values assigned
+'USER2				USER_2			CHAR(30)		They each hold a max of 30 characters
+'USER3				USER_3			CHAR(30)
+'USER4				USER_4			CHAR(30)
+'USER5				USER_5			CHAR(30)
+'UofM				UM_ORDER		CHAR(2)			Unit of Measure
+'ZEROPRICE_FLAG						CHAR(1)			Set to 1 to allow a $0 price to be loaded
+'SURVEY								CHAR(1)
+'ROUTERVAL			ROUTER_EXISTS	CHAR(1)			Y or blank
+'LENGTH								CHAR(12)		8.4 format, no decimal.  12.50 would be entered as 000000125000
+'WIDTH								CHAR(12)		8.4 format, no decimal.  12.50 would be entered as 000000125000
+'COST_FLAG							CHAR(1)			1 = Accept Cost Override
+'COST								CHAR(16)		10.6 format, no decimal. 12.50 would be entered as 0000000012500000
+'TAX_OVERRIDE_FLAG					CHAR(1)			1 = Accept tax override
+'TAX_FLAG							CHAR(1)			E for Exempt, T for taxable.
+
+
+Program.Sub.Preflight.Start
+F.Data.DataTable.Create("ORDADLN",True)
+f.Data.DataTable.AddColumn("ORDADLN","RECTYPE","STRING"," ",1)
+f.Data.DataTable.AddColumn("ORDADLN","CUSTOMER","STRING","       ",7)
+F.Data.DataTable.AddColumn("ORDADLN","ORDERNO","STRING","       ",7)
+F.Data.DataTable.AddColumn("ORDADLN","PART","STRING","                    ",20)
+f.Data.DataTable.AddColumn("ORDADLN","FILLER","STRING","                  ",18)
+F.Data.DataTable.AddColumn("ORDADLN","LOCATION","STRING","  ",2)
+f.Data.DataTable.AddColumn("ORDADLN","PRODUCTLINE","STRING","     ",5)
+f.Data.DataTable.AddColumn("ORDADLN","DESCRIPTION","STRING","                              ",30)
+f.Data.DataTable.AddColumn("ORDADLN","LINENO","STRING","   ",3)
+F.Data.DataTable.AddColumn("ORDADLN","LINETYPE","STRING","S",1)
+f.Data.DataTable.AddColumn("ORDADLN","QTYORDER","STRING","0000000000000",13)
+F.Data.DataTable.AddColumn("ORDADLN","WEIGHT","STRING","0000000000",10)
+F.Data.DataTable.AddColumn("ORDADLN","QUOTEDPRICE","STRING","0000000000000000",16)
+F.Data.DataTable.AddColumn("ORDADLN","USER1","STRING","                              ",30)
+F.Data.DataTable.AddColumn("ORDADLN","USER2","STRING","                              ",30)
+F.Data.DataTable.AddColumn("ORDADLN","USER3","STRING","                              ",30)
+F.Data.DataTable.AddColumn("ORDADLN","USER4","STRING","                              ",30)
+F.Data.DataTable.AddColumn("ORDADLN","USER5","STRING","                              ",30)
+F.Data.DataTable.AddColumn("ORDADLN","UofM","STRING","  ",2)
+F.Data.DataTable.AddColumn("ORDADLN","ZEROPRICE_FLAG","STRING"," ",1)
+F.Data.DataTable.AddColumn("ORDADLN","SURVEY","STRING","        ",8)
+F.Data.DataTable.AddColumn("ORDADLN","ROUTERVAL","STRING"," ",1)
+F.Data.DataTable.AddColumn("ORDADLN","LENGTH","STRING","            ",12)
+F.Data.DataTable.AddColumn("ORDADLN","WIDTH","STRING","            ",12)
+F.Data.DataTable.AddColumn("ORDADLN","COST_FLAG","STRING"," ",1)
+F.Data.DataTable.AddColumn("ORDADLN","COST","STRING","0000000000000000",16)
+F.Data.DataTable.AddColumn("ORDADLN","TAX_OVERRIDE_FLAG","STRING"," ",1)
+F.Data.DataTable.AddColumn("ORDADLN","TAX_FLAG","STRING","E",1)
+
+Program.Sub.Preflight.End
+
+Program.Sub.Build_File.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+v.Local.sFile.Declare
+v.Local.sLine.Declare
+V.Local.iCount.Declare
+v.Local.sParams.Declare
+v.Local.sTemp.Declare
+
+f.Intrinsic.StringBuilder.Create("LINES")
+'build the export file
+f.Intrinsic.Control.For(v.Local.iCount,0,v.DataTable.ORDADLN.RowCount--, 1)
+	'O or Q Start at 1, length 1
+	f.Intrinsic.String.Build("{0}",v.DataTable.ORDADLN(v.Local.iCount).RECTYPE!FIELDVALTRIM,V.Local.sTemp)
+	'Customer Start at 2, length 7, end 8
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(V.Local.iCount).CUSTOMER!FIELDVALSTRING,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",8,V.Local.sTemp)
+	'OrderNo start at 9, length 7, end 15
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).ORDERNO!FIELDVALSTRING,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",15,V.Local.sTemp)
+	'Part Number start at 16, length 20, end at 35
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).PART!FIELDVALSTRING,V.Local.sTemp)
+	'include the FILLER field with the padded, FILLER is not used 18, end at 53
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",53,v.Local.sTemp)
+	'location start at 54, length 2, end at 55
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).LOCATION!FIELDVALSTRING,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",55,V.Local.sTemp)
+	'product line start at 56, length 5, end at 61
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).PRODUCTLINE!FIELDVALSTRING,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",61,V.Local.sTemp)
+	'description line start 62, length 30, end 90
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).DESCRIPTION!FIELDVALSTRING,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",90,V.Local.sTemp)
+	'line number start at 91, length 3, end at 93
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).LINENO!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",93,v.Local.sTemp)
+	'line type start at 94, length 1, end at 94
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).LINETYPE!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",94,v.Local.sTemp)
+	'qty ordered, starts at 95, length 13, ends at 107
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).QTYORDER!FIELDVALSTRING,v.Local.sTemp)
+	'weight
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).WEIGHT!FIELDVALSTRING,v.Local.sTemp)
+	'QUOTEDPRICE
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).QUOTEDPRICE!FIELDVALSTRING,v.Local.sTemp)
+	'User Field 1
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).USER1!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",163,v.Local.sTemp)
+	'user field 2
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).USER2!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(v.Local.sTemp," ",193,v.Local.sTemp)
+	'user field 3
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).USER3!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",223,V.Local.sTemp)
+	'user field 4
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).USER4!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",253,v.Local.sTemp)
+	'user field 5
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).USER5!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",283,V.Local.sTemp)
+	'unit of measure
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).UOFM!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",285,v.Local.sTemp)
+	'price flag
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).ZEROPRICE_FLAG!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",286,v.Local.sTemp)
+	'survey no
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).SURVEY!FIELDVALSTRING,v.Local.sTemp)
+	f.Intrinsic.String.RPad(v.Local.sTemp," ",294,v.Local.sTemp)
+	'router val flag
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).ROUTERVAL!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",295,V.Local.sTemp)
+	'Length
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).LENGTH!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",307,V.Local.sTemp)
+	'Width
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).WIDTH!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",319,V.Local.sTemp)
+	'Cost flag
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).COST_FLAG!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",320,V.Local.sTemp)
+	'COST
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).COST!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp,"0",336,V.Local.sTemp)
+	'Tax override flag
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).TAX_OVERRIDE_FLAG!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(v.Local.sTemp," ",337,v.Local.sTemp)
+	'Tax flag
+	f.Intrinsic.String.Build("{0}{1}",v.Local.sTemp,v.DataTable.ORDADLN(v.Local.iCount).TAX_FLAG!FIELDVALSTRING,v.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",339,V.Local.sTemp)
+	
+	F.Intrinsic.StringBuilder.AppendLine("LINES",V.Local.sTemp)
+f.Intrinsic.Control.Next(v.Local.iCount)
+
+'build the file name
+f.Intrinsic.String.Build("{0}\LDADD{1}{2}.txt",v.Caller.FilesDir,v.Caller.CompanyCode,v.Ambient.Time.FormatHHNNSS,V.Local.sFile)
+'write the file to be uploaded
+f.Intrinsic.StringBuilder.ToString("LINES",v.Local.sTemp)
+f.Intrinsic.StringBuilder.Dispose("LINES")
+f.Intrinsic.File.String2File(v.Local.sFile,v.Local.sTemp)
+
+f.Intrinsic.String.ConcatCallWrapperArgs(V.Args.ORDER,V.Args.TYPE.Trim,V.Local.sFile,V.Local.sParams)
+
+f.Intrinsic.Control.If(v.Args.METHOD,=,"SYNC")
+	F.Global.General.CallWrapperSync(7020,V.Local.sParams)
+F.Intrinsic.Control.ElseIf(V.Args.METHOD,=,"ASYNC")
+	F.Global.General.CallWrapperAsync(7020,V.Local.sParams)
+f.Intrinsic.Control.EndIf
+
+F.Data.DataTable.DeleteRow("ORDADLN")
+F.Data.DataTable.AcceptChanges("ORDADLN")
+
+F.Intrinsic.Control.ExitSub
+
+f.Intrinsic.Control.catch
+	f.Intrinsic.Control.CallSub(ordadln_catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.Build_File.End
+
+Program.Sub.7020Sync.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+f.Intrinsic.Control.CallSub(build_file,"METHOD","SYNC","ORDER",V.Args.ORDER,"TYPE",V.Args.TYPE)
+
+F.Intrinsic.Control.ExitSub
+
+f.Intrinsic.Control.catch
+	f.Intrinsic.Control.CallSub(ordadln_catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.7020Sync.End
+
+Program.Sub.7020Async.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+F.Intrinsic.Control.CallSub(build_file,"METHOD","ASYNC","ORDER",V.Args.ORDER,"TYPE",V.Args.TYPE)
+
+F.Intrinsic.Control.ExitSub
+
+f.Intrinsic.Control.catch
+	f.Intrinsic.Control.CallSub(ordadln_catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.7020Async.End
+
+Program.Sub.Ordadln_catching.Start
+v.Local.sError.declare(string)
+F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","7020.lib",V.Ambient.NewLine,v.Args.sub,V.Args.errorno,V.args.errordesc,V.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.Ordadln_catching.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$tsmith$}$20200130105721663$}$xqPbj9atw05FglvzeFsZ9cqXP+qvG6tXnreg6g0uPxqbShrTax+VIv2sSRCRiuhw94nPVyoZWKw=
+Program.Sub.Comments.End
