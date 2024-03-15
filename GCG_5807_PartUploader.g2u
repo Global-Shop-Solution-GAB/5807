@@ -374,7 +374,7 @@ F.Intrinsic.Control.EndIf
 F.Intrinsic.Control.If(V.Local.bFailed.Not)
 	F.Global.General.ReadOption(400384, 0, False, V.Local.bOption)
 	F.Intrinsic.Control.If(V.Local.bOption)
-		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PRODUCT_LINE!FieldValTrim, "Table", "V_PRODUCT_LINE", "Field", "PRODUCT_LINE", "Filter", "")
+		F.Intrinsic.Control.CallSub(CheckValidatedField, "Value", V.DataTable.dtParts(V.Args.Index).PRODUCT_LINE!FieldValTrim, "Table", "V_PL_MASTER", "Field", "PROD_LINE", "Filter", "")
 		F.Intrinsic.Control.If(V.Args.Valid.Not)
 			V.Local.bFailed.Set(True)
 			F.Intrinsic.String.Build("Part upload/update failed for part [{0}] because the GSS option to validate product lines is on and the passed PRODUCT_LINE [{1}] is not valid.", V.DataTable.dtParts(V.Args.Index).PART_FULL!FieldValTrim, V.DataTable.dtParts(V.Args.Index).PRODUCT_LINE!FieldValTrim, V.Local.sMessage)
@@ -610,5 +610,5 @@ Program.Sub.SendIPMMessage.End
 
 Program.Sub.Comments.Start
 ${$5$}$2.0.0.0$}$2
-${$6$}$rseddon$}$20240229234039796$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbkwdKLri347QTxAaoKifQrbiEMjYEI5VJcBE+JKisAQg=
+${$6$}$rseddon$}$20240313165836511$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9n5evFsc+tpJoijUYaCr0F+KDdFUNvtoZo=
 Program.Sub.Comments.End
