@@ -171,55 +171,70 @@ V.Local.sUser.Declare(String)
 V.Local.sMachine.Declare(String)
 V.Local.sTime.Declare(String)
 V.Local.sWindowsUser.Declare(String)
+V.Local.sProgram.Declare(String)
 
 'check if lock exists
 F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 1, -1, V.Local.iPID)
 
 F.Intrinsic.Control.If(V.Local.iPID, !=, -1)
-
-	'new method
-	'if WE are called from the dashboard
-	F.Intrinsic.Control.If(V.Global.sCallingProgram.Trim, =, "GCG_5807_ReviewDashboard.g2u")
-		F.Intrinsic.UI.ChangeWaitStatus("Another instance of the order uploader is running. Waiting for completion...")
-		'check the calling program of the other instance
-		'well actually we don't really need to check, it will either be the server uploader or another dashboard instance
-		'either way we wait until the program is done, then we launch
-		'maybe need some way for user to cancel?
-		F.Intrinsic.Control.DoUntil(V.Local.iPID, =, -1)
-			F.Intrinsic.UI.Sleep(1)
-			F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 1, -1, V.Local.iPID)
-		F.Intrinsic.Control.Loop
-		
-	'if we are not called from the dashboard
-	F.Intrinsic.Control.ElseIf(V.Global.sCallingProgram, =, "GABCE.EXE")
-		'for testing purposes, clear lock and run
-		F.Intrinsic.Control.CallSub(AddLog, "Message", "Uploader lock found, but program was launched from GABCE.EXE. Assuming testing, clearing lock and lanching...")
+	F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 5, "", V.Local.sProgram)
+	F.Intrinsic.Control.If(V.Local.sProgram.Trim, =, "GABCE.EXE")
+		F.Intrinsic.Control.CallSub(AddLog, "Message", "Uploader lock found, but lock was from GABCE.EXE. Assuming testing, clearing lock and lanching...")
 		F.Intrinsic.Control.CallSub(ClearLock)
-		
 	F.Intrinsic.Control.Else
-		'exit, don't run on top of ourselves
-		'HERE CHECK PID
-		F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 6, "", V.Local.sData)
-		F.Intrinsic.String.Split(V.Local.sData, V.Ambient.NewLine, V.Local.sData)
-		F.Intrinsic.String.Split(V.Local.sData(1), ": ", V.Local.sTime)
-		F.Intrinsic.String.Split(V.Local.sData(2), ": ", V.Local.sUser)
-		F.Intrinsic.String.Split(V.Local.sData(4), ": ", V.Local.sWindowsUser)
-		F.Intrinsic.String.Split(V.Local.sData(5), ": ", V.Local.sMachine)
-		
-		F.Intrinsic.String.Build("Uploader is already running with PID [{0}] from script [GCG_5807_OrderUploader.g2u], GSS User [{1}], Windows User [{2}], Machine [{3}] since [{4}]. Exiting...", V.Local.iPID, V.Local.sUser(1).Trim, V.Local.sWindowsUser(1).Trim, V.Local.sMachine(1).Trim, V.Local.sTime(1).Trim, V.Local.sMessage)
-		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
-		F.Intrinsic.Control.If(V.Global.bUnattended.Not)
-			F.Intrinsic.UI.Msgbox(V.Local.sMessage)
-		F.Intrinsic.Control.EndIf
-		
-		V.Local.sData.Redim(0, 0)
-		V.Local.sTime.Redim(0, 0)
-		V.Local.sUser.Redim(0, 0)
-		V.Local.sWindowsUser.Redim(0, 0)
-		V.Local.sMachine.Redim(0, 0)
-		
-		V.Global.bClearLock.Set(False)
-		F.Intrinsic.Control.CallSub(Exit)
+		'if WE are called from the dashboard
+		F.Intrinsic.Control.If(V.Global.sCallingProgram.Trim, =, "GCG_5807_ReviewDashboard.g2u")
+			
+			'check the calling program of the other instance
+			'well actually we don't really need to check, it will either be the server uploader or another dashboard instance
+			'either way we wait until the program is done, then we launch
+			'maybe need some way for user to cancel?
+			
+			F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 6, "", V.Local.sData)
+			F.Intrinsic.String.Split(V.Local.sData, V.Ambient.NewLine, V.Local.sData)
+			F.Intrinsic.String.Split(V.Local.sData(1), ": ", V.Local.sTime)
+			F.Intrinsic.String.Split(V.Local.sData(2), ": ", V.Local.sUser)
+			F.Intrinsic.String.Split(V.Local.sData(4), ": ", V.Local.sWindowsUser)
+			F.Intrinsic.String.Split(V.Local.sData(5), ": ", V.Local.sMachine)
+			F.Intrinsic.String.Build("Another instance of the order uploader is running for user {0} on machine {1} at time {2}. Waiting for completion...", V.Local.sUser(1), V.Local.sMachine(1), V.Local.sTime(1), V.Local.sMessage)
+			F.Intrinsic.UI.ChangeWaitStatus(V.Local.sMessage)
+			
+			F.Intrinsic.Control.DoUntil(V.Local.iPID, =, -1)
+				F.Intrinsic.UI.Sleep(1)
+				F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 1, -1, V.Local.iPID)
+			F.Intrinsic.Control.Loop
+			
+		'if we are not called from the dashboard
+		F.Intrinsic.Control.ElseIf(V.Global.sCallingProgram, =, "GABCE.EXE")
+			'for testing purposes, clear lock and run
+			F.Intrinsic.Control.CallSub(AddLog, "Message", "Uploader lock found, but program was launched from GABCE.EXE. Assuming testing, clearing lock and lanching...")
+			F.Intrinsic.Control.CallSub(ClearLock)
+			
+		F.Intrinsic.Control.Else
+			'exit, don't run on top of ourselves
+			'HERE CHECK PID
+			F.Global.Registry.ReadValue("", V.Caller.CompanyCode, "GCG_5807_OrderUploader.g2u", V.Global.sProject, 0, 6, "", V.Local.sData)
+			F.Intrinsic.String.Split(V.Local.sData, V.Ambient.NewLine, V.Local.sData)
+			F.Intrinsic.String.Split(V.Local.sData(1), ": ", V.Local.sTime)
+			F.Intrinsic.String.Split(V.Local.sData(2), ": ", V.Local.sUser)
+			F.Intrinsic.String.Split(V.Local.sData(4), ": ", V.Local.sWindowsUser)
+			F.Intrinsic.String.Split(V.Local.sData(5), ": ", V.Local.sMachine)
+			
+			F.Intrinsic.String.Build("Uploader is already running with PID [{0}] from script [GCG_5807_OrderUploader.g2u], GSS User [{1}], Windows User [{2}], Machine [{3}] since [{4}]. Exiting...", V.Local.iPID, V.Local.sUser(1).Trim, V.Local.sWindowsUser(1).Trim, V.Local.sMachine(1).Trim, V.Local.sTime(1).Trim, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+			F.Intrinsic.Control.If(V.Global.bUnattended.Not)
+				F.Intrinsic.UI.Msgbox(V.Local.sMessage)
+			F.Intrinsic.Control.EndIf
+			
+			V.Local.sData.Redim(0, 0)
+			V.Local.sTime.Redim(0, 0)
+			V.Local.sUser.Redim(0, 0)
+			V.Local.sWindowsUser.Redim(0, 0)
+			V.Local.sMachine.Redim(0, 0)
+			
+			V.Global.bClearLock.Set(False)
+			F.Intrinsic.Control.CallSub(Exit)
+		F.Intrinsic.Control.EndIf								
 	F.Intrinsic.Control.EndIf
 F.Intrinsic.Control.EndIf
 
@@ -423,6 +438,8 @@ F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtFields.RowCount--, 1)
 	F.Intrinsic.Control.If(V.DataTable.dtFields(V.Local.iCounter).REPLACE_NEWLINE!FieldVal)
 		V.Local.bExpression.Set(True)
 		F.Intrinsic.String.Build("REPLACE({0}, '{1}', '')", V.Local.sField, V.Ambient.NewLine, V.Local.sField)
+		F.Intrinsic.String.Build("REPLACE({0}, '{1}', '')", V.Local.sField, V.ASCII.10, V.Local.sField)
+		F.Intrinsic.String.Build("REPLACE({0}, '{1}', '')", V.Local.sField, V.ASCII.13, V.Local.sField)
 	F.Intrinsic.Control.EndIf
 	
 	'right trim strings
@@ -1469,14 +1486,24 @@ F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtOrderNumbers.RowCount
 				
 				'add to line table	
 				V.Local.iLine.Set(0)
-				F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtOrders!dvUpload.RowCount--, 1)		
+				F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtOrders!dvUpload.RowCount--, 1)
 					
 					V.Local.dDate.Set(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).LINE_DATE!FieldVal)
 					V.Local.dDueDate.Set(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).LINE_PROMISE_DATE!FieldVal)
 					
-					F.Intrinsic.Control.If(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).LineNumber!FieldValLong, >, 0)
+					F.Intrinsic.Control.If(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).LineNumber!FieldValLong, >, 0)		
 						V.Local.iLine.Set(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).LineNumber!FieldValLong)
 						F.Data.DataView.SetValue("dtOrders", "dvUpload", V.Local.iLineCounter, "SET_LINE_NUMBER", V.Local.iLine)
+						
+						'check for duplicate lines
+						F.Intrinsic.String.Build("Order_No_External = '{0}' and LineNumber = {1}", V.DataTable.dtOrderNumbers(V.Local.iCounter).Order_No_External!FieldValTrim, V.Local.iLine, V.Local.sFilter)
+						F.Data.DataView.Create("dtOrders", "dvLineCheck", 22, V.Local.sFilter, "")
+						F.Intrinsic.Control.If(V.DataView.dtOrders!dvLineCheck.RowCount, >, 1)
+							V.Local.bFailed.Set(True)
+							V.Local.bSetFeedback.Set(True)
+							F.Intrinsic.String.Build("{0} of {1} {2} failed because duplicate line numbers were passed. Please make sure each line number is unique or blank.", V.Local.sTransaction, V.Local.sType, V.Local.sNumber, V.Local.sFeedback)
+						F.Intrinsic.Control.EndIf
+						F.Data.DataView.Close("dtOrders", "dvLineCheck")
 					F.Intrinsic.Control.Else
 						F.Intrinsic.Math.Add(V.Local.iLine, 1, V.Local.iLine)
 						F.Data.DataView.SetValue("dtOrders", "dvUpload", V.Local.iLineCounter, "SET_LINE_NUMBER", V.Local.iLine)
@@ -1512,6 +1539,12 @@ F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtOrderNumbers.RowCount
 							F.Intrinsic.Control.CallSub(Connection, "CONNECT", False)
 						F.Intrinsic.Control.EndIf
 					F.Intrinsic.Control.EndIf
+					
+					'exit if we failed
+					F.Intrinsic.Control.If(V.Local.bFailed)
+						F.Intrinsic.Control.ExitFor(V.Local.iLineCounter)
+					F.Intrinsic.Control.EndIf
+					
 					F.Intrinsic.String.LPad(V.DataView.dtOrders!dvUpload(V.Local.iLineCounter).SET_LINE_NUMBER!FieldValLong, "0", 3, V.Local.sLine)
 					
 					'write comment record with web importer, then update comment manually
@@ -2940,7 +2973,7 @@ F.Intrinsic.Control.Else
 F.Intrinsic.Control.EndIf
 
 'grab the service type for the carrier
-F.Intrinsic.String.Build("select SRVC_TYPE from V_OE_CARRIER where CARRIER_CD = '{0}'", V.DataView.dtOrders!dvUpload(0).Carrier!FieldValTrim, V.Local.sSQL)
+F.Intrinsic.String.Build("select top 1 A.SRVC_TYPE from V_OE_CARRIER A left join V_SHIP_VIA B on A.VIA = B.ID where A.CARRIER_CD = '{0}' and B.MESSAGE = '{1}'", V.DataView.dtOrders!dvUpload(0).Carrier!FieldValTrim, V.DataView.dtOrders!dvUpload(0).ShipVia!FieldValTrim, V.Local.sSQL)
 F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
 F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.iCarrier)
 F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
@@ -3144,7 +3177,7 @@ V.Local.sSubject.Declare(String)
 V.Local.sBody.Declare(String, "Order Acknowledgement attached.")
 V.Local.sSender.Declare(String)
 V.Local.sAttachment.Declare(String)
-V.Local.sParameterNames.Declare(String, "TERMINAL*!*REPORTID*!*INCLUDESTAX*!*DEC*!*COMMENTS*!*LOGO")
+V.Local.sParameterNames.Declare(String, "TERMINAL*!*REPORTID*!*INCLUDESTAX*!*DEC*!*COMMENTS")
 V.Local.bExists.Declare(Boolean)
 V.Local.sFile.Declare(String)
 V.Local.sMessage.Declare(String)
@@ -3174,7 +3207,7 @@ F.Intrinsic.Control.CallSub(CheckDirectories, "Directories", V.Local.sPath)
 F.Intrinsic.String.Build("{0}\{1}.pdf", V.Local.sPath, V.Args.Order, V.Local.sFile)
 
 'build parameters
-F.Intrinsic.String.Build("{0}*!*0000{1}*!**!**!**!*", V.Caller.Terminal, V.Local.iReportID, V.Local.sParameters)
+F.Intrinsic.String.Build("{0}*!*0000{1}*!**!**!*", V.Caller.Terminal, V.Local.iReportID, V.Local.sParameters)
 
 'print report
 F.Global.BI.StopLogging(V.Local.iBILog)
@@ -3963,5 +3996,5 @@ Program.Sub.DeleteQuote.End
 
 Program.Sub.Comments.Start
 ${$5$}$2.0.0.0$}$2
-${$6$}$rseddon$}$20240307095045375$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9n4ckJzJVzL7O4wUajFQpdned9lWbHEigw=
+${$6$}$rseddon$}$20240308152532744$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9nn0heT3nfGhR/KR5QzbgQLAEclhQN6LYw=
 Program.Sub.Comments.End
