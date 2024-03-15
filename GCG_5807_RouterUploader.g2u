@@ -508,64 +508,73 @@ F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
 'loop through routers
 F.Data.DataView.Create("dtRouters", "dvThisRouter", 22, "", "LINE_NUMBER")
 F.Intrinsic.Control.For(V.Local.iRouterCounter, 0, V.DataTable.dtRouterList.RowCount--, 1)
+	V.Local.bFailed.Set(False)
+	V.Local.bSkip.Set(False)
 	F.Intrinsic.String.Build("Processing router [{0}]...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
 	F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
 	
-	V.Local.bFailed.Set(False)
-	V.Local.bSkip.Set(False)
-	F.Intrinsic.String.Build("[ROUTER_FULL] = '{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFilter)
-	F.Data.DataView.SetFilter("dtRouters", "dvThisRouter", V.Local.sFilter)
-	
-	'fix line numbers
-	'this will cause an issue if they were passing line numbers like 1,2,3,4 etc
-	'because now it will come in like that instead of 100s
-	F.Intrinsic.String.Build("{0} and IsNull(LINE_NUMBER, -1) < 1", V.Local.sFilter, V.Local.sFilter)
-	F.Data.DataView.Create("dtRouters", "dvCheck", 22, V.Local.sFilter, "")
-	F.Intrinsic.Control.If(V.DataView.dtRouters!dvCheck.RowCount, >, 0)
-		F.Data.DataView.SetSeries("dtRouters", "dvThisRouter", "SEQUENCE", V.Local.iSequenceInterval, V.Local.iSequenceInterval)
-	F.Intrinsic.Control.Else
-		F.Data.DataTable.CopyColumn("dtRouters", "LINE_NUMBER", "SEQUENCE")
+	F.Intrinsic.Control.CallSub(CheckRouterLock, "Router", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim)
+	F.Intrinsic.Control.If(V.Args.Locked)
+		F.Intrinsic.String.Build("Router [{0}] is currently locked and cannot be updated. Skipping for now...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
+		F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+		V.Local.bSkip.Set(True)
 	F.Intrinsic.Control.EndIf
-	F.Data.DataView.Close("dtRouters", "dvCheck")
 	
-	'create temp datatable for upload
-	F.Data.DataTable.Clone("6021", "dtUploadTemp", True)
-	
-	'check if updating
-	'don't like doing like here, but I've had several issues with routers not pulling in without it
-	F.Intrinsic.String.Build("select ROUTER from V_ROUTER_HEADER where ROUTER like '%{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
-	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
-	F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
-	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
-		'router exists
-		F.Intrinsic.Control.If(V.Local.bAllowUpdate)
-			V.Local.bUpdate.Set(True)
-			
-			'delete router
-			F.Intrinsic.String.Build("Update found for router [{0}]. Deleting for reupload...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
-			F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
-			F.Intrinsic.Control.CallSub(DeleteRouter, "Router", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim)
+	F.Intrinsic.Control.If(V.Local.bSkip.Not)
+		F.Intrinsic.String.Build("[ROUTER_FULL] = '{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFilter)
+		F.Data.DataView.SetFilter("dtRouters", "dvThisRouter", V.Local.sFilter)
+		
+		'fix line numbers
+		'this will cause an issue if they were passing line numbers like 1,2,3,4 etc
+		'because now it will come in like that instead of 100s
+		F.Intrinsic.String.Build("{0} and IsNull(LINE_NUMBER, -1) < 1", V.Local.sFilter, V.Local.sFilter)
+		F.Data.DataView.Create("dtRouters", "dvCheck", 22, V.Local.sFilter, "")
+		F.Intrinsic.Control.If(V.DataView.dtRouters!dvCheck.RowCount, >, 0)
+			F.Data.DataView.SetSeries("dtRouters", "dvThisRouter", "SEQUENCE", V.Local.iSequenceInterval, V.Local.iSequenceInterval)
 		F.Intrinsic.Control.Else
-			'fail because update option is off
-			V.Local.bFailed.Set(True)
-			F.Intrinsic.String.Build("Router [{0}] failed to update because the option to allow updates is turned off.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFeedback)
+			F.Data.DataTable.CopyColumn("dtRouters", "LINE_NUMBER", "SEQUENCE")
 		F.Intrinsic.Control.EndIf
-	F.Intrinsic.Control.Else
-		V.Local.bUpdate.Set(False)
-	F.Intrinsic.Control.EndIf
-	
-	'validate header fields, Customer
-	F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, !=, "")
-		F.Intrinsic.String.Build("select CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sSQL)
+		F.Data.DataView.Close("dtRouters", "dvCheck")
+		
+		'create temp datatable for upload
+		F.Data.DataTable.Clone("6021", "dtUploadTemp", True)
+		
+		'check if updating
+		'don't like doing like here, but I've had several issues with routers not pulling in without it
+		F.Intrinsic.String.Build("select ROUTER from V_ROUTER_HEADER where ROUTER like '%{0}'", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sSQL)
 		F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
 		F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
-		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
-			V.Local.bFailed.Set(True)
-			F.Intrinsic.String.Build("Router [{0}] failed to upload because passed CUSTOMER_ID [{0}] is not a valid GSS customer.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sFeedback)
+		F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+			'router exists
+			F.Intrinsic.Control.If(V.Local.bAllowUpdate)
+				V.Local.bUpdate.Set(True)
+				
+				'delete router
+				F.Intrinsic.String.Build("Update found for router [{0}]. Deleting for reupload...", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(AddLog, "Message", V.Local.sMessage)
+				F.Intrinsic.Control.CallSub(DeleteRouter, "Router", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim)
+			F.Intrinsic.Control.Else
+				'fail because update option is off
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Router [{0}] failed to update because the option to allow updates is turned off.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			V.Local.bUpdate.Set(False)
+		F.Intrinsic.Control.EndIf
+		
+		'validate header fields, Customer
+		F.Intrinsic.Control.If(V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, !=, "")
+			F.Intrinsic.String.Build("select CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sSQL)
+			F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sRet)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				V.Local.bFailed.Set(True)
+				F.Intrinsic.String.Build("Router [{0}] failed to upload because passed CUSTOMER_ID [{0}] is not a valid GSS customer.", V.DataTable.dtRouterList(V.Local.iRouterCounter).ROUTER_FULL!FieldValTrim, V.DataView.dtRouters!dvThisRouter(0).CUSTOMER_ID!FieldValTrim, V.Local.sFeedback)
+			F.Intrinsic.Control.EndIf
 		F.Intrinsic.Control.EndIf
 	F.Intrinsic.Control.EndIf
 	
-	F.Intrinsic.Control.If(V.Local.bFailed.Not)
+	F.Intrinsic.Control.If(V.Local.bFailed, =, False, "AND", V.Local.bSkip, =, False)
 		'loop through lines and check, add to upload datatable
 		F.Intrinsic.Control.For(V.Local.iLineCounter, 0, V.DataView.dtRouters!dvThisRouter.RowCount--, 1)
 			F.Intrinsic.Control.SelectCase(V.DataView.dtRouters!dvThisRouter(V.Local.iLineCounter).LINE_TYPE!FieldValTrim)
@@ -839,13 +848,16 @@ F.Intrinsic.Control.For(V.Local.iRouterCounter, 0, V.DataTable.dtRouterList.RowC
 				F.Intrinsic.Control.Next(V.Local.iLineCounter)
 				
 			F.Intrinsic.Control.EndIf
-			F.Data.DataTable.Close("dtUploadTemp")
 		F.Intrinsic.Control.EndIf
 	F.Intrinsic.Control.EndIf
 	
 	'now write out log / update table
 	F.Intrinsic.Control.If(V.Local.bSkip.Not)
 		F.Intrinsic.Control.CallSub(SaveFeedback, "Router", V.DataView.dtRouters!dvThisRouter(0).ROUTER_NUMBER!FieldValTrim, "Router_Revision", V.DataView.dtRouters!dvThisRouter(0).REVISION!FieldValTrim, "Failed", V.Local.bFailed, "Feedback", V.Local.sFeedback)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dtUploadTemp.Exists)
+		F.Data.DataTable.Close("dtUploadTemp")
 	F.Intrinsic.Control.EndIf
 	
 F.Intrinsic.Control.Next(V.Local.iRouterCounter)
@@ -860,6 +872,45 @@ F.Intrinsic.Control.Catch
 	F.Intrinsic.Control.CallSub(ErrorMessage)
 F.Intrinsic.Control.EndTry
 Program.Sub.UploadStagedRouters.End
+
+Program.Sub.CheckRouterLock.Start
+F.Intrinsic.Control.Try
+
+V.Local.iLock.Declare(Long)
+V.Local.bLock.Declare(Boolean, False)
+V.Local.sSQL.Declare(String)
+
+'pass router
+
+'check soft lock
+F.Global.General.ReadSoftLock("RT", V.Args.Router, V.Local.iLock)
+F.Intrinsic.Control.If(V.Local.iLock, =, 1)
+	V.Local.bLock.Set(True)
+F.Intrinsic.Control.EndIf
+
+'check database lock
+F.Intrinsic.Control.If(V.Local.bLock.Not)
+	'this query does nothing, it's just to test if the record is locked
+	F.Intrinsic.String.Build("update ROUTER_HEADER set DESCRIPTION_ROUTER = (select DESCRIPTION_ROUTER from ROUTER_HEADER where ROUTER = '{0}' and ROUTER_TYPE = 'H') where ROUTER = '{0}' and ROUTER_TYPE = 'H';", V.Args.Router, V.Local.sSQL)
+	F.Intrinsic.Control.CallSub(LogSQL, "SQL", V.Local.sSQL)
+	
+	F.Intrinsic.Control.CallSub(Connection, "Connect", True)
+	
+	F.Intrinsic.Control.Try
+		F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.CatchWhen(20004)
+		V.Local.bLock.Set(True)
+	F.Intrinsic.Control.EndTry
+	
+	F.Intrinsic.Control.CallSub(Connection, "Connect", False)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.AddRV("Locked", V.Local.bLock)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage)
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckRouterLock.End
 
 Program.Sub.Exit.Start
 'clean up, exit
@@ -956,5 +1007,5 @@ Program.Sub.SendIPMMessage.End
 
 Program.Sub.Comments.Start
 ${$5$}$2.0.0.0$}$2
-${$6$}$rseddon$}$20240304152901778$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9mUJIzesa2Xrfu07ZlOQvpcoQ1PEkCluHA=
+${$6$}$rseddon$}$20240315123945021$}$DkKb6sybY9hE3N0enyRwKJuHSlMGTgRbriRczReGg9m2KwquHuVpD9+EXCaKL+kJjMrLcUchuHg=
 Program.Sub.Comments.End
